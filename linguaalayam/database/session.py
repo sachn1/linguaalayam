@@ -5,14 +5,18 @@ from omegaconf import DictConfig
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
+from urllib.parse import quote_plus
 
 from linguaalayam.models.orm import Base
-
+from dotenv import load_dotenv
+load_dotenv()
 
 def build_engine(db_cfg: DictConfig) -> Engine:
-    engine = create_engine(
-        db_cfg.url,
-        pool_pre_ping=True,
+    url = (
+    f"postgresql+psycopg2://{db_cfg.user}:{quote_plus(db_cfg.password)}"
+    f"@{db_cfg.host}:{db_cfg.port}/{db_cfg.name}?sslmode=require"
+)
+    engine = create_engine(url, pool_pre_ping=True,
         pool_size=db_cfg.pool_size,
         max_overflow=db_cfg.max_overflow,
     )

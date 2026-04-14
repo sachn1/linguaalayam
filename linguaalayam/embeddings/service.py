@@ -9,7 +9,10 @@ from linguaalayam.models.entries import Embeddable
 class EmbeddingService:
     def __init__(self, embedding_cfg: DictConfig) -> None:
         self._cfg = embedding_cfg
-        self._model = SentenceTransformer(embedding_cfg.model)
+        self._model = SentenceTransformer(
+            embedding_cfg.model,
+            model_kwargs={"torch_dtype": "int8"} if embedding_cfg.get("quantise") else {},
+        )
 
     @property
     def vector_size(self) -> int:
@@ -43,11 +46,13 @@ def embed_in_batches(
     entries: list[Embeddable],
     batch_size: int | None = None,
 ) -> list[list[float]]:
-    """Encode all entries in batches with a progress bar."""
+    """Encode all entries in batches, showing a per-entry progress bar."""
     size = batch_size or service._cfg.batch_size
     all_vectors: list[list[float]] = []
 
-    for batch in tqdm(list(batched(entries, size)), desc="Embedding"):
-        all_vectors.extend(service.encode(batch))
+    with tqdm(total=len(entries), desc="Embedding", unit="entry") as pbar:
+        for batch in batched(entries, size):
+            all_vectors.extend(service.encode(batch))
+            pbar.update(len(batch))
 
     return all_vectors

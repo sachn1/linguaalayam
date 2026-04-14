@@ -51,3 +51,15 @@ def similarity_search(
         stmt = stmt.where(DictionaryEntry.entry_type == entry_type)
 
     return list(session.scalars(stmt))
+
+
+def get_ingested_headwords(session: Session, source: str) -> set[str]:
+    """Return the set of headwords already stored for a given source.
+
+    Used by the ingest script to skip work already done, making re-runs
+    safe and resumable after interruption.
+    """
+    rows = session.execute(
+        select(DictionaryEntry.headword).where(DictionaryEntry.source == source)
+    ).scalars()
+    return set(rows)

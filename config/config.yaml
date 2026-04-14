@@ -1,0 +1,7 @@
+defaults:
+  - database: supabase
+  - embedding: model
+  - corpus: all
+  - _self_
+ 
+data_dir: data

@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Malayalam dictionary RAG pipeline"
 authors = ["Sachin Nandakumar"]
 readme = "README.md"
-packages = [{ include = "linguaalayam" }, { include = "scripts" }]
+packages = [{ include = "linguaalayam" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -16,14 +16,16 @@ hydra-core = "^1.3"
 omegaconf = "^2.3"
 numpy = "^1.26"
 tqdm = "^4.66"
+alembic = "^1.18.4"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
 ruff = "^0.4"
+python-dotenv = "^1.2.2"
 
 [tool.poetry.scripts]
-ingest = "scripts.ingest:main"
-mcp-server = "linguaalayam.mcp.server:main"
+ingest = "linguaalayam.scripts.ingest:main"
+debug-retriever = "linguaalayam.scripts.debug_retriever:main"
 
 [tool.ruff]
 line-length = 100

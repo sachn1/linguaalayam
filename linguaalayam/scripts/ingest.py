@@ -1,25 +1,30 @@
 """
 Ingest pipeline: parse corpora -> embed -> batch insert to Supabase.
 
+Schema is managed by Alembic — run migrations before ingesting:
+    alembic upgrade head
+
 Hydra manages all configuration. Override anything from the CLI:
 
     # Use defaults (conf/config.yaml)
     poetry run ingest
+
+    # Quick debug run — 50 entries, one corpus, small batches
+    poetry run ingest corpus=debug
 
     # Switch embedding model
     poetry run ingest embedding=multilingual_e5_large
 
     # Ingest only enml corpus
     poetry run ingest corpus=enml_only
-
-    # Recreate tables on a fresh run
-    poetry run ingest +recreate=true
-
-    # Mix overrides freely
-    poetry run ingest corpus=enml_only embedding=multilingual_e5_large data_dir=data/custom
 """
 
 import logging
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 import hydra
 from omegaconf import DictConfig
@@ -30,8 +35,7 @@ from linguaalayam.database import (
     batch_insert,
     build_engine,
     build_session_factory,
-    create_tables,
-    drop_tables,
+    get_ingested_headwords,
     get_session,
 )
 from linguaalayam.embeddings import EmbeddingService, embed_in_batches
@@ -39,7 +43,6 @@ from linguaalayam.models.entries import Embeddable
 
 log = logging.getLogger(__name__)
 
-# Maps source name to its parser function
 _PARSERS = {
     "enml": enml.parse,
     "datuk": datuk.parse,
@@ -54,46 +57,33 @@ def _ingest_corpus(
     session_factory,
     db_batch_size: int,
 ) -> None:
-    log.info("%s: %d entries to embed and insert", source, len(entries))
+    log.info("%s: %d new entries to embed and insert", source, len(entries))
 
     vectors = embed_in_batches(service, entries)
 
-    log.info("%s: inserting in batches of %d", source, db_batch_size)
-    with get_session(session_factory) as session:
-        for i in tqdm(
-            range(0, len(entries), db_batch_size),
-            desc=f"Inserting {source}",
-        ):
-            batch_insert(
-                session,
-                entries[i : i + db_batch_size],
-                vectors[i : i + db_batch_size],
-            )
+    with tqdm(total=len(entries), desc=f"Inserting {source}", unit="entry") as pbar:
+        with get_session(session_factory) as session:
+            for i in range(0, len(entries), db_batch_size):
+                batch_entries = entries[i : i + db_batch_size]
+                batch_vectors = vectors[i : i + db_batch_size]
+                batch_insert(session, batch_entries, batch_vectors)
+                pbar.update(len(batch_entries))
 
     log.info("%s: done", source)
 
 
-@hydra.main(config_path="../conf", config_name="config", version_base=None)
+@hydra.main(config_path="../../config", config_name="config", version_base=None)
 def main(cfg: DictConfig) -> None:
-    from pathlib import Path
-
-    # -- Database setup ------------------------------------------------------
-    engine = build_engine(cfg.db)
+    engine = build_engine(cfg.database)
     session_factory = build_session_factory(engine)
 
-    if cfg.get("recreate", False):
-        log.warning("Dropping all tables and recreating schema")
-        drop_tables(engine)
-    create_tables(engine)
-
-    # -- Embedding model -----------------------------------------------------
     log.info("Loading embedding model: %s", cfg.embedding.model)
     service = EmbeddingService(cfg.embedding)
     log.info("Vector size: %d", service.vector_size)
 
-    # -- Corpus ingestion ----------------------------------------------------
     data_dir = Path(cfg.data_dir)
     db_batch_size: int = cfg.corpus.db_batch_size
+    limit: int | None = cfg.corpus.get("limit")
 
     for source, source_cfg in cfg.corpus.sources.items():
         if not source_cfg.enabled:
@@ -110,15 +100,34 @@ def main(cfg: DictConfig) -> None:
             )
             continue
 
-        parse_fn = _PARSERS[source]
         log.info("%s: parsing %s", source, filepath)
-        entries: list[Embeddable] = parse_fn(filepath)
+        all_entries: list[Embeddable] = _PARSERS[source](filepath)
 
-        if not entries:
+        if not all_entries:
             log.warning("%s: no entries parsed, skipping", source)
             continue
 
-        _ingest_corpus(source, entries, service, session_factory, db_batch_size)
+        # Resume: filter out already-ingested headwords
+        with get_session(session_factory) as session:
+            done = get_ingested_headwords(session, source_cfg.source_name)
+
+        pending = [
+            e for e in tqdm(all_entries, desc=f"Filtering {source}", unit="entry")
+            if e.headword not in done
+        ]
+        skipped = len(all_entries) - len(pending)
+        if skipped:
+            log.info("%s: skipping %d already-ingested entries", source, skipped)
+
+        if not pending:
+            log.info("%s: all entries already ingested", source)
+            continue
+
+        if limit is not None:
+            pending = pending[:limit]
+            log.info("%s: debug limit applied, processing %d entries", source, len(pending))
+
+        _ingest_corpus(source, pending, service, session_factory, db_batch_size)
 
     log.info("Ingest complete")
 

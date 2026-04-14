@@ -1,3 +1,4 @@
 model: sentence-transformers/paraphrase-multilingual-mpnet-base-v2
 batch_size: 256
 normalize: true
+quantise: false
