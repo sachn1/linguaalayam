@@ -1,0 +1,11 @@
+# Connection string is read from the environment variable SUPABASE_DB_URL.
+# Never hardcode credentials in yaml files.
+user: ${oc.env:DB_USER}
+password: ${oc.env:DB_PASSWORD}
+host: ${oc.env:DB_HOST}
+port: ${oc.env:DB_PORT}
+name: ${oc.env:DB_NAME}
+
+url: postgresql+psycopg2://${database.user}:${database.password}@${database.host}:${database.port}/${database.name}?sslmode=require
+pool_size: 5
+max_overflow: 10

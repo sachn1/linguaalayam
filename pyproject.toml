@@ -1,32 +1,39 @@
 [tool.poetry]
-name = "lingua"
+name = "linguaalayam"
 version = "0.1.0"
-description = ""
-authors = ["Sachin Nandakumar <zaksaiplayground@gmail.com>"]
+description = "Malayalam dictionary RAG pipeline"
+authors = ["Sachin Nandakumar"]
 readme = "README.md"
+packages = [{ include = "linguaalayam" }]
 
 [tool.poetry.dependencies]
-python = "^3.10"
-pandas = "^2.2.3"
-sentence-transformers = "^4.1.0"
-datasets = "^3.5.0"
-playwright = "^1.52.0"
-nest-asyncio = "^1.6.0"
-parsel = "^1.10.0"
-streamlit = "^1.45.0"
-sqlalchemy = "^2.0.40"
-python-dotenv = "^1.1.0"
-psycopg2-binary = "^2.9.10"
-psycopg = "^3.2.7"  # for alembic
-alembic = "^1.15.2"
+python = "^3.11"
+sqlalchemy = "^2.0"
+psycopg2-binary = "^2.9"
+pgvector = "^0.3"
+sentence-transformers = "^3.0"
+hydra-core = "^1.3"
+omegaconf = "^2.3"
+numpy = "^1.26"
+tqdm = "^4.66"
+alembic = "^1.18.4"
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+ruff = "^0.4"
+python-dotenv = "^1.2.2"
+pre-commit = "^4.5.1"
+pytest-cov = "^7.1.0"
+
+[tool.poetry.scripts]
+ingest = "linguaalayam.scripts.ingest:main"
+debug-retriever = "linguaalayam.scripts.debug_retriever:main"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = ["alembic/versions/*"]
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
-
-
-[tool.poetry.scripts]
-build-db = "lingua.database.db_setup:init_db"
-url-scrapper = "lingua.data.url_scrapper:main"
-extract-wiktionary-data = "lingua.data.wiktionary_train_data_extractor:main"

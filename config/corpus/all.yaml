@@ -1,0 +1,15 @@
+sources:
+  enml:
+    enabled: true
+    path: enml/enml
+    source_name: olam_enml
+  datuk:
+    enabled: false
+    path: datuk/datuk
+    source_name: datuk
+  dravidian:
+    enabled: false
+    path: dravidian/dravidian.tsv
+    source_name: dravidian_comparative
+
+db_batch_size: 512
