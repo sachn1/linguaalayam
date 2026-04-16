@@ -3,7 +3,6 @@ from pathlib import Path
 
 from linguaalayam.models.entries import MlMlEntry
 
-
 _EMPTY_POS = {"", "-"}
 
 
@@ -23,7 +22,4 @@ def parse(filepath: Path) -> list[MlMlEntry]:
 
             raw[headword].append((pos, definition))
 
-    return [
-        MlMlEntry(headword=hw, definitions=defns)
-        for hw, defns in raw.items()
-    ]
+    return [MlMlEntry(headword=hw, definitions=defns) for hw, defns in raw.items()]

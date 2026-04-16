@@ -1,26 +1,36 @@
+"""Data models for dictionary entries from various sources."""
+
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
 
 @runtime_checkable
 class Embeddable(Protocol):
+    """Protocol for entries that can be embedded."""
+
+
     source: str
     headword: str
 
-    def to_embed_text(self) -> str: ...
+    def to_embed_text(self) -> str:
+        """Convert the entry to a text representation suitable for embedding.
 
-
-# ---------------------------------------------------------------------------
-# EN -> ML  (olam_enml)
-# ---------------------------------------------------------------------------
+        Returns
+        -------
+        str
+            Text representation of the entry.
+        """
+        ...
 
 @dataclass
 class EnMlEntry:
+    """Data model for English-Malayalam dictionary entries from Olam."""
     headword: str
     definitions: list[tuple[str | None, str]]  # [(pos, definition), ...]
     source: str = "olam_enml"
 
     def to_embed_text(self) -> str:
+        """Convert input to text representation specific for EnML."""
         by_pos: dict[str, list[str]] = {}
         for pos, defn in self.definitions:
             by_pos.setdefault(pos or "general", []).append(defn)
@@ -30,18 +40,15 @@ class EnMlEntry:
             lines.append(f"  [{pos}] {'; '.join(defns)}")
         return "\n".join(lines)
 
-
-# ---------------------------------------------------------------------------
-# ML -> ML  (datuk)
-# ---------------------------------------------------------------------------
-
 @dataclass
 class MlMlEntry:
+    """Data model for Malayalam-Malayalam dictionary entries from Datuk."""
     headword: str
     definitions: list[tuple[str | None, str]]  # [(pos, definition), ...]
     source: str = "datuk"
 
     def to_embed_text(self) -> str:
+        """Convert input to text representation specific for MlMl."""
         by_pos: dict[str, list[str]] = {}
         for pos, defn in self.definitions:
             by_pos.setdefault(pos or "general", []).append(defn)
@@ -51,13 +58,9 @@ class MlMlEntry:
             lines.append(f"  [{pos}] {'; '.join(defns)}")
         return "\n".join(lines)
 
-
-# ---------------------------------------------------------------------------
-# Cross-lingual Dravidian comparative
-# ---------------------------------------------------------------------------
-
 @dataclass
 class CrossLingualEntry:
+    """Data model for cross-lingual comparative entries from the Dravidian Comparative Dictionary."""
     headword: str
     sense_index: int | None
     ml_gloss: list[str]
@@ -65,6 +68,7 @@ class CrossLingualEntry:
     source: str = "dravidian_comparative"
 
     def to_embed_text(self) -> str:
+        """Convert input to text representation specific for cross-lingual entries."""
         sense = f" (sense {self.sense_index})" if self.sense_index else ""
         lines = [f"word: {self.headword}{sense}"]
 

@@ -3,7 +3,6 @@ from pathlib import Path
 
 from linguaalayam.models.entries import CrossLingualEntry
 
-
 _SENSE_RE = re.compile(r"^(.+?)\s*\((\d+)\)\s*(?:-\s*(.+))?$")
 _PLAIN_RE = re.compile(r"^(.+?)\s*-\s*(.+)$")
 _LANG_COLS = {"kn": 1, "ta": 2, "te": 3}
@@ -50,11 +49,13 @@ def parse(filepath: Path) -> list[CrossLingualEntry]:
                 if cell:
                     equivalents[lang] = _split_gloss(cell)
 
-            entries.append(CrossLingualEntry(
-                headword=headword,
-                sense_index=sense_index,
-                ml_gloss=ml_gloss,
-                equivalents=equivalents,
-            ))
+            entries.append(
+                CrossLingualEntry(
+                    headword=headword,
+                    sense_index=sense_index,
+                    ml_gloss=ml_gloss,
+                    equivalents=equivalents,
+                )
+            )
 
     return entries

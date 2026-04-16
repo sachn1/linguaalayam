@@ -1,6 +1,5 @@
-from .service import EmbeddingService, embed_in_batches
+from .service import EmbeddingService
 
 __all__ = [
     "EmbeddingService",
-    "embed_in_batches",
 ]
