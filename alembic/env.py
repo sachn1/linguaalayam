@@ -1,12 +1,13 @@
-from logging.config import fileConfig
+"""Alembic migration environment configuration."""
 import os
+from logging.config import fileConfig
 from pathlib import Path
 from urllib.parse import quote_plus
 
-from alembic import context
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, pool
 
+from alembic import context
 from linguaalayam.models.orm import Base
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
@@ -20,6 +21,18 @@ target_metadata = Base.metadata
 
 
 def _db_url() -> str:
+    """Construct the database URL from environment variables.
+
+    Returns
+    -------
+    str
+        The database URL.
+
+    Raises
+    ------
+    RuntimeError
+        If any required environment variables are missing.
+    """
     required = {
         "DB_USER": os.getenv("DB_USER"),
         "DB_PASSWORD": os.getenv("DB_PASSWORD"),
@@ -39,6 +52,7 @@ def _db_url() -> str:
 
 
 def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode."""
     context.configure(
         url=_db_url(),
         target_metadata=target_metadata,
@@ -50,6 +64,7 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
+    """Run migrations in 'online' mode."""
     connectable = create_engine(_db_url(), poolclass=pool.NullPool)
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
