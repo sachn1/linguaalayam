@@ -6,19 +6,33 @@ A Malayalam dictionary knowledge base and semantic retrieval pipeline. Ingests o
 
 ## Current State (v0.1)
 
-- Ingests the **Olam EN→ML corpus** (~58,000 English headwords with Malayalam definitions) into Supabase (Postgres + pgvector)
+- Ingests the **Olam EN→ML corpus** (~58,000 English headwords with Malayalam definitions) into a local Postgres + pgvector instance
 - Generates embeddings using a multilingual sentence transformer model
 - Checkpoint-based ingestion — resumable after failures, never re-embeds already-vectorized entries
 - Debug retrieval script for top-k semantic search against the ingested data
 
 ---
 
+## Database
+
+LinguAalayam runs against a **local Postgres + pgvector** instance (via Docker). This replaced an earlier Supabase free-tier setup, which was dropped because the embedded data alone exceeds the 500 MB free-tier limit.
+
+Other vector store options were considered and ruled out:
+
+- **Supabase** — dropped. Free tier capped at 500 MB; the olam_enml corpus alone exceeds this. No longer actively supported.
+- FAISS — ruled out. No metadata filtering (source, entry\_type), no SQL, no persistence model — would require a full rewrite of the query layer and lose the ability to filter by corpus or do hybrid search.
+- Qdrant — ruled out. Different client API, different query semantics — would require replacing SQLAlchemy, the ORM, and Alembic migrations with a new stack for no meaningful gain on a private, single-machine project.
+
+Local Postgres + pgvector keeps the full SQLAlchemy + Alembic stack intact, has no storage limits, adds no network latency, and works offline.
+
+---
+
 ## Roadmap
 
 ### v0.2 — RAG ready
-- [ ] Query preprocessing — extract target word from natural language queries ("what does X mean", "define X")
-- [ ] Hybrid search — exact headword match with semantic fallback
-- [ ] Response formatting — structured answer synthesis from top-k retrieved entries
+- [x] Query preprocessing — extract target word from natural language queries ("what does X mean", "define X")
+- [x] Hybrid search — exact headword match with semantic fallback
+- [x] Response formatting — structured answer synthesis from top-k retrieved entries
 - [ ] Evaluation harness — measure retrieval precision on a held-out query set
 
 ### v0.3 — MCP server (first release)
@@ -51,7 +65,18 @@ A Malayalam dictionary knowledge base and semantic retrieval pipeline. Ingests o
 
 - Python 3.11+
 - [Poetry](https://python-poetry.org/docs/#installation)
-- A [Supabase](https://supabase.com) project (free tier works)
+- Docker (for the Postgres + pgvector container)
+
+### Start the database
+
+```bash
+docker run -d --name linguaalayam-pg \
+  -e POSTGRES_PASSWORD=yourpassword \
+  -p 5432:5432 \
+  ankane/pgvector
+
+docker exec -it linguaalayam-pg psql -U postgres -c "CREATE DATABASE linguaalayam;"
+```
 
 ### Install
 
@@ -62,14 +87,15 @@ poetry run pre-commit install
 
 ### Configure
 
-Create a `.env` file in the project root:
+Copy `.env.example` to `.env` and fill in your values:
 
 ```bash
 DB_USER=postgres
-DB_PASSWORD=your-password
-DB_HOST=db.xxxxxxxxxxxx.supabase.co
+DB_PASSWORD=yourpassword
+DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=postgres
+DB_NAME=linguaalayam
+# DB_SSLMODE=require   # uncomment for Supabase or other hosted Postgres
 ```
 
 ### Run migrations
@@ -153,7 +179,7 @@ All data is open source and sourced from [Olam](https://olam.in/p/open):
 
 - **Python 3.11+**, Poetry
 - **SQLAlchemy 2.0** + psycopg2 + pgvector
-- **Supabase** (Postgres) for vector storage
+- **Postgres + pgvector** (local Docker container) for vector storage
 - **sentence-transformers** (`paraphrase-multilingual-mpnet-base-v2`) for embeddings
 - **Hydra** for configuration management
 - **Alembic** for schema migrations
