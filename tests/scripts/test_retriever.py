@@ -28,7 +28,7 @@ def mock_embedder():
 def retriever(mock_embedder, db_entry):
     """Retriever with similarity_search fully mocked — no DB or pgvector needed."""
     factory = MagicMock()
-    with patch("linguaalayam.rag.retriever.similarity_search", return_value=[db_entry]):
+    with patch("linguaalayam.rag.retriever.similarity_search", return_value=[(db_entry, 0.9)]):
         yield Retriever(mock_embedder, factory)
 
 
@@ -39,18 +39,17 @@ def test_retrieve_calls_encode_query(retriever, mock_embedder):
 
 
 def test_retrieve_result_has_expected_keys(retriever):
-    with patch("linguaalayam.rag.retriever.similarity_search", return_value=[
-        DictionaryEntry(
-            headword="run", source="olam_enml", entry_type="EnMlEntry",
-            embed_text="word: run", data={},
-        )
-    ]):
+    entry = DictionaryEntry(
+        headword="run", source="olam_enml", entry_type="EnMlEntry",
+        embed_text="word: run", data={},
+    )
+    with patch("linguaalayam.rag.retriever.similarity_search", return_value=[(entry, 0.9)]):
         results = retriever.retrieve("run")
-    assert {"headword", "source", "entry_type", "embed_text", "data"} <= results[0].keys()
+    assert {"headword", "source", "entry_type", "embed_text", "data", "score"} <= results[0].keys()
 
 
 def test_retrieve_result_headword(retriever, db_entry):
-    with patch("linguaalayam.rag.retriever.similarity_search", return_value=[db_entry]):
+    with patch("linguaalayam.rag.retriever.similarity_search", return_value=[(db_entry, 0.9)]):
         results = retriever.retrieve("run")
     assert results[0]["headword"] == "run"
 
@@ -68,11 +67,12 @@ def test_to_context_maps_all_fields():
         headword="run", source="olam_enml", entry_type="EnMlEntry",
         embed_text="word: run", data={"headword": "run"},
     )
-    result = Retriever._to_context(entry)
+    result = Retriever._to_context(entry, score=0.85)
     assert result == {
         "headword": "run",
         "source": "olam_enml",
         "entry_type": "EnMlEntry",
         "embed_text": "word: run",
         "data": {"headword": "run"},
+        "score": 0.85,
     }
