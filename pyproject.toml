@@ -17,17 +17,36 @@ omegaconf = "^2.3"
 numpy = "^1.26"
 tqdm = "^4.66"
 alembic = "^1.18.4"
+python-dotenv = "^1.0"
+langgraph = ">=0.2"
+langchain = ">=0.3"
+langchain-core = ">=0.3"
+langchain-anthropic = ">=0.3"
+anthropic = ">=0.40"
+pydantic = ">=2.0"
+langchain-huggingface = "^1.2.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
 ruff = "^0.4"
-python-dotenv = "^1.2.2"
 pre-commit = "^4.5.1"
 pytest-cov = "^7.1.0"
+jupyterlab = "^4.5.7"
+ipykernel = "^7.2.0"
+pandas = ">=2.0,<3.0"
+
+[tool.poetry.group.huggingface]
+optional = true
+
+[tool.poetry.group.huggingface.dependencies]
+langchain-huggingface = ">=0.1"
+transformers = ">=4.40"
+accelerate = ">=0.30"
 
 [tool.poetry.scripts]
 ingest = "linguaalayam.scripts.ingest:main"
 debug-retriever = "linguaalayam.scripts.debug_retriever:main"
+rag = "linguaalayam.rag.main:main"
 
 [tool.ruff]
 line-length = 100
