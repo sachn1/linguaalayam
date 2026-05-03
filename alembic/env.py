@@ -44,10 +44,12 @@ def _db_url() -> str:
     if missing:
         raise RuntimeError(f"Missing required environment variables: {', '.join(missing)}")
 
+    sslmode = os.getenv("DB_SSLMODE", "")
+    sslmode_param = f"?sslmode={sslmode}" if sslmode else ""
     return (
         f"postgresql+psycopg2://{required['DB_USER']}:{quote_plus(required['DB_PASSWORD'])}"
         f"@{required['DB_HOST']}:{required['DB_PORT']}"
-        f"/{required['DB_NAME']}?sslmode=require"
+        f"/{required['DB_NAME']}{sslmode_param}"
     )
 
 
