@@ -52,7 +52,7 @@ class Retriever:
         query_vector = self._embedder.encode_query(query)
 
         with get_session(self._session_factory) as session:
-            results: list[DictionaryEntry] = similarity_search(
+            results = similarity_search(
                 session,
                 query_vector=query_vector,
                 top_k=top_k,
@@ -60,26 +60,15 @@ class Retriever:
                 entry_type=entry_type,
             )
 
-        return [self._to_context(r) for r in results]
+        return [self._to_context(entry, score) for entry, score in results]
 
     @staticmethod
-    def _to_context(entry: DictionaryEntry) -> dict:
-        """_summary_
-
-        Parameters
-        ----------
-        entry : DictionaryEntry
-            _description_
-
-        Returns
-        -------
-        dict
-            _description_
-        """
+    def _to_context(entry: DictionaryEntry, score: float = 0.0) -> dict:
         return {
             "headword": entry.headword,
             "source": entry.source,
             "entry_type": entry.entry_type,
             "embed_text": entry.embed_text,
             "data": entry.data,
+            "score": score,
         }

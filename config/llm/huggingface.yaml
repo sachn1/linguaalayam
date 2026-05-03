@@ -1,0 +1,4 @@
+provider: huggingface
+model: google/gemma-2-2b-it
+temperature: 0.0
+max_new_tokens: 512
