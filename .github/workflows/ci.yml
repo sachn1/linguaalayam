@@ -17,25 +17,14 @@ jobs:
         with:
           python-version: "3.11"
 
-      - uses: snok/install-poetry@v1
-        with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-
-      - name: Cache venv
-        uses: actions/cache@v4
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-py3.11-${{ hashFiles('poetry.lock') }}
-
-      - name: Install dependencies
-        run: poetry install --no-root
+      - name: Install ruff
+        run: pip install ruff
 
       - name: ruff check
-        run: poetry run ruff check .
+        run: ruff check .
 
       - name: ruff format
-        run: poetry run ruff format --check .
+        run: ruff format --check .
 
   test:
     name: Tests
@@ -59,7 +48,7 @@ jobs:
           key: venv-${{ runner.os }}-py3.11-${{ hashFiles('poetry.lock') }}
 
       - name: Install dependencies
-        run: poetry install
+        run: poetry install --without huggingface
 
       - name: Run tests
         run: poetry run pytest --cov=linguaalayam --cov-report=term-missing -q
