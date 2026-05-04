@@ -52,7 +52,7 @@ eval = "linguaalayam.eval.main:main"
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-exclude = ["alembic/versions/*"]
+exclude = ["alembic/versions/*", "notebooks/"]
 
 [build-system]
 requires = ["poetry-core"]
