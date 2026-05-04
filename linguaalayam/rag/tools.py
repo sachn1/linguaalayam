@@ -12,6 +12,23 @@ from linguaalayam.embeddings.service import EmbeddingService
 from linguaalayam.models.orm import DictionaryEntry
 
 
+def merge_candidates(lists: list[list[dict]]) -> list[dict]:
+    """Merge results from multiple tools, deduplicating on (source, headword).
+
+    Priority: exact > fuzzy > semantic — the first tool to surface an entry wins.
+    Used by both the RAG pipeline and the eval runner.
+    """
+    seen: set[tuple[str, str]] = set()
+    merged = []
+    for results in lists:
+        for item in results:
+            key = (item["source"], item["headword"])
+            if key not in seen:
+                seen.add(key)
+                merged.append(item)
+    return merged
+
+
 def _to_result(entry: DictionaryEntry, match_type: str, score: float) -> dict:
     return {
         "headword": entry.headword,

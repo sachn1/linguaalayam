@@ -1,0 +1,5 @@
+dataset: data/eval/queries.jsonl
+output: null
+top_k: 5
+fuzzy_threshold: 0.3
+fuzzy_limit: 10

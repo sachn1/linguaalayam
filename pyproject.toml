@@ -47,6 +47,7 @@ accelerate = ">=0.30"
 ingest = "linguaalayam.scripts.ingest:main"
 debug-retriever = "linguaalayam.scripts.debug_retriever:main"
 rag = "linguaalayam.rag.main:main"
+eval = "linguaalayam.eval.main:main"
 
 [tool.ruff]
 line-length = 100

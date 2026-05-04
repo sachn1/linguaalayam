@@ -10,7 +10,7 @@ from omegaconf import DictConfig
 
 from linguaalayam.rag.query_understanding import understand_query
 from linguaalayam.rag.reranker import CrossEncoderReranker
-from linguaalayam.rag.tools import DictionaryTools
+from linguaalayam.rag.tools import DictionaryTools, merge_candidates
 
 _SYNTHESIS_SYSTEM = (Path(__file__).parent / "SKILLS.md").read_text().strip()
 
@@ -26,22 +26,6 @@ class RAGState(TypedDict):
     intent: str | None
     candidates: list[dict]
     answer: str
-
-
-def _merge_candidates(lists: list[list[dict]]) -> list[dict]:
-    """Merge results from multiple tools, deduplicating on (source, headword).
-
-    Priority: exact > fuzzy > semantic — the first tool to surface an entry wins.
-    """
-    seen: set[tuple[str, str]] = set()
-    merged = []
-    for results in lists:
-        for item in results:
-            key = (item["source"], item["headword"])
-            if key not in seen:
-                seen.add(key)
-                merged.append(item)
-    return merged
 
 
 def _format_entries(candidates: list[dict]) -> str:
@@ -92,7 +76,7 @@ def build_pipeline(
         )
         semantic = tools.semantic_lookup(query, top_k=top_k, source=source)
 
-        return {"candidates": _merge_candidates([exact, fuzzy, semantic])}
+        return {"candidates": merge_candidates([exact, fuzzy, semantic])}
 
     def rerank_node(state: RAGState) -> dict:
         if reranker is None or not state["candidates"]:

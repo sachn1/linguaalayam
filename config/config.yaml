@@ -4,6 +4,7 @@ defaults:
   - corpus: all
   - llm: anthropic
   - rag: default
+  - eval: default
   - _self_
 
 data_dir: data
