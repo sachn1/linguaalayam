@@ -36,11 +36,13 @@ def load_dataset(path: str | Path) -> list[EvalQuery]:
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON at line {i} of {p}: {e}") from e
 
-        queries.append(EvalQuery(
-            query=data["query"],
-            expected_headword=data["expected_headword"],
-            intent=data.get("intent", "define"),
-            source=data.get("source"),
-        ))
+        queries.append(
+            EvalQuery(
+                query=data["query"],
+                expected_headword=data["expected_headword"],
+                intent=data.get("intent", "define"),
+                source=data.get("source"),
+            )
+        )
 
     return queries

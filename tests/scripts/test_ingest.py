@@ -2,13 +2,18 @@ from unittest.mock import MagicMock, patch
 
 
 from linguaalayam.models.entries import EnMlEntry
-from linguaalayam.scripts.ingest import _get_pending, _embed_with_checkpoint, _insert_with_checkpoint
+from linguaalayam.scripts.ingest import (
+    _get_pending,
+    _embed_with_checkpoint,
+    _insert_with_checkpoint,
+)
 from linguaalayam.scripts.vector_checkpoint import VectorCheckpoint
 
 
 # ---------------------------------------------------------------------------
 # _get_pending
 # ---------------------------------------------------------------------------
+
 
 def _make_entries(*headwords: str) -> list[EnMlEntry]:
     return [EnMlEntry(headword=hw, definitions=[("v", "test")]) for hw in headwords]
@@ -50,6 +55,7 @@ def test_get_pending_returns_empty_when_all_ingested():
 # _embed_with_checkpoint
 # ---------------------------------------------------------------------------
 
+
 def test_embed_with_checkpoint_skips_cached(tmp_path, dummy_service):
     checkpoint = VectorCheckpoint(tmp_path / "enml.jsonl")
     checkpoint.append_batch(["run"], [[1.0, 0.0, 0.0, 0.0]])
@@ -88,6 +94,7 @@ def test_embed_with_checkpoint_returns_full_set(tmp_path, dummy_service):
 # _insert_with_checkpoint
 # ---------------------------------------------------------------------------
 
+
 def test_insert_clears_checkpoint_entries(tmp_path):
     checkpoint = VectorCheckpoint(tmp_path / "enml.jsonl")
     entries = _make_entries("run", "walk")
@@ -100,8 +107,10 @@ def test_insert_clears_checkpoint_entries(tmp_path):
     session_ctx.__exit__ = MagicMock(return_value=False)
     factory = MagicMock(return_value=session_ctx)
 
-    with patch("linguaalayam.scripts.ingest.get_session", return_value=session_ctx), \
-         patch("linguaalayam.scripts.ingest.batch_insert"):
+    with (
+        patch("linguaalayam.scripts.ingest.get_session", return_value=session_ctx),
+        patch("linguaalayam.scripts.ingest.batch_insert"),
+    ):
         _insert_with_checkpoint("enml", entries, vectors, factory, checkpoint, db_batch_size=10)
 
     assert not checkpoint.exists()
@@ -117,8 +126,10 @@ def test_insert_calls_batch_insert(tmp_path):
     session_ctx.__enter__ = MagicMock(return_value=session)
     session_ctx.__exit__ = MagicMock(return_value=False)
 
-    with patch("linguaalayam.scripts.ingest.get_session", return_value=session_ctx), \
-         patch("linguaalayam.scripts.ingest.batch_insert") as mock_insert:
+    with (
+        patch("linguaalayam.scripts.ingest.get_session", return_value=session_ctx),
+        patch("linguaalayam.scripts.ingest.batch_insert") as mock_insert,
+    ):
         _insert_with_checkpoint("enml", entries, vectors, MagicMock(), checkpoint, db_batch_size=10)
 
     assert mock_insert.called

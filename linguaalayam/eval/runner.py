@@ -35,7 +35,9 @@ def _eval_query(
     headword = qu.headword
 
     exact = tools.exact_lookup(headword, source=q.source)
-    fuzzy = tools.fuzzy_lookup(headword, source=q.source, threshold=fuzzy_threshold, top_k=fuzzy_limit)
+    fuzzy = tools.fuzzy_lookup(
+        headword, source=q.source, threshold=fuzzy_threshold, top_k=fuzzy_limit
+    )
     semantic = tools.semantic_lookup(q.query, top_k=top_k, source=q.source)
 
     merged = merge_candidates([exact, fuzzy, semantic])

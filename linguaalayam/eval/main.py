@@ -58,7 +58,9 @@ def _print_summary(results: list[QueryResult], cfg: DictConfig) -> None:
 
     print("By intent:")
     for intent, m in intents.items():
-        print(f"  {intent:<12}  hit@1={m['hit@1']:.2f}  hit@k={m['hit@k']:.2f}  mrr={m['mrr']:.2f}  n={m['count']}")
+        print(
+            f"  {intent:<12}  hit@1={m['hit@1']:.2f}  hit@k={m['hit@k']:.2f}  mrr={m['mrr']:.2f}  n={m['count']}"
+        )
 
     misses = [r for r in results if not r.hit_at_k]
     if misses:
@@ -77,18 +79,23 @@ def _write_results(results: list[QueryResult], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
         for r in results:
-            f.write(json.dumps({
-                "query": r.query,
-                "expected_headword": r.expected_headword,
-                "intent": r.intent,
-                "extracted_headword": r.extracted_headword,
-                "retrieved_headwords": r.retrieved_headwords,
-                "hit_at_1": r.hit_at_1,
-                "hit_at_k": r.hit_at_k,
-                "reciprocal_rank": r.reciprocal_rank,
-                "tool_attribution": r.tool_attribution,
-                "latency_ms": round(r.latency_ms, 2),
-            }) + "\n")
+            f.write(
+                json.dumps(
+                    {
+                        "query": r.query,
+                        "expected_headword": r.expected_headword,
+                        "intent": r.intent,
+                        "extracted_headword": r.extracted_headword,
+                        "retrieved_headwords": r.retrieved_headwords,
+                        "hit_at_1": r.hit_at_1,
+                        "hit_at_k": r.hit_at_k,
+                        "reciprocal_rank": r.reciprocal_rank,
+                        "tool_attribution": r.tool_attribution,
+                        "latency_ms": round(r.latency_ms, 2),
+                    }
+                )
+                + "\n"
+            )
     log.info("Results written to %s", path)
 
 

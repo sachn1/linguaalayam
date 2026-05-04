@@ -47,7 +47,8 @@ class TestMlMlEntry:
 class TestCrossLingualEntry:
     def test_default_source(self):
         e = CrossLingualEntry(
-            headword="അംഗം", sense_index=1,
+            headword="അംഗം",
+            sense_index=1,
             ml_gloss=["ശരീരം"],
             equivalents={"kn": ("അംഗ", ["ദേഹ"])},
         )
@@ -55,7 +56,8 @@ class TestCrossLingualEntry:
 
     def test_embed_text_includes_sense(self):
         e = CrossLingualEntry(
-            headword="അംഗം", sense_index=2,
+            headword="അംഗം",
+            sense_index=2,
             ml_gloss=["അവയവം"],
             equivalents={},
         )
@@ -63,7 +65,8 @@ class TestCrossLingualEntry:
 
     def test_embed_text_no_sense_when_none(self):
         e = CrossLingualEntry(
-            headword="അംഗന", sense_index=None,
+            headword="അംഗന",
+            sense_index=None,
             ml_gloss=["സ്ത്രീ"],
             equivalents={},
         )
@@ -71,7 +74,8 @@ class TestCrossLingualEntry:
 
     def test_embed_text_includes_equivalents(self):
         e = CrossLingualEntry(
-            headword="അംഗം", sense_index=1,
+            headword="അംഗം",
+            sense_index=1,
             ml_gloss=["ശരീരം"],
             equivalents={"kn": ("അംഗ", ["ദേഹ"]), "ta": ("അங്கം", ["ഉടല്‍"])},
         )

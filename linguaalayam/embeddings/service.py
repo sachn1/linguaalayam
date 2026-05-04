@@ -9,6 +9,7 @@ from linguaalayam.models.entries import Embeddable
 
 class EmbeddingService:
     """Service class for generating embeddings for dictionary entries."""
+
     def __init__(self, embedding_cfg: DictConfig) -> None:
         """Initialize the embedding service.
 

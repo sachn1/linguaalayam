@@ -14,10 +14,7 @@ from linguaalayam.rag.tools import DictionaryTools, merge_candidates
 
 _SYNTHESIS_SYSTEM = (Path(__file__).parent / "SKILLS.md").read_text().strip()
 
-_SYNTHESIS_TEMPLATE = (
-    "Question: {query}\n\n"
-    "Dictionary entries:\n{entries}"
-)
+_SYNTHESIS_TEMPLATE = "Question: {query}\n\n" "Dictionary entries:\n{entries}"
 
 
 class RAGState(TypedDict):
@@ -91,10 +88,12 @@ def build_pipeline(
         entries_text = _format_entries(state["candidates"][:top_k])
         content = _SYNTHESIS_TEMPLATE.format(query=state["query"], entries=entries_text)
 
-        response = llm.invoke([
-            SystemMessage(content=_SYNTHESIS_SYSTEM),
-            HumanMessage(content=content),
-        ])
+        response = llm.invoke(
+            [
+                SystemMessage(content=_SYNTHESIS_SYSTEM),
+                HumanMessage(content=content),
+            ]
+        )
         return {"answer": response.content}
 
     graph: StateGraph = StateGraph(RAGState)

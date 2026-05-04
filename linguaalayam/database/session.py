@@ -1,4 +1,5 @@
 """Database session management and utilities."""
+
 from collections.abc import Generator
 from contextlib import contextmanager
 from urllib.parse import quote_plus

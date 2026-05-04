@@ -79,9 +79,7 @@ class DictionaryTools:
         Falls back to an ILIKE-based search when running against SQLite (tests).
         """
         with get_session(self._session_factory) as session:
-            results = fuzzy_search(
-                session, query, source=source, threshold=threshold, limit=top_k
-            )
+            results = fuzzy_search(session, query, source=source, threshold=threshold, limit=top_k)
         return [_to_result(r, "fuzzy", score) for r, score in results]
 
     def semantic_lookup(
@@ -93,7 +91,5 @@ class DictionaryTools:
         """Return entries ranked by cosine similarity of their embed_text to query."""
         query_vector = self._embedder.encode_query(query)
         with get_session(self._session_factory) as session:
-            results = similarity_search(
-                session, query_vector, top_k=top_k, source=source
-            )
+            results = similarity_search(session, query_vector, top_k=top_k, source=source)
         return [_to_result(r, "semantic", score) for r, score in results]

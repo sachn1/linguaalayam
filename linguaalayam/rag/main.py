@@ -60,13 +60,15 @@ def main(cfg: DictConfig) -> None:
     log.info("LLM   : %s / %s", cfg.llm.provider, cfg.llm.model)
     log.info("Rerank: %s", cfg.rag.rerank)
 
-    result = pipeline.invoke({
-        "query": query,
-        "headword": None,
-        "intent": None,
-        "candidates": [],
-        "answer": "",
-    })
+    result = pipeline.invoke(
+        {
+            "query": query,
+            "headword": None,
+            "intent": None,
+            "candidates": [],
+            "answer": "",
+        }
+    )
 
     print(f"\nHeadword : {result['headword']!r}  (intent: {result['intent']})")
     print(f"Candidates: {len(result['candidates'])} found")

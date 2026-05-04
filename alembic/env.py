@@ -1,4 +1,5 @@
 """Alembic migration environment configuration."""
+
 import os
 from logging.config import fileConfig
 from pathlib import Path

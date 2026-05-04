@@ -37,6 +37,7 @@ def _batched(items: list, size: int):
     for i in range(0, len(items), size):
         yield items[i : i + size]
 
+
 def _embed_with_checkpoint(
     source: str,
     entries: list[Embeddable],
@@ -57,7 +58,9 @@ def _embed_with_checkpoint(
     if cached:
         log.info(
             "%s: %d vectors restored from checkpoint, %d remaining to embed",
-            source, len(cached), len(to_embed),
+            source,
+            len(cached),
+            len(to_embed),
         )
 
     with tqdm(total=len(to_embed), desc=f"Embedding {source}", unit="entry") as pbar:
@@ -108,7 +111,9 @@ def _ingest_corpus(
     """Embed and insert a list of entries with checkpoint-based fault tolerance."""
     log.info("%s: %d entries to process", source, len(entries))
     vectors_by_headword = _embed_with_checkpoint(source, entries, service, checkpoint)
-    _insert_with_checkpoint(source, entries, vectors_by_headword, session_factory, checkpoint, db_batch_size)
+    _insert_with_checkpoint(
+        source, entries, vectors_by_headword, session_factory, checkpoint, db_batch_size
+    )
 
 
 def _get_pending(
@@ -132,7 +137,6 @@ def _get_pending(
         log.info("%s: debug limit applied, processing %d entries", source, len(pending))
 
     return pending
-
 
 
 def _process_source(
@@ -171,7 +175,8 @@ def _process_source(
         log.error(
             "%s: file not found at %s — skipping. "
             "Download from https://olam.in/p/open and place at the expected path.",
-            source, filepath,
+            source,
+            filepath,
         )
         return
 
@@ -197,7 +202,8 @@ def _process_source(
     if checkpointed_headwords:
         log.info(
             "%s: %d entries already vectorized in checkpoint, will insert those first",
-            source, len(checkpointed_headwords),
+            source,
+            len(checkpointed_headwords),
         )
 
     _ingest_corpus(source, pending, service, session_factory, checkpoint, db_batch_size)
@@ -233,8 +239,14 @@ def main(cfg: DictConfig) -> None:
             continue
 
         _process_source(
-            source, source_cfg, service, session_factory,
-            data_dir, checkpoint_dir, db_batch_size, limit,
+            source,
+            source_cfg,
+            service,
+            session_factory,
+            data_dir,
+            checkpoint_dir,
+            db_batch_size,
+            limit,
         )
 
     log.info("Ingest complete")

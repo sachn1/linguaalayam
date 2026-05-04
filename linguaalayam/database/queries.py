@@ -1,4 +1,5 @@
 """Database query functions for dictionary entries."""
+
 from dataclasses import asdict
 
 from sqlalchemy import func, select
@@ -47,17 +48,13 @@ def batch_insert(
 
     if dialect == "postgresql":
         stmt = pg_insert(DictionaryEntry).values(rows)
-        stmt = stmt.on_conflict_do_nothing(
-            constraint="uq_dictionary_entries_source_headword"
-        )
+        stmt = stmt.on_conflict_do_nothing(constraint="uq_dictionary_entries_source_headword")
         session.execute(stmt)
     else:
         # Fallback for non-Postgres (e.g. SQLite in tests): filter existing before insert
         existing = set(
             session.execute(
-                select(DictionaryEntry.headword).where(
-                    DictionaryEntry.source == rows[0]["source"]
-                )
+                select(DictionaryEntry.headword).where(DictionaryEntry.source == rows[0]["source"])
             ).scalars()
         )
         new_rows = [r for r in rows if r["headword"] not in existing]
@@ -90,11 +87,7 @@ def similarity_search(
         Entry type to filter by, by default None
     """
     cos_dist = DictionaryEntry.embedding.cosine_distance(query_vector)
-    stmt = (
-        select(DictionaryEntry, cos_dist.label("dist"))
-        .order_by(cos_dist)
-        .limit(top_k)
-    )
+    stmt = select(DictionaryEntry, cos_dist.label("dist")).order_by(cos_dist).limit(top_k)
 
     if source:
         stmt = stmt.where(DictionaryEntry.source == source)
@@ -120,9 +113,7 @@ def exact_search(
     source : str | None, optional
         Source identifier to filter by, by default None
     """
-    stmt = select(DictionaryEntry).where(
-        func.lower(DictionaryEntry.headword) == headword.lower()
-    )
+    stmt = select(DictionaryEntry).where(func.lower(DictionaryEntry.headword) == headword.lower())
     if source:
         stmt = stmt.where(DictionaryEntry.source == source)
     return list(session.scalars(stmt))
@@ -170,11 +161,7 @@ def fuzzy_search(
             stmt = stmt.where(DictionaryEntry.source == source)
         return [(row[0], round(float(row[1]), 4)) for row in session.execute(stmt)]
 
-    stmt = (
-        select(DictionaryEntry)
-        .where(DictionaryEntry.headword.ilike(f"%{query}%"))
-        .limit(limit)
-    )
+    stmt = select(DictionaryEntry).where(DictionaryEntry.headword.ilike(f"%{query}%")).limit(limit)
     if source:
         stmt = stmt.where(DictionaryEntry.source == source)
     return [(entry, 1.0) for entry in session.scalars(stmt)]

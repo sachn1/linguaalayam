@@ -1,4 +1,5 @@
 """Module for managing a checkpoint file that tracks embedding progress."""
+
 import json
 import logging
 from pathlib import Path
@@ -20,6 +21,7 @@ class VectorCheckpoint:
     Format: newline-delimited JSON (one record per line) for streaming
     append/read without loading the whole file into memory.
     """
+
     def __init__(self, path: Path) -> None:
         """Initialize the vector checkpoint.
 
