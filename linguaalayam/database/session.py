@@ -1,10 +1,11 @@
 """Database session management and utilities."""
+
 from collections.abc import Generator
 from contextlib import contextmanager
 from urllib.parse import quote_plus
 
 from dotenv import load_dotenv
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -27,9 +28,11 @@ def build_engine(db_cfg: DictConfig) -> Engine:
     Engine
         The SQLAlchemy engine for the database.
     """
+    sslmode = OmegaConf.select(db_cfg, "sslmode")
+    sslmode_param = f"?sslmode={sslmode}" if sslmode else ""
     url = (
         f"postgresql+psycopg2://{db_cfg.user}:{quote_plus(db_cfg.password)}"
-        f"@{db_cfg.host}:{db_cfg.port}/{db_cfg.name}?sslmode=require"
+        f"@{db_cfg.host}:{db_cfg.port}/{db_cfg.name}{sslmode_param}"
     )
     engine = create_engine(
         url,

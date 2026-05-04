@@ -1,7 +1,10 @@
 defaults:
-  - database: supabase
+  - database: local
   - embedding: model
   - corpus: all
+  - llm: anthropic
+  - rag: default
+  - eval: default
   - _self_
- 
+
 data_dir: data

@@ -1,0 +1,7 @@
+user: ${oc.env:DB_USER,postgres}
+password: ${oc.env:DB_PASSWORD}
+host: ${oc.env:DB_HOST,localhost}
+port: ${oc.env:DB_PORT,5432}
+name: ${oc.env:DB_NAME,linguaalayam}
+pool_size: 5
+max_overflow: 10

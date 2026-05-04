@@ -8,7 +8,6 @@ from typing import Protocol, runtime_checkable
 class Embeddable(Protocol):
     """Protocol for entries that can be embedded."""
 
-
     source: str
     headword: str
 
@@ -22,9 +21,11 @@ class Embeddable(Protocol):
         """
         ...
 
+
 @dataclass
 class EnMlEntry:
     """Data model for English-Malayalam dictionary entries from Olam."""
+
     headword: str
     definitions: list[tuple[str | None, str]]  # [(pos, definition), ...]
     source: str = "olam_enml"
@@ -40,9 +41,11 @@ class EnMlEntry:
             lines.append(f"  [{pos}] {'; '.join(defns)}")
         return "\n".join(lines)
 
+
 @dataclass
 class MlMlEntry:
     """Data model for Malayalam-Malayalam dictionary entries from Datuk."""
+
     headword: str
     definitions: list[tuple[str | None, str]]  # [(pos, definition), ...]
     source: str = "datuk"
@@ -58,9 +61,11 @@ class MlMlEntry:
             lines.append(f"  [{pos}] {'; '.join(defns)}")
         return "\n".join(lines)
 
+
 @dataclass
 class CrossLingualEntry:
     """Data model for cross-lingual comparative entries from the Dravidian Comparative Dictionary."""
+
     headword: str
     sense_index: int | None
     ml_gloss: list[str]

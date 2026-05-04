@@ -23,11 +23,13 @@ class DummyModel:
 
 @pytest.fixture()
 def embedding_cfg():
-    return OmegaConf.create({
-        "model": "dummy",
-        "batch_size": 2,
-        "normalize": False,
-    })
+    return OmegaConf.create(
+        {
+            "model": "dummy",
+            "batch_size": 2,
+            "normalize": False,
+        }
+    )
 
 
 @pytest.fixture()
@@ -47,8 +49,10 @@ def enml_entry():
 @pytest.fixture()
 def db_cfg():
     """SQLite in-memory config — no Supabase needed for unit tests."""
-    return OmegaConf.create({
-        "url": "sqlite:///:memory:",
-        "pool_size": 1,
-        "max_overflow": 0,
-    })
+    return OmegaConf.create(
+        {
+            "url": "sqlite:///:memory:",
+            "pool_size": 1,
+            "max_overflow": 0,
+        }
+    )

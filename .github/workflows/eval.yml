@@ -1,0 +1,88 @@
+name: Eval
+
+on:
+  workflow_dispatch:
+    inputs:
+      top_k:
+        description: "Candidates per tool (default: 5)"
+        default: "5"
+        required: false
+      fuzzy_threshold:
+        description: "pg_trgm similarity threshold, 0–1 (default: 0.3)"
+        default: "0.3"
+        required: false
+      output:
+        description: "Path to write JSONL results (leave blank to skip)"
+        default: ""
+        required: false
+
+jobs:
+  eval:
+    name: Retrieval eval
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: ankane/pgvector
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: linguaalayam
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Cache venv
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-py3.11-${{ hashFiles('poetry.lock') }}
+
+      - name: Cache sentence-transformers model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-mpnet-base-v2
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Create database
+        run: psql -h localhost -U postgres -c "CREATE DATABASE linguaalayam;"
+        env:
+          PGPASSWORD: postgres
+
+      - name: Run migrations
+        run: poetry run alembic upgrade head
+
+      - name: Seed eval corpus
+        run: poetry run python -m linguaalayam.eval.seed
+
+      - name: Run eval
+        run: |
+          OVERRIDES="eval.top_k=${{ github.event.inputs.top_k }} eval.fuzzy_threshold=${{ github.event.inputs.fuzzy_threshold }}"
+          if [ -n "${{ github.event.inputs.output }}" ]; then
+            OVERRIDES="$OVERRIDES eval.output=${{ github.event.inputs.output }}"
+          fi
+          poetry run eval $OVERRIDES

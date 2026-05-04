@@ -14,6 +14,7 @@ from linguaalayam.rag import Retriever
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
+
 def _load_config(overrides: list[str]) -> DictConfig:
     """Load Configuration with Hydra.
 

@@ -1,0 +1,6 @@
+query: ${oc.env:RAG_QUERY,"Mendel's pea plant experiments showed that this trait — the one that disappears in the F1 generation but reappears in F2 — what is the Malayalam word for it?"}
+source: null
+top_k: 5
+rerank: false
+fuzzy_threshold: 0.3
+fuzzy_limit: 10
