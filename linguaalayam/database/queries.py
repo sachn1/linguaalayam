@@ -86,7 +86,12 @@ def similarity_search(
     entry_type : str | None, optional
         Entry type to filter by, by default None
     """
-    cos_dist = DictionaryEntry.embedding.cosine_distance(query_vector)
+    # Uses the table column directly rather than the ORM attribute (DictionaryEntry.embedding).
+    # The ORM InstrumentedAttribute caches its comparator in a __slots__ slot; when tests
+    # mutate the column type to sa.JSON() for SQLite compatibility, that slot retains a
+    # stale JSON comparator with no cosine_distance. The table Column's comparator lives in
+    # col.__dict__ and is safely cleared by the test fixture. SQL output is identical.
+    cos_dist = DictionaryEntry.__table__.c.embedding.cosine_distance(query_vector)
     stmt = select(DictionaryEntry, cos_dist.label("dist")).order_by(cos_dist).limit(top_k)
 
     if source:

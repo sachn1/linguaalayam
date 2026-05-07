@@ -100,7 +100,7 @@ def _write_results(results: list[QueryResult], path: Path) -> None:
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
-def main(cfg: DictConfig) -> None:
+def main(cfg: DictConfig) -> None:  # pragma: no cover
     """Evaluate retrieval quality against the labeled query set.
 
     Usage:
@@ -126,5 +126,5 @@ def main(cfg: DictConfig) -> None:
         _write_results(results, Path(cfg.eval.output))
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

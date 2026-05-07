@@ -66,7 +66,7 @@ def _build_entries() -> list[EnMlEntry]:
     return entries
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     from hydra import compose, initialize_config_dir
     from hydra.core.global_hydra import GlobalHydra
 
@@ -102,6 +102,6 @@ def main() -> None:
     log.info("Seed complete — %d entries inserted", len(entries))
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     logging.basicConfig(level=logging.INFO)
     main()

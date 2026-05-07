@@ -14,7 +14,7 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
-def main(cfg: DictConfig) -> None:
+def main(cfg: DictConfig) -> None:  # pragma: no cover
     """Debug all three retrieval tools against the live database.
 
     Usage:
@@ -63,5 +63,5 @@ def main(cfg: DictConfig) -> None:
             print(f"       {r['embed_text'][:120].replace(chr(10), ' ')}")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

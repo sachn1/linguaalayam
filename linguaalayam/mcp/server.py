@@ -157,9 +157,9 @@ def semantic_lookup(
     return _format(results, query, "semantic")
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     mcp.run()
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

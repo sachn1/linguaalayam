@@ -1,3 +1,4 @@
+# cache files
 __pycache__
 
 *.txt
@@ -18,3 +19,6 @@ outputs/
 
 # side effect of MCP Inspector lauching server via uv run
 uv.lock
+
+# tests
+.coverage

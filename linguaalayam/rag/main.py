@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
-def main(cfg: DictConfig) -> None:
+def main(cfg: DictConfig) -> None:  # pragma: no cover
     """Query the LinguAalayam RAG pipeline.
 
     Usage:
@@ -79,5 +79,5 @@ def main(cfg: DictConfig) -> None:
     print(f"\nAnswer:\n{result['answer']}")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

@@ -61,7 +61,7 @@ update_changelog_on_bump = false
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-exclude = ["alembic/versions/*", "notebooks/"]
+exclude = ["migrations/versions/*", "notebooks/"]
 
 [build-system]
 requires = ["poetry-core"]

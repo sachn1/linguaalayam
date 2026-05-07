@@ -210,7 +210,7 @@ def _process_source(
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
-def main(cfg: DictConfig) -> None:
+def main(cfg: DictConfig) -> None:  # pragma: no cover
     """Main entrypoint for the ingestion script.
 
     Parameters
@@ -252,5 +252,5 @@ def main(cfg: DictConfig) -> None:
     log.info("Ingest complete")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()
