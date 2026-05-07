@@ -1,3 +1,9 @@
+## v0.3.1 (2026-05-07)
+
+### Fix
+
+- changelog, bump ci, test coverage
+
 ## v0.3.0 (2026-05-07)
 
 ### Feat

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "linguaalayam"
-version = "0.3.0"
+version = "0.3.1"
 description = "Malayalam dictionary RAG pipeline and MCP server"
 authors = ["Sachin Nandakumar"]
 readme = "README.md"
