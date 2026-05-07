@@ -5,6 +5,7 @@ defaults:
   - llm: anthropic
   - rag: default
   - eval: default
+  - debug: default
   - _self_
 
 data_dir: data

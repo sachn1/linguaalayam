@@ -42,8 +42,7 @@ def build_engine(db_cfg: DictConfig) -> Engine:
     )
 
     @event.listens_for(engine, "connect")
-    def on_connect(dbapi_conn, _connection_record) -> None:
-        """Ensure the pgvector extension is available in the database."""
+    def on_connect(dbapi_conn, _connection_record) -> None:  # pragma: no cover
         with dbapi_conn.cursor() as cur:
             cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
         dbapi_conn.commit()

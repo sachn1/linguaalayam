@@ -1,13 +1,21 @@
 import datetime
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import DateTime, Index, Integer, Text, func
+from sqlalchemy import DateTime, Index, Integer, MetaData, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
+_NAMING_CONVENTION = {
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_N_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s",
+}
+
 
 class Base(DeclarativeBase):
-    pass
+    metadata = MetaData(naming_convention=_NAMING_CONVENTION)
 
 
 class DictionaryEntry(Base):
@@ -25,7 +33,7 @@ class DictionaryEntry(Base):
     )
 
     __table_args__ = (
-        # HNSW index for fast approximate nearest-neighbour search
+        UniqueConstraint("source", "headword"),
         Index(
             "ix_dictionary_entries_embedding_hnsw",
             "embedding",
@@ -33,7 +41,6 @@ class DictionaryEntry(Base):
             postgresql_with={"m": 16, "ef_construction": 64},
             postgresql_ops={"embedding": "vector_cosine_ops"},
         ),
-        # Composite index for filtered searches
         Index("ix_dictionary_entries_source_headword", "source", "headword"),
     )
 

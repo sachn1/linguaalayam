@@ -61,3 +61,35 @@ def test_load_skips_malformed_lines(tmp_path):
     loaded = VectorCheckpoint(path).load()
     assert "run" in loaded
     assert len(loaded) == 1
+
+
+def test_load_skips_blank_lines(tmp_path):
+    path = tmp_path / "blanks.jsonl"
+    path.write_text('{"headword": "run", "vector": [1.0]}\n\n', encoding="utf-8")
+    loaded = VectorCheckpoint(path).load()
+    assert "run" in loaded
+    assert len(loaded) == 1
+
+
+def test_remove_inserted_skips_malformed_lines(tmp_path):
+    path = tmp_path / "mixed.jsonl"
+    path.write_text(
+        '{"headword": "run", "vector": [1.0]}\nbad json line\n{"headword": "walk", "vector": [2.0]}\n',
+        encoding="utf-8",
+    )
+    cp = VectorCheckpoint(path)
+    cp.remove_inserted({"run"})
+    loaded = cp.load()
+    assert "walk" in loaded
+    assert "run" not in loaded
+
+
+def test_remove_inserted_skips_blank_lines(tmp_path):
+    path = tmp_path / "blanks.jsonl"
+    path.write_text(
+        '{"headword": "run", "vector": [1.0]}\n\n{"headword": "walk", "vector": [2.0]}\n',
+        encoding="utf-8",
+    )
+    cp = VectorCheckpoint(path)
+    cp.remove_inserted({"run"})
+    assert cp.load() == {"walk": [2.0]}

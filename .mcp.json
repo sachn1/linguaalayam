@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "linguaalayam": {
+      "command": "poetry",
+      "args": ["run", "mcp-server"]
+    }
+  }
+}

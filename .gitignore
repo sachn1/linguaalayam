@@ -1,8 +1,24 @@
-*.json
+# cache files
 __pycache__
-.env
+
 *.txt
 *.log
+
 data/**
+*.json
+
+# hydra
 outputs/
+
+.env
+# vscode extension to hide .env values
 .hide
+
+# mcp
+!.mcp.json
+
+# side effect of MCP Inspector lauching server via uv run
+uv.lock
+
+# tests
+.coverage
