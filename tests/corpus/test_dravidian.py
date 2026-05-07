@@ -63,7 +63,7 @@ def test_embed_text_has_language_tags(tmp_path):
 
 
 def test_skips_short_lines(tmp_path):
-    content = "Malayalam\tKannada\n"
+    content = "Malayalam\tKannada\tTamil\tTelugu\n" "word\tval\n"
     entries = dravidian.parse(_write(tmp_path, content))
     assert entries == []
 
