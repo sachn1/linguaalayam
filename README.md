@@ -12,7 +12,7 @@ A Malayalam dictionary knowledge base, RAG pipeline, and MCP server. Ingests ope
 - Checkpoint-based ingestion — resumable after failures, never re-embeds already-vectorised entries
 - **Hybrid retrieval** — exact headword match, trigram fuzzy search (pg_trgm), and HNSW cosine semantic search
 - **LangGraph RAG pipeline** — query understanding → retrieval → optional cross-encoder reranking → answer synthesis
-- **Pluggable LLM** — Claude (default) or any HuggingFace instruction model
+- **Pluggable LLM** — Claude via Anthropic API; no-LLM mode returns structured text from the reranker directly
 - **Evaluation harness** — offline retrieval metrics (Hit@k, MRR, tool attribution) against a labeled query set
 - **MCP server** — exposes `exact_lookup`, `fuzzy_lookup`, and `semantic_lookup` as MCP tools; works with Claude Code and Claude Desktop out of the box
 
@@ -44,18 +44,25 @@ Local Postgres + pgvector keeps the full SQLAlchemy + Alembic stack intact, has 
 - [x] Claude Code integration via `.mcp.json` project config
 - [x] Claude Desktop setup instructions
 
-### v0.4 — Additional corpora
+### v0.4 — LLM adapter + MCP resources
+- [ ] Replace direct Anthropic/HuggingFace calls with a provider adapter pattern (LiteLLM-backed `AnthropicAdapter`, `OpenAIAdapter`, `NoLLMAdapter`)
+- [ ] Remove HuggingFace text-generation option — reranker and embeddings are the only local models; LLM is always API-backed or absent
+- [ ] `NoLLMAdapter` — no API key is not an error; synthesis falls back to structured reranker output
+- [ ] MCP resources — expose dictionary entries as browsable URI-addressed resources (`dictionary://{headword}`) alongside the existing tools
+
+### v0.5 — Additional corpora
 - [ ] **Datuk** — ML→ML corpus (~83,000 Malayalam headwords with Malayalam definitions)
 - [ ] **Dravidian comparative** — cross-lingual corpus with Kannada, Tamil, and Telugu equivalents
 - [ ] **EK Kurup** — EN→ML thesaurus with 900,000+ synset entries (requires separate chunking strategy)
 - [ ] Per-corpus filtering in retrieval
 
-### v0.5 — Second release
-- [ ] MCP server updated with multi-corpus support
-- [ ] Cross-lingual lookup tool backed by real data
-- [ ] End-to-end integration tests against Claude Code
+### v0.6 — Frontend and self-hosting
+- [ ] Thin FastAPI layer over `DictionaryTools` for HTTP access (shared by MCP server and web clients)
+- [ ] Web frontend (Next.js / SvelteKit)
+- [ ] Mobile — Progressive Web App first; native (Flutter) if needed
+- [ ] Minimal-cost self-hosted deployment on a single Hetzner CX22 VPS (~€4/month): Postgres + pgvector + embedding service + app on one machine, no managed DB required
 
-### v0.6 — Improvements and optimisations
+### v0.7 — Improvements and optimisations
 - [ ] Embedding model evaluation — compare `multilingual-mpnet` vs `multilingual-e5-large` on retrieval quality
 - [ ] `int8` quantisation for faster inference
 - [ ] Query caching for repeated lookups
@@ -195,8 +202,8 @@ All data is open source and sourced from [Olam](https://olam.in/p/open):
 - **Postgres + pgvector** (local Docker container) for vector storage
 - **sentence-transformers** (`paraphrase-multilingual-mpnet-base-v2`) for embeddings
 - **LangGraph** + **LangChain** for the RAG pipeline graph
-- **Anthropic Claude** (default LLM) or **HuggingFace** models (optional)
+- **Anthropic Claude** (default LLM); **LiteLLM** adapter planned for v0.4 to support multiple providers
 - **FastMCP** (`mcp` SDK) for the MCP server
 - **Hydra** for configuration management
-- **Alembic** for schema migrations
-- **pytest** + ruff + pre-commit for testing and linting
+- **Alembic** for schema migrations (`migrations/`)
+- **pytest** + **ruff** + **pre-commit** for testing and linting
