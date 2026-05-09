@@ -8,6 +8,7 @@ from langchain_core.messages import AIMessage
 
 from linguaalayam.llm.adapters import AnthropicAdapter, LLMAdapter, NoLLMAdapter
 from linguaalayam.llm.adapters.base import LLMAdapter as LLMAdapterBase
+from linguaalayam.llm.adapters.openai import OpenAIAdapter
 
 
 class TestLLMAdapterInterface:
@@ -71,9 +72,7 @@ class TestAnthropicAdapter:
 
 
 class TestOpenAIAdapter:
-    def _make(self, model: str = "gpt-4o-mini") -> "OpenAIAdapter":
-        from linguaalayam.llm.adapters.openai import OpenAIAdapter
-
+    def _make(self, model: str = "gpt-4o-mini") -> OpenAIAdapter:
         mock_chat_openai = MagicMock()
         with (
             patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test"}),

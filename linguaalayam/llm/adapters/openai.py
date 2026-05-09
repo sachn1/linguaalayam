@@ -14,8 +14,7 @@ class OpenAIAdapter(LLMAdapter):
     def __init__(self, model: str, temperature: float = 0.0, max_tokens: int = 1024):
         if not os.environ.get("OPENAI_API_KEY"):
             raise RuntimeError(
-                "OPENAI_API_KEY is not set. "
-                "Add it to your .env file: OPENAI_API_KEY=sk-..."
+                "OPENAI_API_KEY is not set. " "Add it to your .env file: OPENAI_API_KEY=sk-..."
             )
         try:
             from langchain_openai import ChatOpenAI
