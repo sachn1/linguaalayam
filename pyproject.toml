@@ -62,7 +62,6 @@ update_changelog_on_bump = false
 [tool.pytest.ini_options]
 addopts = "--markdown-docs"
 testpaths = ["tests", "docs"]
-doctest_optionflags = ["NORMALIZE_WHITESPACE", "ELLIPSIS"]
 
 [tool.ruff]
 line-length = 100
