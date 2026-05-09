@@ -1,3 +1,3 @@
-from .provider import get_llm
+from .adapters import LLMAdapter
 
-__all__ = ["get_llm"]
+__all__ = ["LLMAdapter"]

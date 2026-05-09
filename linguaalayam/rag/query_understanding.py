@@ -5,9 +5,12 @@ when no pattern matches (handles novel phrasings).
 """
 
 import re
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from linguaalayam.llm.adapters.base import LLMAdapter
 
 Intent = Literal["define", "translate", "compare", "usage", "unknown"]
 
@@ -43,13 +46,12 @@ class QueryUnderstanding(BaseModel):
 
 def understand_query(
     query: str,
-    llm=None,  # BaseChatModel | None — avoid importing at module level
+    llm: "LLMAdapter | None" = None,
 ) -> QueryUnderstanding:
     """Extract headword and intent from a natural language query.
 
     Tries regex patterns first; only calls the LLM if no pattern matches.
-    If the LLM is unavailable or doesn't support structured output, returns
-    the raw query as the headword with intent='unknown'.
+    Falls back to the raw query with intent='unknown' if the LLM is absent or fails.
     """
     q = query.strip()
 
@@ -58,11 +60,10 @@ def understand_query(
         if m:
             return QueryUnderstanding(headword=m.group(1).strip(), intent=intent)
 
-    if llm is None:
+    if llm is None or not llm.has_llm:
         return QueryUnderstanding(headword=q, intent="unknown")
 
     try:
-        structured = llm.with_structured_output(QueryUnderstanding)
-        return structured.invoke(_FALLBACK_PROMPT.format(query=q))
-    except (NotImplementedError, AttributeError, Exception):
+        return llm.extract_structured(QueryUnderstanding, _FALLBACK_PROMPT.format(query=q))
+    except Exception:
         return QueryUnderstanding(headword=q, intent="unknown")

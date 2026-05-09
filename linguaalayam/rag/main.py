@@ -5,11 +5,12 @@ from pathlib import Path
 
 import hydra
 from dotenv import load_dotenv
+from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from linguaalayam.database import build_engine, build_session_factory
 from linguaalayam.embeddings import EmbeddingService
-from linguaalayam.llm import get_llm
+from linguaalayam.llm import LLMAdapter
 from linguaalayam.rag.pipeline import build_pipeline
 from linguaalayam.rag.reranker import CrossEncoderReranker
 from linguaalayam.rag.tools import DictionaryTools
@@ -32,8 +33,9 @@ def main(cfg: DictConfig) -> None:  # pragma: no cover
         RAG_QUERY='what does the word "pastoral" mean?' poetry run rag
         RAG_QUERY='In Keats ode, what is the Malayalam meaning of...' poetry run rag rag.rerank=true
 
-        # Switch LLM or embedding model
-        RAG_QUERY='define ephemeral' poetry run rag llm=huggingface
+        # Switch LLM provider or embedding model
+        RAG_QUERY='define ephemeral' poetry run rag llm=openai
+        RAG_QUERY='define ephemeral' poetry run rag llm=nollm
         poetry run rag 'rag.query=run' rag.top_k=10 embedding=multilingual_e5_large
     """
     engine = build_engine(cfg.database)
@@ -43,7 +45,7 @@ def main(cfg: DictConfig) -> None:  # pragma: no cover
     service = EmbeddingService(cfg.embedding)
 
     tools = DictionaryTools(session_factory, service)
-    llm = get_llm(cfg.llm)
+    llm: LLMAdapter = instantiate(cfg.llm)
     reranker = CrossEncoderReranker() if cfg.rag.rerank else None
 
     query: str = cfg.rag.query
@@ -57,7 +59,7 @@ def main(cfg: DictConfig) -> None:  # pragma: no cover
     pipeline = build_pipeline(tools, llm, cfg.rag, reranker=reranker)
 
     log.info("Query : %s", query)
-    log.info("LLM   : %s / %s", cfg.llm.provider, cfg.llm.model)
+    log.info("LLM   : %s", type(llm).__name__)
     log.info("Rerank: %s", cfg.rag.rerank)
 
     result = pipeline.invoke(
