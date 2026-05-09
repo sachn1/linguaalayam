@@ -1,3 +1,14 @@
+## v0.4.0 (2026-05-09)
+
+### Feat
+
+- add mcp resource
+- introduce adaptor pattern to use any LLM or No LLM for RAG
+
+### Fix
+
+- linter issues
+
 ## v0.3.1 (2026-05-07)
 
 ### Fix
