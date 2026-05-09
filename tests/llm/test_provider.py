@@ -1,75 +1,60 @@
-"""Tests for llm/provider.py — get_llm factory."""
+"""Tests for LLM instantiation via Hydra — verifies configs produce the right adapters."""
 
 import os
 from unittest.mock import MagicMock, patch
 
-import pytest
+from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
-from linguaalayam.llm import get_llm
+from linguaalayam.llm.adapters import AnthropicAdapter, NoLLMAdapter, OpenAIAdapter
 
 
-def _cfg(provider: str, model: str = "test-model", **extra) -> object:
-    return OmegaConf.create({"provider": provider, "model": model, **extra})
+def _cfg(target: str, **kwargs):
+    return OmegaConf.create({"_target_": target, **kwargs})
 
 
-class TestGetLlmAnthropic:
-    def test_returns_anthropic_model(self):
+class TestInstantiateAnthropic:
+    _TARGET = "linguaalayam.llm.adapters.anthropic.AnthropicAdapter"
+
+    def test_returns_anthropic_adapter(self):
         with (
             patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-ant-test"}),
-            patch("linguaalayam.llm.provider.ChatAnthropic") as mock_ca,
+            patch("linguaalayam.llm.adapters.anthropic.ChatAnthropic"),
         ):
-            mock_ca.return_value = MagicMock()
-            result = get_llm(_cfg("anthropic", model="claude-3-5-sonnet-20241022"))
-        mock_ca.assert_called_once()
-        assert result is not None
-
-    def test_raises_when_key_missing(self):
-        env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
-        with patch.dict(os.environ, env, clear=True):
-            os.environ.pop("ANTHROPIC_API_KEY", None)
-            with pytest.raises(RuntimeError, match="ANTHROPIC_API_KEY"):
-                get_llm(_cfg("anthropic"))
+            result = instantiate(_cfg(self._TARGET, model="claude-3-5-sonnet-20241022"))
+        assert isinstance(result, AnthropicAdapter)
 
     def test_passes_temperature(self):
         with (
             patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-ant-test"}),
-            patch("linguaalayam.llm.provider.ChatAnthropic") as mock_ca,
+            patch("linguaalayam.llm.adapters.anthropic.ChatAnthropic") as mock_ca,
         ):
             mock_ca.return_value = MagicMock()
-            get_llm(_cfg("anthropic", temperature=0.5))
+            instantiate(_cfg(self._TARGET, model="claude-3-5-sonnet-20241022", temperature=0.5))
         _, kwargs = mock_ca.call_args
         assert kwargs.get("temperature") == 0.5
 
 
-class TestGetLlmHuggingFace:
-    def test_returns_chat_huggingface(self):
-        mock_pipeline = MagicMock()
-        mock_chat = MagicMock()
+class TestInstantiateOpenAI:
+    _TARGET = "linguaalayam.llm.adapters.openai.OpenAIAdapter"
+
+    def test_returns_openai_adapter(self):
+        mock_openai = MagicMock()
         with (
-            patch("linguaalayam.llm.provider.HuggingFacePipeline") as mock_hfp,
-            patch("linguaalayam.llm.provider.ChatHuggingFace") as mock_chf,
+            patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test"}),
+            patch.dict("sys.modules", {"langchain_openai": MagicMock(ChatOpenAI=mock_openai)}),
         ):
-            mock_hfp.from_model_id.return_value = mock_pipeline
-            mock_chf.return_value = mock_chat
-            result = get_llm(_cfg("huggingface", model="gpt2", temperature=0.0))
-        mock_hfp.from_model_id.assert_called_once()
-        mock_chf.assert_called_once()
-        assert result is mock_chat
-
-    def test_do_sample_false_when_temperature_zero(self):
-        mock_pipeline = MagicMock()
-        with (
-            patch("linguaalayam.llm.provider.HuggingFacePipeline") as mock_hfp,
-            patch("linguaalayam.llm.provider.ChatHuggingFace"),
-        ):
-            mock_hfp.from_model_id.return_value = mock_pipeline
-            get_llm(_cfg("huggingface", model="gpt2", temperature=0.0))
-        kwargs = mock_hfp.from_model_id.call_args[1]
-        assert not kwargs["pipeline_kwargs"]["do_sample"]
+            result = instantiate(_cfg(self._TARGET, model="gpt-4o-mini"))
+        assert isinstance(result, OpenAIAdapter)
 
 
-class TestGetLlmUnknown:
-    def test_raises_value_error(self):
-        with pytest.raises(ValueError, match="Unknown LLM provider"):
-            get_llm(_cfg("openai"))
+class TestInstantiateNoLLM:
+    _TARGET = "linguaalayam.llm.adapters.nollm.NoLLMAdapter"
+
+    def test_returns_nollm_adapter(self):
+        result = instantiate(_cfg(self._TARGET))
+        assert isinstance(result, NoLLMAdapter)
+
+    def test_has_llm_false(self):
+        result = instantiate(_cfg(self._TARGET))
+        assert not result.has_llm

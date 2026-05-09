@@ -122,6 +122,44 @@ class TestFormat:
         assert "2 fuzzy result" in result
 
 
+class TestResourceHandler:
+    def setup_method(self):
+        self._orig_tools = server._tools
+
+    def teardown_method(self):
+        server._tools = self._orig_tools
+
+    def test_get_entry_returns_formatted_results(self):
+        mock_tools = MagicMock()
+        mock_tools.exact_lookup.return_value = [
+            {
+                "headword": "run",
+                "source": "olam_enml",
+                "match_type": "exact",
+                "score": 1.0,
+                "embed_text": "word: run\n  [v] ഓടുക",
+            }
+        ]
+        server._tools = mock_tools
+        result = server.get_entry("run")
+        assert "run" in result
+        assert "ഓടുക" in result
+
+    def test_get_entry_no_results(self):
+        mock_tools = MagicMock()
+        mock_tools.exact_lookup.return_value = []
+        server._tools = mock_tools
+        result = server.get_entry("xyzzy")
+        assert "No exact results" in result
+
+    def test_get_entry_calls_exact_lookup(self):
+        mock_tools = MagicMock()
+        mock_tools.exact_lookup.return_value = []
+        server._tools = mock_tools
+        server.get_entry("water")
+        mock_tools.exact_lookup.assert_called_once_with("water")
+
+
 class TestToolFunctions:
     def setup_method(self):
         self._orig_tools = server._tools

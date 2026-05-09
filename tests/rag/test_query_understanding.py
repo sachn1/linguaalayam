@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-
+from linguaalayam.llm.adapters.nollm import NoLLMAdapter
 from linguaalayam.rag.query_understanding import QueryUnderstanding, understand_query
 
 
@@ -77,21 +77,27 @@ class TestLlmFallback:
     def test_no_llm_returns_unknown(self):
         r = understand_query("some totally unrecognised query format xyz", llm=None)
         assert r.intent == "unknown"
-        assert r.headword  # non-empty
+        assert r.headword
+
+    def test_nollm_adapter_returns_unknown(self):
+        r = understand_query("some totally unrecognised query format xyz", llm=NoLLMAdapter())
+        assert r.intent == "unknown"
 
     def test_llm_called_when_no_pattern(self):
         mock_llm = MagicMock()
-        structured = MagicMock()
-        mock_llm.with_structured_output.return_value = structured
-        structured.invoke.return_value = QueryUnderstanding(headword="nostalgia", intent="define")
+        mock_llm.has_llm = True
+        mock_llm.extract_structured.return_value = QueryUnderstanding(
+            headword="nostalgia", intent="define"
+        )
 
         r = understand_query("some totally unrecognised query format xyz", llm=mock_llm)
         assert r.headword == "nostalgia"
-        mock_llm.with_structured_output.assert_called_once()
+        mock_llm.extract_structured.assert_called_once()
 
     def test_llm_exception_falls_back(self):
         mock_llm = MagicMock()
-        mock_llm.with_structured_output.side_effect = NotImplementedError
+        mock_llm.has_llm = True
+        mock_llm.extract_structured.side_effect = RuntimeError("API error")
 
         r = understand_query("some totally unrecognised query format xyz", llm=mock_llm)
         assert r.intent == "unknown"

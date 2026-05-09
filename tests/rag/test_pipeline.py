@@ -2,10 +2,11 @@
 
 from unittest.mock import MagicMock
 
-from langchain_core.messages import AIMessage
 from omegaconf import OmegaConf
 
+from linguaalayam.llm.adapters.nollm import NoLLMAdapter
 from linguaalayam.rag.pipeline import RAGState, _format_entries, build_pipeline
+from linguaalayam.rag.query_understanding import QueryUnderstanding
 
 
 def _candidate(headword: str, match_type: str = "exact", score: float = 1.0) -> dict:
@@ -54,14 +55,9 @@ class TestBuildPipeline:
 
     def _make_llm(self, answer: str = "Test answer"):
         llm = MagicMock()
-        # understand_query structured output
-        from linguaalayam.rag.query_understanding import QueryUnderstanding
-
-        structured = MagicMock()
-        structured.invoke.return_value = QueryUnderstanding(headword="run", intent="define")
-        llm.with_structured_output.return_value = structured
-        # synthesis response
-        llm.invoke.return_value = AIMessage(content=answer)
+        llm.has_llm = True
+        llm.extract_structured.return_value = QueryUnderstanding(headword="run", intent="define")
+        llm.complete.return_value = answer
         return llm
 
     def _initial_state(self, query: str = "run") -> RAGState:
@@ -73,8 +69,7 @@ class TestBuildPipeline:
         cfg = OmegaConf.create({"top_k": 5, "rerank": False})
         pipeline = build_pipeline(tools, llm, cfg)
         result = pipeline.invoke(self._initial_state("run"))
-        assert "answer" in result
-        assert result["answer"]
+        assert result["answer"] == "Malayalam: ഓടുക"
 
     def test_pipeline_sets_candidates(self):
         tools = self._make_tools("run")
@@ -100,7 +95,6 @@ class TestBuildPipeline:
         tools = self._make_tools()
         llm = self._make_llm()
         cfg = OmegaConf.create({"top_k": 5, "rerank": True})
-        # reranker=None → rerank node is a no-op
         pipeline = build_pipeline(tools, llm, cfg, reranker=None)
         result = pipeline.invoke(self._initial_state("run"))
         assert "answer" in result
@@ -125,3 +119,23 @@ class TestBuildPipeline:
         assert (
             kwargs.get("source") == "olam_enml" or tools.exact_lookup.call_args[0][1] == "olam_enml"
         )
+
+    def test_nollm_skips_llm_call_and_returns_candidates(self):
+        tools = self._make_tools("run")
+        llm = NoLLMAdapter()
+        cfg = OmegaConf.create({"top_k": 5, "rerank": False})
+        pipeline = build_pipeline(tools, llm, cfg)
+        result = pipeline.invoke(self._initial_state("run"))
+        assert result["answer"]
+        assert "run" in result["answer"]
+
+    def test_nollm_no_candidates_returns_fallback_message(self):
+        tools = MagicMock()
+        tools.exact_lookup.return_value = []
+        tools.fuzzy_lookup.return_value = []
+        tools.semantic_lookup.return_value = []
+        llm = NoLLMAdapter()
+        cfg = OmegaConf.create({"top_k": 5, "rerank": False})
+        pipeline = build_pipeline(tools, llm, cfg)
+        result = pipeline.invoke(self._initial_state("xyzzy"))
+        assert "No dictionary entries" in result["answer"]

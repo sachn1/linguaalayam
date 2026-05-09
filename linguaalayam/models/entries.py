@@ -31,7 +31,13 @@ class EnMlEntry:
     source: str = "olam_enml"
 
     def to_embed_text(self) -> str:
-        """Convert input to text representation specific for EnML."""
+        """Convert input to text representation specific for EnML.
+
+        >>> EnMlEntry(headword="run", definitions=[("v", "ഓടുക"), ("v", "പായുക")]).to_embed_text()
+        'word: run\\n  [v] ഓടുക; പായുക'
+        >>> EnMlEntry(headword="light", definitions=[("n", "വെളിച്ചം"), ("adj", "ഭാരം കുറഞ്ഞ")]).to_embed_text()
+        'word: light\\n  [n] വെളിച്ചം\\n  [adj] ഭാരം കുറഞ്ഞ'
+        """
         by_pos: dict[str, list[str]] = {}
         for pos, defn in self.definitions:
             by_pos.setdefault(pos or "general", []).append(defn)
@@ -73,7 +79,15 @@ class CrossLingualEntry:
     source: str = "dravidian_comparative"
 
     def to_embed_text(self) -> str:
-        """Convert input to text representation specific for cross-lingual entries."""
+        """Convert input to text representation specific for cross-lingual entries.
+
+        >>> e = CrossLingualEntry(headword="water", sense_index=None, ml_gloss=["വെള്ളം"], equivalents={"kn": ("ನೀರು", [])})
+        >>> e.to_embed_text()
+        'word: water\\n  [ml] വെള്ളം\\n  [kn] ನೀರು'
+        >>> e2 = CrossLingualEntry(headword="hand", sense_index=1, ml_gloss=[], equivalents={})
+        >>> e2.to_embed_text()
+        'word: hand (sense 1)'
+        """
         sense = f" (sense {self.sense_index})" if self.sense_index else ""
         lines = [f"word: {self.headword}{sense}"]
 
