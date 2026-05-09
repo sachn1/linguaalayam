@@ -3,11 +3,10 @@
 from pathlib import Path
 from typing import TypedDict
 
-from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
 from omegaconf import DictConfig
 
+from linguaalayam.llm.adapters.base import LLMAdapter
 from linguaalayam.rag.query_understanding import understand_query
 from linguaalayam.rag.reranker import CrossEncoderReranker
 from linguaalayam.rag.tools import DictionaryTools, merge_candidates
@@ -38,13 +37,16 @@ def _format_entries(candidates: list[dict]) -> str:
 
 def build_pipeline(
     tools: DictionaryTools,
-    llm: BaseChatModel,
+    llm: LLMAdapter,
     cfg: DictConfig,
     reranker: CrossEncoderReranker | None = None,
 ):
     """Build and compile the LangGraph RAG pipeline.
 
     Graph: understand → retrieve → [rerank?] → synthesize
+
+    When llm.has_llm is False (e.g. NoLLMAdapter), the synthesize node returns
+    formatted top-k candidates directly without an API call.
 
     cfg keys (all optional):
       top_k          int   5    candidates passed to synthesizer
@@ -86,15 +88,12 @@ def build_pipeline(
             return {"answer": "No dictionary entries found for your query."}
 
         entries_text = _format_entries(state["candidates"][:top_k])
-        content = _SYNTHESIS_TEMPLATE.format(query=state["query"], entries=entries_text)
 
-        response = llm.invoke(
-            [
-                SystemMessage(content=_SYNTHESIS_SYSTEM),
-                HumanMessage(content=content),
-            ]
-        )
-        return {"answer": response.content}
+        if not llm.has_llm:
+            return {"answer": entries_text}
+
+        content = _SYNTHESIS_TEMPLATE.format(query=state["query"], entries=entries_text)
+        return {"answer": llm.complete(_SYNTHESIS_SYSTEM, content)}
 
     graph: StateGraph = StateGraph(RAGState)
     graph.add_node("understand", understand_node)

@@ -74,8 +74,7 @@ async def _lifespan(_: FastMCP):
 mcp = FastMCP(
     "linguaalayam",
     instructions=(
-        "Malayalam dictionary with ~58,000 English headwords and their Malayalam definitions "
-        "(Olam EN→ML corpus). "
+        "Malayalam lexical knowledge base built on the Olam English–Malayalam corpus. "
         "Use exact_lookup first for a known word spelling. "
         "Use fuzzy_lookup for approximate matches, typos, or near-spellings. "
         "Use semantic_lookup for meaning-based queries, paraphrases, or when the exact word is unknown."
@@ -95,6 +94,18 @@ def _format(results: list[dict], query: str, method: str) -> str:
         lines.append(r["embed_text"])
         lines.append("")
     return "\n".join(lines).strip()
+
+
+@mcp.resource("dictionary://{headword}")
+def get_entry(headword: str) -> str:
+    """Browse a dictionary entry by URI.
+
+    Returns all exact-match entries for the headword as plain text.
+    URI format: dictionary://{headword}  e.g. dictionary://run
+    """
+    assert _tools is not None
+    results = _tools.exact_lookup(headword)
+    return _format(results, headword, "exact")
 
 
 @mcp.tool()

@@ -1,4 +1,4 @@
-provider: anthropic
+_target_: linguaalayam.llm.adapters.anthropic.AnthropicAdapter
 model: claude-sonnet-4-6
 temperature: 0.0
 max_tokens: 1024

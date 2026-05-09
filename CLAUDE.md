@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-LinguAalayam is a Malayalam dictionary RAG pipeline — it ingests open-source Malayalam lexical corpora (~58,000 entries from the Olam EN→ML corpus) into a local Postgres+pgvector database and enables semantic search via sentence-transformer embeddings.
+LinguAalayam is a Malayalam lexical knowledge base and MCP server. It ingests the Olam EN→ML corpus into a local Postgres + pgvector database and exposes hybrid retrieval (exact headword, trigram fuzzy, HNSW semantic) through both a LangGraph RAG pipeline and an MCP server for Claude. Corpus parsers for Datuk (ML→ML) and the Dravidian comparative dictionary exist but are not yet wired into the default ingest — planned for v0.5.
 
 ## Local database setup
 
@@ -18,7 +18,7 @@ docker run -d --name linguaalayam-pg \
 docker exec -it linguaalayam-pg psql -U postgres -c "CREATE DATABASE linguaalayam;"
 ```
 
-Copy `.env.example` to `.env` and fill in credentials, then run migrations.
+Copy `.env.example` to `.env` — DB values must match the Docker setup above. Then run migrations.
 
 ## Commands
 
@@ -37,10 +37,16 @@ poetry run ingest embedding=multilingual_e5_large
 poetry run debug-retriever                      # Default query: "run"
 poetry run debug-retriever --query "ഓടുക" --top-k 3 --source olam_enml
 
+# RAG pipeline
+poetry run rag 'rag.query=run'
+RAG_QUERY='what does ephemeral mean?' poetry run rag
+poetry run rag 'rag.query=run' llm=openai
+poetry run rag 'rag.query=run' llm=nollm       # no API key needed
+
 # Tests
 poetry run pytest                               # All tests
 poetry run pytest tests/corpus                  # Corpus parser tests only
-poetry run pytest tests/database               # DB tests (SQLite in-memory, no Supabase needed)
+poetry run pytest tests/database                # DB tests (SQLite in-memory, no Postgres needed)
 
 # Lint / format
 poetry run ruff check .
@@ -49,60 +55,72 @@ poetry run ruff format .
 
 ## Architecture
 
-**Data flow:**
+See [docs/architecture.md](docs/architecture.md) for full diagrams and module reference.
+
+**Ingestion flow:**
 
 ```
 TSV corpus files
-  → corpus parsers (linguaalayam/corpus/)     # produce Embeddable entries
-  → EmbeddingService (linguaalayam/embeddings/) # sentence-transformers → Vector(768)
-  → VectorCheckpoint (linguaalayam/scripts/vector_checkpoint.py)  # JSONL fault-tolerance
-  → batch_insert() (linguaalayam/database/queries.py)   # Postgres ON CONFLICT DO NOTHING
+  → corpus parsers (linguaalayam/corpus/)
+  → EmbeddingService (linguaalayam/embeddings/)   # sentence-transformers → Vector(768)
+  → VectorCheckpoint (linguaalayam/scripts/)       # JSONL fault-tolerance
+  → batch_insert() (linguaalayam/database/)        # Postgres ON CONFLICT DO NOTHING
 ```
 
-**Query flow:**
+**RAG query flow:**
 
 ```
-user query → EmbeddingService.encode_query() → similarity_search() (HNSW cosine) → ranked results
+user query
+  → understand_query (regex → LLMAdapter fallback)
+  → DictionaryTools (exact / fuzzy / semantic)
+  → CrossEncoderReranker (optional)
+  → LLMAdapter.complete() or formatted candidates (nollm)
 ```
+
+**MCP server:** tools (exact/fuzzy/semantic) + resource `dictionary://{headword}` → DictionaryTools → Postgres
 
 ### Key modules
 
 | Module | Purpose |
 |---|---|
-| `linguaalayam/models/entries.py` | Protocol-based entry types (`EnMlEntry`, `MlMlEntry`, `CrossLingualEntry`). Each implements `to_embed_text()`. |
-| `linguaalayam/models/orm.py` | SQLAlchemy `DictionaryEntry` ORM — id, source, headword, embed_text, JSONB data, Vector(768) embedding. |
-| `linguaalayam/corpus/` | One parser per corpus format (`enml.py`, `datuk.py`, `dravidian.py`). Each exposes a `parse()` function. |
-| `linguaalayam/embeddings/service.py` | `EmbeddingService` wraps `paraphrase-multilingual-mpnet-base-v2`. Batch encodes entries or single queries. |
-| `linguaalayam/database/queries.py` | `batch_insert()` (with ON CONFLICT), `similarity_search()` (HNSW cosine), `get_ingested_headwords()`. |
-| `linguaalayam/rag/retriever.py` | `Retriever` class — combines embed + similarity search + result formatting. |
-| `linguaalayam/scripts/ingest.py` | Main ingestion entry point. Checkpoint-based resumability: skips already-embedded entries on restart. |
-| `linguaalayam/scripts/vector_checkpoint.py` | `VectorCheckpoint` — append-only JSONL file mapping headword → vector. Survives crashes mid-ingest. |
+| `linguaalayam/models/entries.py` | Entry types (`EnMlEntry`, `MlMlEntry`, `CrossLingualEntry`), each with `to_embed_text()` |
+| `linguaalayam/models/orm.py` | SQLAlchemy `DictionaryEntry` ORM — headword, embed_text, JSONB data, Vector(768) |
+| `linguaalayam/corpus/` | One parser per corpus (`enml.py`, `datuk.py`, `dravidian.py`), each exposes `parse()` |
+| `linguaalayam/embeddings/service.py` | `EmbeddingService` wraps `paraphrase-multilingual-mpnet-base-v2` |
+| `linguaalayam/database/queries.py` | `batch_insert()`, `similarity_search()` (HNSW cosine), `get_ingested_headwords()` |
+| `linguaalayam/llm/adapters/` | `LLMAdapter` ABC + `AnthropicAdapter`, `OpenAIAdapter`, `NoLLMAdapter` |
+| `linguaalayam/rag/pipeline.py` | LangGraph graph: understand → retrieve → rerank? → synthesize |
+| `linguaalayam/rag/tools.py` | `DictionaryTools` — exact, fuzzy, semantic lookup over a live DB session |
+| `linguaalayam/mcp/server.py` | FastMCP server — three tools + `dictionary://{headword}` resource |
+| `linguaalayam/scripts/ingest.py` | Ingestion entry point with checkpoint-based resumability |
 
 ### Configuration (Hydra)
 
-Config lives in `config/` with three override groups:
-- `corpus`: `all` (full ingest, batch_size=512) or `debug` (limit=50, batch_size=10)
-- `embedding`: `model` (multilingual-mpnet, batch_size=256) or `multilingual_e5_large`
-- `database`: `local` (default, localhost postgres, no SSL) or `supabase` (adds `sslmode=require`)
+Config lives in `config/` with override groups:
+- `corpus`: `all` (full ingest) or `debug` (limit=50)
+- `embedding`: `model` (multilingual-mpnet) or `multilingual_e5_large`
+- `llm`: `anthropic` (default), `openai`, `nollm`
+- `database`: `local` (default) or `supabase` (adds `sslmode=require`)
 
 ### Database schema
 
-Table `dictionary_entries`: `source` (corpus id) + `headword` have a UNIQUE constraint (ON CONFLICT DO NOTHING). HNSW index on the embedding column (`m=16, ef_construction=64`, cosine distance).
-
-### Checkpoint files
-
-`.checkpoints/` stores JSONL checkpoint files during ingest. Safe to delete after a successful ingest completes.
+Table `dictionary_entries`: `source` + `headword` have a UNIQUE constraint (ON CONFLICT DO NOTHING). HNSW index on the embedding column (`m=16, ef_construction=64`, cosine distance).
 
 ## Adding a new corpus
 
-1. Create a parser in `linguaalayam/corpus/` that returns a list of objects implementing the `Embeddable` protocol (`source`, `headword`, `to_embed_text()`).
-2. Register it in the `_PARSERS` dict in `linguaalayam/scripts/ingest.py`.
+1. Create a parser in `linguaalayam/corpus/` returning objects implementing `Embeddable` (`source`, `headword`, `to_embed_text()`).
+2. Register it in `_PARSERS` in `linguaalayam/scripts/ingest.py`.
 3. Add a Hydra corpus config under `config/corpus/`.
+
+## Adding a new LLM provider
+
+1. Subclass `LLMAdapter` in `linguaalayam/llm/adapters/`.
+2. Add a YAML config in `config/llm/` with `_target_` pointing to your class.
 
 ## Testing notes
 
-Unit tests use an SQLite in-memory database via the `db_cfg` fixture — no running postgres needed. The `dummy_service` fixture provides a mock `EmbeddingService` with 4-dimensional vectors for fast tests.
+Unit tests use an SQLite in-memory database via the `db_cfg` fixture — no running Postgres needed. The `dummy_service` fixture provides a mock `EmbeddingService` with 4-dimensional vectors for fast tests.
 
 ## Environment
 
-Requires a `.env` file with: `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME`. Set `DB_SSLMODE=require` for Supabase or other hosted postgres that requires SSL.
+Requires a `.env` file with: `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME`. Set `DB_SSLMODE=require` for hosted Postgres.
