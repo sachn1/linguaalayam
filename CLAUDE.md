@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-LinguAalayam is a Malayalam lexical knowledge base and MCP server. It ingests the Olam EN→ML corpus into a local Postgres + pgvector database and exposes hybrid retrieval (exact headword, trigram fuzzy, HNSW semantic) through both a LangGraph RAG pipeline and an MCP server for Claude. Corpus parsers for Datuk (ML→ML) and the Dravidian comparative dictionary exist but are not yet wired into the default ingest — planned for v0.5.
+LinguAalayam is a Malayalam lexical knowledge base and MCP server. It ingests three corpora — Olam (EN→ML), Datuk (ML→ML), and Ekkurup (EN→ML thesaurus) — into a local Postgres + pgvector database and exposes hybrid retrieval (exact headword, trigram fuzzy, HNSW semantic) through both a LangGraph RAG pipeline and an MCP server for Claude.
 
 ## Local database setup
 
@@ -83,10 +83,11 @@ user query
 
 | Module | Purpose |
 |---|---|
-| `linguaalayam/models/entries.py` | Entry types (`EnMlEntry`, `MlMlEntry`, `CrossLingualEntry`), each with `to_embed_text()` |
+| `linguaalayam/models/entries.py` | Entry types (`EnMlEntry`, `MlMlEntry`, `EkkurupEntry`, `CrossLingualEntry`), each with `to_embed_text()` |
 | `linguaalayam/models/orm.py` | SQLAlchemy `DictionaryEntry` ORM — headword, embed_text, JSONB data, Vector(768) |
-| `linguaalayam/corpus/` | One parser per corpus (`enml.py`, `datuk.py`, `dravidian.py`), each exposes `parse()` |
-| `linguaalayam/embeddings/service.py` | `EmbeddingService` wraps `paraphrase-multilingual-mpnet-base-v2` |
+| `linguaalayam/corpus/base.py` | `parse_definition_tsv()` — shared 3-column TSV helper used by `enml.py` and `datuk.py` |
+| `linguaalayam/corpus/` | One parser per corpus (`enml.py`, `datuk.py`, `ekkurup.py`), each exposes `parse()` |
+| `linguaalayam/embeddings/service.py` | `EmbeddingService` wraps `paraphrase-multilingual-mpnet-base-v2`; exposes `batch_size` and `vector_size` |
 | `linguaalayam/database/queries.py` | `batch_insert()`, `similarity_search()` (HNSW cosine), `get_ingested_headwords()` |
 | `linguaalayam/llm/adapters/` | `LLMAdapter` ABC + `AnthropicAdapter`, `OpenAIAdapter`, `NoLLMAdapter` |
 | `linguaalayam/rag/pipeline.py` | LangGraph graph: understand → retrieve → rerank? → synthesize |
@@ -97,10 +98,11 @@ user query
 ### Configuration (Hydra)
 
 Config lives in `config/` with override groups:
-- `corpus`: `all` (full ingest) or `debug` (limit=50)
+- `corpus`: `all` (full ingest) or `debug` (limit=50). Each source entry carries `parser._target_` pointing to its `parse` function — no hardcoded parser map in Python.
 - `embedding`: `model` (multilingual-mpnet) or `multilingual_e5_large`
 - `llm`: `anthropic` (default), `openai`, `nollm`
 - `database`: `local` (default) or `supabase` (adds `sslmode=require`)
+- `rag`: query, top_k, source, rerank flag, `reranker_model` (cross-encoder HuggingFace ID)
 
 ### Database schema
 
@@ -108,9 +110,10 @@ Table `dictionary_entries`: `source` + `headword` have a UNIQUE constraint (ON C
 
 ## Adding a new corpus
 
-1. Create a parser in `linguaalayam/corpus/` returning objects implementing `Embeddable` (`source`, `headword`, `to_embed_text()`).
-2. Register it in `_PARSERS` in `linguaalayam/scripts/ingest.py`.
-3. Add a Hydra corpus config under `config/corpus/`.
+1. Create a parser in `linguaalayam/corpus/` exposing a `parse(filepath: Path) -> list[Embeddable]` function.
+   - If the format is a 3-column definition TSV (headword, POS, definition), use `parse_definition_tsv` from `corpus/base.py` — one-line body.
+   - Otherwise implement parsing directly as in `ekkurup.py` (YAML) or `dravidian.py` (4-column TSV).
+2. Add a source entry to `config/corpus/all.yaml` and `config/corpus/debug.yaml` with `parser._target_` pointing to your `parse` function and `parser._partial_: true`. No Python code change needed in `ingest.py`.
 
 ## Adding a new LLM provider
 
@@ -124,3 +127,28 @@ Unit tests use an SQLite in-memory database via the `db_cfg` fixture — no runn
 ## Environment
 
 Requires a `.env` file with: `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME`. Set `DB_SSLMODE=require` for hosted Postgres.
+
+## Versioning
+
+Schema: `major.minor.patch` (semantic versioning, `major_version_zero = true` until v1.0).
+
+| Branch flow | Tag format | Command |
+|---|---|---|
+| feature → develop | `v0.5.0-rc.1` | `cz bump --pre-release rc` |
+| develop → main | `v0.5.0` | `cz bump` |
+
+Release candidates mark a feature-complete state pending final QA on `develop`. The main branch carries only clean releases. After `v0.6.0`, set `major_version_zero = false` in `pyproject.toml` before bumping to `v1.0.0`.
+
+## Embedding models
+
+The sentence-transformer and cross-encoder models download from HuggingFace on first use and cache to `~/.cache/huggingface`. Pre-warm the cache before the first `mcp-server` start:
+
+```bash
+python -c "
+from sentence_transformers import SentenceTransformer, CrossEncoder
+SentenceTransformer('sentence-transformers/paraphrase-multilingual-mpnet-base-v2')
+CrossEncoder('cross-encoder/mmarco-mMiniLMv2-L12-H384-v1')
+"
+```
+
+Baking models into a Docker image layer is planned for v0.6 when the REST API is containerised.

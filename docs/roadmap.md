@@ -18,19 +18,24 @@
 - [x] Remove HuggingFace text-generation; LLM is always API-backed or absent
 - [x] MCP resource `dictionary://{headword}` alongside the existing tools
 
-### v0.5 — Additional corpora
-- [ ] **Datuk** — ML→ML corpus (~83,000 Malayalam headwords with Malayalam definitions)
-- [ ] **Dravidian comparative** — cross-lingual corpus with Kannada, Tamil, and Telugu equivalents
-- [ ] **EK Kurup** — EN→ML thesaurus with 900,000+ synset entries (requires separate chunking strategy)
-- [ ] Per-corpus filtering in retrieval
+### v0.5 — Additional corpora + code quality
+- [x] **Datuk** — ML→ML corpus (Malayalam headwords with Malayalam definitions)
+- [x] **Ekkurup** — EN→ML thesaurus (synset entries with grouped EN synonyms and ML translations)
+- [x] Per-corpus filtering in retrieval via `source` parameter on all three tools
+- [x] Hydra-driven corpus parsers — adding a corpus requires only a YAML config entry, no Python change
+- [x] Code quality sweep — dead code removed, encapsulation fixed, silent failures logged
 
-### v0.6 — Frontend and self-hosting
+### v0.6 — REST API and self-hosting
 - [ ] Thin FastAPI layer over `DictionaryTools` for HTTP access
 - [ ] Web frontend (Next.js / SvelteKit)
 - [ ] Mobile — Progressive Web App first; native (Flutter) if needed
 - [ ] Minimal-cost self-hosted deployment on a Hetzner CX22 VPS (~€4/month)
+- [ ] Docker image with pre-baked embedding and reranker model weights
 
-### v0.7 — Improvements and optimisations
+### v1.0 — Stable release (post v0.6)
+- [ ] Promote to stable after v0.6 ships and REST API is proven in production
+
+### v1.x — Improvements and optimisations
 - [ ] Embedding model evaluation — compare `multilingual-mpnet` vs `multilingual-e5-large`
 - [ ] `int8` quantisation for faster inference
 - [ ] Query caching for repeated lookups

@@ -4,17 +4,22 @@ repos:
     hooks:
       - id: ruff
         args: [--fix]
-        exclude: ^alembic/versions/
+        exclude: ^migrations/
+      - id: ruff-format
+        exclude: ^migrations/
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
       - id: trailing-whitespace
+        exclude: ^migrations/
       - id: end-of-file-fixer
+        exclude: ^migrations/
       - id: check-yaml
       - id: check-toml
       - id: check-merge-conflict
       - id: debug-statements
+        exclude: ^migrations/
 
   - repo: https://github.com/sachn1/readme-drift
     rev: v1.0.1

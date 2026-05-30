@@ -3,7 +3,7 @@
 Three independent subsystems share the same Postgres + pgvector database:
 the **ingestion pipeline**, the **RAG pipeline**, and the **MCP server**.
 
-Currently the Olam EN→ML corpus is the active data source. Parsers for Datuk (ML→ML) and the Dravidian comparative dictionary exist in `linguaalayam/corpus/` but are not yet wired into the default ingest — planned for v0.5.
+Three corpora are active: **Olam** (EN→ML), **Datuk** (ML→ML), and **Ekkurup** (EN→ML thesaurus). Each corpus is wired via a `parser._target_` entry in `config/corpus/all.yaml`; no Python code change is needed to add a new corpus.
 
 ---
 
@@ -11,7 +11,7 @@ Currently the Olam EN→ML corpus is the active data source. Parsers for Datuk (
 
 ```mermaid
 flowchart LR
-    A[TSV corpus files] --> B[corpus parsers\nenml · datuk · dravidian\nenml active · others v0.5]
+    A[corpus files\nTSV · YAML] --> B[corpus parsers\nenml · datuk · ekkurup]
     B --> C[EmbeddingService\nsentence-transformers]
     C --> D[VectorCheckpoint\nJSONL fault-tolerance]
     D --> E[(PostgreSQL\npgvector)]
@@ -58,17 +58,18 @@ No LLM involvement — pure retrieval. The embedding model loads once at startup
 
 | Module | Purpose |
 |---|---|
-| `linguaalayam/models/entries.py` | Entry types (`EnMlEntry`, `MlMlEntry`, `CrossLingualEntry`), each with `to_embed_text()` |
+| `linguaalayam/models/entries.py` | Entry types (`EnMlEntry`, `MlMlEntry`, `EkkurupEntry`), each with `to_embed_text()` |
 | `linguaalayam/models/orm.py` | SQLAlchemy `DictionaryEntry` ORM — headword, embed_text, JSONB data, Vector(768) |
-| `linguaalayam/corpus/` | One parser per corpus format (`enml.py`, `datuk.py`, `dravidian.py`) |
-| `linguaalayam/embeddings/service.py` | `EmbeddingService` — wraps sentence-transformers, batch encodes entries |
+| `linguaalayam/corpus/base.py` | `parse_definition_tsv()` — shared 3-column TSV helper used by `enml.py` and `datuk.py` |
+| `linguaalayam/corpus/` | One parser per corpus (`enml.py`, `datuk.py`, `ekkurup.py`), each exposes `parse()` |
+| `linguaalayam/embeddings/service.py` | `EmbeddingService` — wraps sentence-transformers, exposes `batch_size` and `vector_size` |
 | `linguaalayam/database/queries.py` | `batch_insert()`, `similarity_search()` (HNSW cosine), `get_ingested_headwords()` |
 | `linguaalayam/llm/adapters/` | `LLMAdapter` ABC + `AnthropicAdapter`, `OpenAIAdapter`, `NoLLMAdapter` |
 | `linguaalayam/rag/pipeline.py` | LangGraph graph: understand → retrieve → rerank? → synthesize |
 | `linguaalayam/rag/tools.py` | `DictionaryTools` — exact, fuzzy, semantic lookup over a live DB session |
 | `linguaalayam/mcp/server.py` | FastMCP server — three tools + `dictionary://{headword}` resource |
-| `linguaalayam/scripts/ingest.py` | Ingestion entry point with checkpoint-based resumability |
-| `config/` | Hydra config groups: `corpus`, `embedding`, `database`, `llm`, `rag` |
+| `linguaalayam/scripts/ingest.py` | Ingestion entry point; corpus parsers injected via Hydra `_target_` — no hardcoded parser map |
+| `config/` | Hydra config groups: `corpus` (with per-source `parser._target_`), `embedding`, `database`, `llm`, `rag` |
 | `migrations/` | Alembic schema migrations |
 
 ---
@@ -116,10 +117,23 @@ assert not adapter.has_llm
 Entry text representations:
 
 ```python
-from linguaalayam.models.entries import EnMlEntry
+from linguaalayam.models.entries import EnMlEntry, EkkurupEntry, EkkurupSense, MlMlEntry
 
 entry = EnMlEntry(headword="run", definitions=[("v", "ഓടുക")])
 text = entry.to_embed_text()
 assert text.startswith("word: run")
 assert "ഓടുക" in text
+
+ml_entry = MlMlEntry(headword="ഓടുക", definitions=[("v", "to run fast")])
+ml_text = ml_entry.to_embed_text()
+assert "ഓടുക" in ml_text
+
+ek_entry = EkkurupEntry(
+    headword="run",
+    senses=[EkkurupSense(pos="verb", en=[["sprint", "dash"]], ml=[["ഓടുക"]])],
+)
+ek_text = ek_entry.to_embed_text()
+assert "[verb]" in ek_text
+assert "sprint" in ek_text
+assert "ഓടുക" in ek_text
 ```
