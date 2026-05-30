@@ -3,14 +3,12 @@ name: Bump Version
 on:
   push:
     branches:
-      - develop
       - master
 
 jobs:
   bump:
     name: Bump Version
     runs-on: ubuntu-latest
-    # Skip the bump commit itself to avoid an infinite trigger loop
     if: "!startsWith(github.event.head_commit.message, 'bump:') && !contains(github.event.head_commit.message, '[skip ci]')"
     permissions:
       contents: write
@@ -18,79 +16,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # full history + all tags required for cz to compute next version
-          token: ${{ secrets.BUMP_TOKEN }}  # PAT so the bot can push to protected branches
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+          fetch-depth: 0
+          token: ${{ secrets.BUMP_TOKEN }}
 
       - name: Install Poetry and Commitizen
-        run: |
-          pip install poetry
-          poetry install --only dev
+        run: pip install poetry commitizen
 
       - name: Configure git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      # On develop: bump to next RC (e.g. 0.4.0 → 0.5.0-rc.1, or 0.5.0-rc.1 → 0.5.0-rc.2).
-      # cz bump with version_provider=poetry can write PEP 440 format (0.5.0rc1) instead of
-      # semver (0.5.0-rc.1). We normalise with sed and re-create the tag on the correct commit.
-      # Exit 3 = no commits at all; exit 21 = commits found but none trigger a version bump.
-      - name: Bump RC version
-        if: github.ref == 'refs/heads/develop'
+      - name: Bump version
         run: |
-          OLD_VERSION=$(poetry version -s)
           EXIT=0
-          poetry run cz bump --prerelease rc --yes || EXIT=$?
+          cz bump --yes || EXIT=$?
           if [ "$EXIT" -ne 0 ] && [ "$EXIT" -ne 3 ] && [ "$EXIT" -ne 21 ]; then
             exit $EXIT
           fi
-          NEW_RAW=$(poetry version -s)
-          if [ "$NEW_RAW" != "$OLD_VERSION" ]; then
-            NORM=$(echo "$NEW_RAW" | sed -E 's/^([0-9]+\.[0-9]+\.[0-9]+)rc([0-9]+)$/\1-rc.\2/')
-            if [ "$NORM" != "$NEW_RAW" ]; then
-              sed -i -E "s/^(version = \")${NEW_RAW}\"/\1${NORM}\"/" pyproject.toml
-              git add pyproject.toml
-              git commit --amend --no-edit
-            fi
-            git tag -d "v${NORM}" 2>/dev/null || true
-            git tag -d "v${NEW_RAW}" 2>/dev/null || true
-            git tag -a "v${NORM}" -m "version v${NORM}"
-          fi
-
-      # On master: strip the RC suffix (e.g. 0.5.0-rc.2 → 0.5.0) and tag the stable release.
-      # We do not use cz bump here — a merge commit carries no conventional commit message so
-      # cz exits 21. Handles both semver (0.5.0-rc.1) and PEP 440 (0.5.0rc1) for safety.
-      - name: Promote RC to release
-        id: promote
-        if: github.ref == 'refs/heads/master'
-        run: |
-          CURRENT=$(poetry version -s)
-          if [[ "$CURRENT" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-rc\.[0-9]+$ ]] || \
-             [[ "$CURRENT" =~ ^([0-9]+\.[0-9]+\.[0-9]+)rc[0-9]+$ ]]; then
-            RELEASE="${BASH_REMATCH[1]}"
-            poetry version "$RELEASE"
-            git add pyproject.toml
-            git commit -m "bump: version $CURRENT → $RELEASE"
-            git tag -a "v$RELEASE" -m "version v$RELEASE"
-            echo "release_version=$RELEASE" >> "$GITHUB_OUTPUT"
-          fi
-
-      # After stable release on master, back-fill the release version onto develop so the
-      # next RC bump starts from the correct base (not a stale RC).
-      - name: Sync develop version after release
-        if: github.ref == 'refs/heads/master' && steps.promote.outputs.release_version != ''
-        run: |
-          git fetch origin develop
-          git checkout develop
-          poetry version "${{ steps.promote.outputs.release_version }}"
-          git add pyproject.toml
-          git commit -m "chore: sync version to ${{ steps.promote.outputs.release_version }} after release [skip ci]"
-          git push origin develop
-          git checkout master
 
       - name: Push
         run: git push --follow-tags
