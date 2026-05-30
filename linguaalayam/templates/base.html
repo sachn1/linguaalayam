@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}LinguAalayam{% endblock %} — Malayalam Lexical Knowledge Base</title>
+  <meta name="description" content="Search Malayalam words across Olam, Datuk, and Ekkurup corpora with exact, fuzzy, and semantic lookup." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Malayalam:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #fafaf9;
+      --surface: #ffffff;
+      --border: #e5e5e5;
+      --text: #1c1917;
+      --text-muted: #78716c;
+      --accent: #b45309;
+      --accent-hover: #92400e;
+      --radius: 8px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .ml { font-family: 'Noto Sans Malayalam', sans-serif; }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    header a { text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; }
+    header h1 { font-size: 1.125rem; font-weight: 600; }
+    header .tagline { font-size: 0.8rem; color: var(--text-muted); }
+
+    main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    .search-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 0.6rem 0.875rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus { border-color: var(--accent); }
+
+    select {
+      padding: 0.6rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      font-family: inherit;
+      background: var(--surface);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; }
+
+    #results { min-height: 2rem; }
+
+    .htmx-indicator { opacity: 0; transition: opacity 0.15s; }
+    .htmx-request .htmx-indicator { opacity: 1; }
+    .spinner {
+      display: inline-block;
+      width: 1rem; height: 1rem;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-left: 0.5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      margin-top: 3rem;
+    }
+    footer a { color: var(--text-muted); }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header>
+    <a href="/">
+      <h1>LinguAalayam</h1>
+      <span class="tagline ml">മലയാളം നിഘണ്ടു</span>
+    </a>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    Corpora: <a href="https://olam.in" target="_blank">Olam</a> · Datuk · Ekkurup &nbsp;·&nbsp;
+    <a href="/docs" target="_blank">API docs</a>
+  </footer>
+</body>
+</html>

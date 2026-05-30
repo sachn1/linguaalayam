@@ -1,0 +1,54 @@
+{% if results %}
+<style>
+  .results-meta { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem; }
+  .entry {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+  }
+  .entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.4rem;
+    gap: 0.5rem;
+  }
+  .headword { font-size: 1.1rem; font-weight: 600; }
+  .badges { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+  .badge {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 99px;
+    background: #f5f0eb;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .embed-text { font-size: 0.9rem; color: var(--text); line-height: 1.5; }
+  .score { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.35rem; }
+</style>
+
+<p class="results-meta">{{ results | length }} result{% if results | length != 1 %}s{% endif %}</p>
+
+{% for r in results %}
+<div class="entry">
+  <div class="entry-header">
+    <span class="headword {% if r.source == 'datuk' %}ml{% endif %}">{{ r.headword }}</span>
+    <span class="badges">
+      <span class="badge">{{ r.source }}</span>
+      <span class="badge">{{ r.match_type }}</span>
+      {% if r.entry_type %}<span class="badge">{{ r.entry_type }}</span>{% endif %}
+    </span>
+  </div>
+  <p class="embed-text ml">{{ r.embed_text }}</p>
+  <p class="score">score {{ "%.3f" | format(r.score) }}</p>
+</div>
+{% endfor %}
+
+{% elif query %}
+<style>
+  .empty { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
+</style>
+<div class="empty">No results for <strong>{{ query }}</strong></div>
+{% endif %}
