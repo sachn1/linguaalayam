@@ -9,7 +9,10 @@ import linguaalayam.mcp.server as server
 
 
 class TestEnsureDockerDb:
+    """_ensure_docker_db Docker interaction and error handling."""
+
     def test_starts_container_on_success(self):
+        """Should sleep after a successful docker start."""
         mock_result = MagicMock()
         mock_result.returncode = 0
         with (
@@ -20,6 +23,7 @@ class TestEnsureDockerDb:
         mock_sleep.assert_called_once_with(2)
 
     def test_no_sleep_on_nonzero_returncode(self):
+        """Should not sleep when docker start fails."""
         mock_result = MagicMock()
         mock_result.returncode = 1
         with (
@@ -30,10 +34,12 @@ class TestEnsureDockerDb:
         mock_sleep.assert_not_called()
 
     def test_docker_not_found_does_not_raise(self):
+        """FileNotFoundError (Docker absent) should be silently swallowed."""
         with patch("linguaalayam.mcp.server.subprocess.run", side_effect=FileNotFoundError):
             server._ensure_docker_db()  # should not raise
 
     def test_timeout_does_not_raise(self):
+        """TimeoutExpired should be silently swallowed."""
         with patch(
             "linguaalayam.mcp.server.subprocess.run",
             side_effect=subprocess.TimeoutExpired("docker", 10),
@@ -41,6 +47,7 @@ class TestEnsureDockerDb:
             server._ensure_docker_db()  # should not raise
 
     def test_respects_db_container_env(self):
+        """DB_CONTAINER env var should override the default container name."""
         captured = []
         with (
             patch.dict("os.environ", {"DB_CONTAINER": "custom-pg"}),
@@ -53,7 +60,10 @@ class TestEnsureDockerDb:
 
 
 class TestInitTools:
+    """_init_tools DictionaryTools construction."""
+
     def test_returns_dictionary_tools(self):
+        """_init_tools should return a DictionaryTools instance."""
         from linguaalayam.rag.tools import DictionaryTools
 
         with (
@@ -66,7 +76,10 @@ class TestInitTools:
 
 
 class TestLifespan:
+    """_lifespan async context manager initialisation."""
+
     def test_initializes_tools(self):
+        """_lifespan should assign a DictionaryTools instance to server._tools."""
         mock_tools = MagicMock()
 
         async def _run():
@@ -81,12 +94,16 @@ class TestLifespan:
 
 
 class TestFormat:
+    """_format result formatting."""
+
     def test_empty_results(self):
+        """Should return a 'No … results' message for an empty list."""
         result = server._format([], "run", "exact")
         assert "No exact results" in result
         assert "run" in result
 
     def test_single_result(self):
+        """Should include headword, source, and embed_text for one result."""
         results = [
             {
                 "headword": "run",
@@ -102,6 +119,7 @@ class TestFormat:
         assert "olam_enml" in result
 
     def test_multiple_results_counted(self):
+        """Should report the correct result count."""
         results = [
             {
                 "headword": "run",
@@ -123,13 +141,18 @@ class TestFormat:
 
 
 class TestResourceHandler:
+    """get_entry MCP resource handler."""
+
     def setup_method(self):
+        """Save original _tools so teardown can restore it."""
         self._orig_tools = server._tools
 
     def teardown_method(self):
+        """Restore original _tools after each test."""
         server._tools = self._orig_tools
 
     def test_get_entry_returns_formatted_results(self):
+        """get_entry should format exact lookup results for the given headword."""
         mock_tools = MagicMock()
         mock_tools.exact_lookup.return_value = [
             {
@@ -146,6 +169,7 @@ class TestResourceHandler:
         assert "ഓടുക" in result
 
     def test_get_entry_no_results(self):
+        """get_entry should return a 'No exact results' message on miss."""
         mock_tools = MagicMock()
         mock_tools.exact_lookup.return_value = []
         server._tools = mock_tools
@@ -153,6 +177,7 @@ class TestResourceHandler:
         assert "No exact results" in result
 
     def test_get_entry_calls_exact_lookup(self):
+        """get_entry should call exact_lookup with the headword."""
         mock_tools = MagicMock()
         mock_tools.exact_lookup.return_value = []
         server._tools = mock_tools
@@ -161,13 +186,18 @@ class TestResourceHandler:
 
 
 class TestToolFunctions:
+    """MCP tool functions — exact_lookup, fuzzy_lookup, semantic_lookup."""
+
     def setup_method(self):
+        """Save original _tools so teardown can restore it."""
         self._orig_tools = server._tools
 
     def teardown_method(self):
+        """Restore original _tools after each test."""
         server._tools = self._orig_tools
 
     def test_exact_lookup_no_results(self):
+        """exact_lookup should return a 'No exact results' message on miss."""
         mock_tools = MagicMock()
         mock_tools.exact_lookup.return_value = []
         server._tools = mock_tools
@@ -175,6 +205,7 @@ class TestToolFunctions:
         assert "No exact results" in result
 
     def test_exact_lookup_with_results(self):
+        """exact_lookup should include the headword in the formatted output."""
         mock_tools = MagicMock()
         mock_tools.exact_lookup.return_value = [
             {
@@ -190,6 +221,7 @@ class TestToolFunctions:
         assert "run" in result
 
     def test_exact_lookup_passes_source(self):
+        """Source parameter should be forwarded to DictionaryTools.exact_lookup."""
         mock_tools = MagicMock()
         mock_tools.exact_lookup.return_value = []
         server._tools = mock_tools
@@ -197,6 +229,7 @@ class TestToolFunctions:
         mock_tools.exact_lookup.assert_called_once_with("run", source="olam_enml")
 
     def test_fuzzy_lookup_no_results(self):
+        """fuzzy_lookup should return a 'No fuzzy results' message on miss."""
         mock_tools = MagicMock()
         mock_tools.fuzzy_lookup.return_value = []
         server._tools = mock_tools
@@ -204,6 +237,7 @@ class TestToolFunctions:
         assert "No fuzzy results" in result
 
     def test_fuzzy_lookup_passes_params(self):
+        """threshold, top_k, and source should be forwarded correctly."""
         mock_tools = MagicMock()
         mock_tools.fuzzy_lookup.return_value = []
         server._tools = mock_tools
@@ -213,6 +247,7 @@ class TestToolFunctions:
         )
 
     def test_semantic_lookup_no_results(self):
+        """semantic_lookup should return a 'No semantic results' message on miss."""
         mock_tools = MagicMock()
         mock_tools.semantic_lookup.return_value = []
         server._tools = mock_tools
@@ -220,6 +255,7 @@ class TestToolFunctions:
         assert "No semantic results" in result
 
     def test_semantic_lookup_passes_params(self):
+        """top_k and source should be forwarded to DictionaryTools.semantic_lookup."""
         mock_tools = MagicMock()
         mock_tools.semantic_lookup.return_value = []
         server._tools = mock_tools

@@ -7,12 +7,14 @@ from linguaalayam.eval.seed import _build_entries
 
 
 def _queries(*headwords: str) -> list[EvalQuery]:
+    """Build a list of EvalQuery stubs for the given headwords."""
     return [
         EvalQuery(query=f"define {hw}", expected_headword=hw, intent="define") for hw in headwords
     ]
 
 
 def test_build_entries_known_headword():
+    """Should produce one EnMlEntry for a headword in the curated definitions."""
     with patch("linguaalayam.eval.seed.load_dataset", return_value=_queries("run")):
         entries = _build_entries()
     assert len(entries) == 1
@@ -20,6 +22,7 @@ def test_build_entries_known_headword():
 
 
 def test_build_entries_multiple_headwords():
+    """Should produce entries for all unique headwords in the dataset."""
     with patch(
         "linguaalayam.eval.seed.load_dataset", return_value=_queries("run", "walk", "peace")
     ):
@@ -29,6 +32,7 @@ def test_build_entries_multiple_headwords():
 
 
 def test_build_entries_stub_for_unknown():
+    """Unknown headwords should get a stub definition containing the headword."""
     with patch("linguaalayam.eval.seed.load_dataset", return_value=_queries("xyzzy_unknown")):
         entries = _build_entries()
     assert len(entries) == 1
@@ -38,7 +42,7 @@ def test_build_entries_stub_for_unknown():
 
 
 def test_build_entries_deduplicates_headwords():
-    # same headword queried with different queries → one entry
+    """Same headword queried multiple times should produce only one entry."""
     queries = [
         EvalQuery(query="define run", expected_headword="run", intent="define"),
         EvalQuery(query="run meaning", expected_headword="run", intent="define"),

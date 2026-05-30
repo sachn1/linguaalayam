@@ -9,11 +9,13 @@ from linguaalayam.eval import EvalQuery, load_dataset
 
 
 def _write_jsonl(path: Path, lines: list[dict]) -> Path:
+    """Write a list of dicts as a JSONL file and return the path."""
     path.write_text("\n".join(json.dumps(d) for d in lines), encoding="utf-8")
     return path
 
 
 def test_load_valid_dataset(tmp_path):
+    """load_dataset should parse all fields from a well-formed JSONL file."""
     p = _write_jsonl(
         tmp_path / "q.jsonl",
         [{"query": "define run", "expected_headword": "run", "intent": "define"}],
@@ -26,6 +28,7 @@ def test_load_valid_dataset(tmp_path):
 
 
 def test_optional_fields_default(tmp_path):
+    """Missing intent and source should default to 'define' and None."""
     p = _write_jsonl(
         tmp_path / "q.jsonl",
         [{"query": "run", "expected_headword": "run"}],
@@ -36,6 +39,7 @@ def test_optional_fields_default(tmp_path):
 
 
 def test_optional_source_field(tmp_path):
+    """An explicit source field should be preserved."""
     p = _write_jsonl(
         tmp_path / "q.jsonl",
         [{"query": "run", "expected_headword": "run", "source": "olam_enml"}],
@@ -45,11 +49,13 @@ def test_optional_source_field(tmp_path):
 
 
 def test_raises_file_not_found(tmp_path):
+    """load_dataset should raise FileNotFoundError for missing files."""
     with pytest.raises(FileNotFoundError, match="not found"):
         load_dataset(tmp_path / "missing.jsonl")
 
 
 def test_raises_on_invalid_json(tmp_path):
+    """load_dataset should raise ValueError on malformed JSON lines."""
     p = tmp_path / "bad.jsonl"
     p.write_text("not json\n", encoding="utf-8")
     with pytest.raises(ValueError, match="Invalid JSON"):
@@ -57,6 +63,7 @@ def test_raises_on_invalid_json(tmp_path):
 
 
 def test_skips_blank_lines(tmp_path):
+    """Blank lines in the JSONL file should be ignored."""
     p = tmp_path / "q.jsonl"
     p.write_text(
         '\n{"query": "run", "expected_headword": "run"}\n\n',
@@ -67,6 +74,7 @@ def test_skips_blank_lines(tmp_path):
 
 
 def test_multiple_queries(tmp_path):
+    """All query lines in the file should be loaded."""
     rows = [
         {"query": "run", "expected_headword": "run"},
         {"query": "walk", "expected_headword": "walk"},
@@ -77,6 +85,7 @@ def test_multiple_queries(tmp_path):
 
 
 def test_returns_eval_query_instances(tmp_path):
+    """load_dataset should return EvalQuery instances."""
     p = _write_jsonl(tmp_path / "q.jsonl", [{"query": "run", "expected_headword": "run"}])
     queries = load_dataset(p)
     assert all(isinstance(q, EvalQuery) for q in queries)

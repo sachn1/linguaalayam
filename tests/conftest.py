@@ -1,3 +1,5 @@
+"""Shared fixtures and test doubles for the LinguAalayam test suite."""
+
 import numpy as np
 import pytest
 from omegaconf import OmegaConf
@@ -13,9 +15,11 @@ class DummyModel:
     DIM = 4
 
     def get_sentence_embedding_dimension(self) -> int:
+        """Return the fixed embedding dimension."""
         return self.DIM
 
     def encode(self, texts, batch_size=1, show_progress_bar=False, normalize_embeddings=False):
+        """Return a constant 4-d vector for each text."""
         if isinstance(texts, list):
             return np.array([[1.0, 0.0, 0.0, 0.0] for _ in texts])
         return np.array([1.0, 0.0, 0.0, 0.0])
@@ -23,6 +27,7 @@ class DummyModel:
 
 @pytest.fixture()
 def embedding_cfg():
+    """OmegaConf embedding config wired to the DummyModel."""
     return OmegaConf.create(
         {
             "model": "dummy",
@@ -34,12 +39,14 @@ def embedding_cfg():
 
 @pytest.fixture()
 def dummy_service(monkeypatch, embedding_cfg):
+    """EmbeddingService backed by DummyModel — no real model loaded."""
     monkeypatch.setattr(embedding_service, "SentenceTransformer", lambda *a, **kw: DummyModel())
     return EmbeddingService(embedding_cfg)
 
 
 @pytest.fixture()
 def enml_entry():
+    """A minimal EnMlEntry for 'run' with two verb definitions."""
     return EnMlEntry(
         headword="run",
         definitions=[("v", "ഓടുക"), ("v", "പായുക")],

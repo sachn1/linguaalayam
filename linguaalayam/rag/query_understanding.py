@@ -84,5 +84,7 @@ def understand_query(
     try:
         return llm.extract_structured(QueryUnderstanding, _FALLBACK_PROMPT.format(query=q))
     except Exception:
-        log.warning("LLM query understanding failed for %r — falling back to raw query", q, exc_info=True)
+        log.warning(
+            "LLM query understanding failed for %r — falling back to raw query", q, exc_info=True
+        )
         return QueryUnderstanding(headword=q, intent="unknown")

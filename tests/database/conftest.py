@@ -1,3 +1,5 @@
+"""Database test fixtures — SQLite in-memory session factory with Postgres-type stubs."""
+
 import pytest
 import sqlalchemy as sa
 from sqlalchemy import create_engine
