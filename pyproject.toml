@@ -25,6 +25,8 @@ pydantic = ">=2.0"
 langchain-openai = ">=0.3"
 mcp = {version = ">=1.0", extras = ["cli"]}
 pyyaml = ">=6.0"
+fastapi = {version = ">=0.110", extras = ["standard"]}
+uvicorn = {version = ">=0.29", extras = ["standard"]}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
@@ -52,6 +54,7 @@ debug-retriever = "linguaalayam.scripts.debug_retriever:main"
 rag = "linguaalayam.rag.main:main"
 eval = "linguaalayam.eval.main:main"
 mcp-server = "linguaalayam.mcp.server:main"
+api-server = "linguaalayam.api.app:main"
 
 [tool.commitizen]
 name = "cz_conventional_commits"

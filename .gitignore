@@ -24,3 +24,10 @@ uv.lock
 
 # tests
 .coverage
+
+# local agent skills (caveman etc) — not part of the project
+.agents/
+
+# db dumps
+*.dump
+*.sql
