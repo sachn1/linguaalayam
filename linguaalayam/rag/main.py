@@ -46,7 +46,7 @@ def main(cfg: DictConfig) -> None:  # pragma: no cover
 
     tools = DictionaryTools(session_factory, service)
     llm: LLMAdapter = instantiate(cfg.llm)
-    reranker = CrossEncoderReranker() if cfg.rag.rerank else None
+    reranker = CrossEncoderReranker(cfg.rag.reranker_model) if cfg.rag.rerank else None
 
     query: str = cfg.rag.query
     if not query:

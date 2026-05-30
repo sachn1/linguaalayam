@@ -44,9 +44,7 @@ def batch_insert(
         for entry, vector in zip(entries, vectors)
     ]
 
-    dialect = session.bind.dialect.name if session.bind else session.get_bind().dialect.name
-
-    if dialect == "postgresql":
+    if session.get_bind().dialect.name == "postgresql":
         stmt = pg_insert(DictionaryEntry).values(rows)
         stmt = stmt.on_conflict_do_nothing(constraint="uq_dictionary_entries_source_headword")
         session.execute(stmt)
@@ -152,9 +150,7 @@ def fuzzy_search(
     limit : int, optional
         Maximum number of results to return, by default 10
     """
-    dialect = session.bind.dialect.name if session.bind else session.get_bind().dialect.name
-
-    if dialect == "postgresql":
+    if session.get_bind().dialect.name == "postgresql":
         similarity = func.similarity(DictionaryEntry.headword, query)
         stmt = (
             select(DictionaryEntry, similarity.label("score"))

@@ -1,3 +1,5 @@
+"""RAG package — LangGraph pipeline, retrieval tools, query understanding, and reranker."""
+
 from .pipeline import RAGState, build_pipeline
 from .query_understanding import QueryUnderstanding, understand_query
 from .reranker import CrossEncoderReranker

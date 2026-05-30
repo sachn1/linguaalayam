@@ -20,6 +20,7 @@ log = logging.getLogger(__name__)
 
 
 def _print_summary(results: list[QueryResult], cfg: DictConfig) -> None:
+    """Print hit rates, MRR, tool breakdown, intent breakdown, and misses."""
     n = len(results)
     if n == 0:
         print("No results — is the dataset empty?")
@@ -76,6 +77,7 @@ def _print_summary(results: list[QueryResult], cfg: DictConfig) -> None:
 
 
 def _write_results(results: list[QueryResult], path: Path) -> None:
+    """Write per-query results to a JSONL file at path."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
         for r in results:
@@ -103,7 +105,16 @@ def _write_results(results: list[QueryResult], path: Path) -> None:
 def main(cfg: DictConfig) -> None:  # pragma: no cover
     """Evaluate retrieval quality against the labeled query set.
 
-    Usage:
+    Parameters
+    ----------
+    cfg : DictConfig
+        Hydra configuration; reads ``cfg.database``, ``cfg.embedding``,
+        ``cfg.eval.dataset``, ``cfg.eval.output``, and eval tuning knobs.
+
+    Notes
+    -----
+    CLI examples::
+
         poetry run eval
         poetry run eval eval.top_k=10
         poetry run eval eval.dataset=data/eval/my_queries.jsonl eval.output=results/run1.jsonl

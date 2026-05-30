@@ -38,6 +38,7 @@ def _ensure_docker_db() -> None:
 
 
 def _init_tools() -> DictionaryTools:
+    """Build DictionaryTools from environment variables."""
     db_cfg = OmegaConf.create(
         {
             "user": os.getenv("DB_USER", "postgres"),
@@ -65,6 +66,7 @@ def _init_tools() -> DictionaryTools:
 
 @asynccontextmanager
 async def _lifespan(_: FastMCP):
+    """Start Docker DB and initialise DictionaryTools before serving."""
     global _tools
     _ensure_docker_db()
     _tools = _init_tools()
@@ -84,6 +86,7 @@ mcp = FastMCP(
 
 
 def _format(results: list[dict], query: str, method: str) -> str:
+    """Format a list of lookup result dicts as a human-readable string."""
     if not results:
         return f"No {method} results found for {query!r}."
     lines = [f"{len(results)} {method} result(s) for {query!r}:\n"]
@@ -96,6 +99,13 @@ def _format(results: list[dict], query: str, method: str) -> str:
     return "\n".join(lines).strip()
 
 
+def _require_tools() -> "DictionaryTools":
+    """Return the initialised DictionaryTools or raise if lifespan has not run."""
+    if _tools is None:
+        raise RuntimeError("DictionaryTools not initialised — server lifespan may not have run")
+    return _tools
+
+
 @mcp.resource("dictionary://{headword}")
 def get_entry(headword: str) -> str:
     """Browse a dictionary entry by URI.
@@ -103,8 +113,7 @@ def get_entry(headword: str) -> str:
     Returns all exact-match entries for the headword as plain text.
     URI format: dictionary://{headword}  e.g. dictionary://run
     """
-    assert _tools is not None
-    results = _tools.exact_lookup(headword)
+    results = _require_tools().exact_lookup(headword)
     return _format(results, headword, "exact")
 
 
@@ -119,8 +128,7 @@ def exact_lookup(word: str, source: str | None = None) -> str:
         word: The English word to look up.
         source: Optional corpus filter (e.g. "olam_enml"). Searches all corpora if omitted.
     """
-    assert _tools is not None
-    results = _tools.exact_lookup(word, source=source)
+    results = _require_tools().exact_lookup(word, source=source)
     return _format(results, word, "exact")
 
 
@@ -142,8 +150,7 @@ def fuzzy_lookup(
         top_k: Maximum number of results to return. Default 10.
         source: Optional corpus filter (e.g. "olam_enml"). Searches all corpora if omitted.
     """
-    assert _tools is not None
-    results = _tools.fuzzy_lookup(query, source=source, threshold=threshold, top_k=top_k)
+    results = _require_tools().fuzzy_lookup(query, source=source, threshold=threshold, top_k=top_k)
     return _format(results, query, "fuzzy")
 
 
@@ -163,8 +170,7 @@ def semantic_lookup(
         top_k: Number of top results to return. Default 5.
         source: Optional corpus filter (e.g. "olam_enml"). Searches all corpora if omitted.
     """
-    assert _tools is not None
-    results = _tools.semantic_lookup(query, top_k=top_k, source=source)
+    results = _require_tools().semantic_lookup(query, top_k=top_k, source=source)
     return _format(results, query, "semantic")
 
 

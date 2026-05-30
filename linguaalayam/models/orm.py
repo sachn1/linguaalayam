@@ -1,3 +1,5 @@
+"""SQLAlchemy ORM model for the ``dictionary_entries`` table."""
+
 import datetime
 
 from pgvector.sqlalchemy import Vector
@@ -15,10 +17,39 @@ _NAMING_CONVENTION = {
 
 
 class Base(DeclarativeBase):
+    """Declarative base with a standard naming convention for constraints."""
+
     metadata = MetaData(naming_convention=_NAMING_CONVENTION)
 
 
 class DictionaryEntry(Base):
+    """ORM model for a single dictionary entry stored in Postgres.
+
+    All corpus entry types (EN→ML, ML→ML, thesaurus, cross-lingual) share
+    this table. The ``entry_type`` column records the originating Python class
+    name. Raw structured data is stored in ``data`` (JSONB) so each corpus
+    can carry its own schema without additional tables.
+
+    Attributes
+    ----------
+    id : int
+        Auto-incrementing primary key.
+    source : str
+        Corpus identifier (e.g. ``"olam_enml"``, ``"datuk"``).
+    entry_type : str
+        Python class name of the originating entry dataclass.
+    headword : str
+        The primary lookup term.
+    embed_text : str
+        Flattened text used to generate the embedding vector.
+    data : dict
+        Full serialised entry as a JSONB object.
+    embedding : list[float]
+        768-dimensional vector from the sentence-transformer model.
+    created_at : datetime
+        Server-side timestamp set on insert.
+    """
+
     __tablename__ = "dictionary_entries"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -45,4 +76,5 @@ class DictionaryEntry(Base):
     )
 
     def __repr__(self) -> str:
+        """Return a concise string representation showing id, headword, and source."""
         return f"<DictionaryEntry id={self.id} headword={self.headword!r} source={self.source!r}>"

@@ -1,3 +1,5 @@
+"""Database package — engine, session, and query helpers."""
+
 from .queries import (
     batch_insert,
     exact_search,

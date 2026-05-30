@@ -1,6 +1,5 @@
 """LangGraph RAG pipeline for the LinguAalayam dictionary assistant."""
 
-from pathlib import Path
 from typing import TypedDict
 
 from langgraph.graph import END, StateGraph
@@ -11,12 +10,19 @@ from linguaalayam.rag.query_understanding import understand_query
 from linguaalayam.rag.reranker import CrossEncoderReranker
 from linguaalayam.rag.tools import DictionaryTools, merge_candidates
 
-_SYNTHESIS_SYSTEM = (Path(__file__).parent / "SKILLS.md").read_text().strip()
+_SYNTHESIS_SYSTEM = (
+    "Answer questions about Malayalam and English words directly and concisely using only "
+    "the dictionary entries provided. Respond in one to three plain sentences as if speaking "
+    "aloud — no markdown, no bullet points, no preamble, no meta-commentary. State the meaning, "
+    "translation, or usage directly. If the entries do not contain the answer, say so in one sentence."
+)
 
 _SYNTHESIS_TEMPLATE = "Question: {query}\n\n" "Dictionary entries:\n{entries}"
 
 
 class RAGState(TypedDict):
+    """Shared state passed between LangGraph nodes in the RAG pipeline."""
+
     query: str
     headword: str | None
     intent: str | None
@@ -25,6 +31,7 @@ class RAGState(TypedDict):
 
 
 def _format_entries(candidates: list[dict]) -> str:
+    """Format a list of candidate dicts as a numbered text block."""
     lines = []
     for i, c in enumerate(candidates, 1):
         score_str = f"{c['score']:.3f}" if c.get("score") is not None else ""
@@ -45,15 +52,25 @@ def build_pipeline(
 
     Graph: understand → retrieve → [rerank?] → synthesize
 
-    When llm.has_llm is False (e.g. NoLLMAdapter), the synthesize node returns
-    formatted top-k candidates directly without an API call.
+    Parameters
+    ----------
+    tools : DictionaryTools
+        Dictionary retrieval tools backed by a live DB session.
+    llm : LLMAdapter
+        Language model adapter for query understanding and synthesis.
+        When ``llm.has_llm`` is ``False`` (e.g. ``NoLLMAdapter``), the
+        synthesize node returns formatted top-k candidates without an API call.
+    cfg : DictConfig
+        Pipeline configuration; recognised keys: ``top_k`` (int, default 5),
+        ``source`` (str, default None), ``rerank`` (bool, default False),
+        ``fuzzy_threshold`` (float, default 0.3), ``fuzzy_limit`` (int, default 10).
+    reranker : CrossEncoderReranker or None, optional
+        Cross-encoder reranker; only used when ``cfg.rerank`` is ``True``.
 
-    cfg keys (all optional):
-      top_k          int   5    candidates passed to synthesizer
-      source         str   None corpus filter (e.g. "olam_enml")
-      rerank         bool  False enable cross-encoder reranking
-      fuzzy_threshold float 0.3  pg_trgm similarity threshold
-      fuzzy_limit    int   10   max fuzzy candidates before merge
+    Returns
+    -------
+    CompiledGraph
+        Compiled LangGraph graph ready to invoke with ``{"query": "..."}``.
     """
     top_k: int = cfg.get("top_k", 5)
     source: str | None = cfg.get("source", None)
@@ -62,10 +79,12 @@ def build_pipeline(
     fuzzy_limit: int = cfg.get("fuzzy_limit", 10)
 
     def understand_node(state: RAGState) -> dict:
+        """Extract headword and intent from the query."""
         result = understand_query(state["query"], llm=llm)
         return {"headword": result.headword, "intent": result.intent}
 
     def retrieve_node(state: RAGState) -> dict:
+        """Fetch exact, fuzzy, and semantic candidates; merge deduped."""
         headword = state["headword"] or state["query"]
         query = state["query"]
 
@@ -78,12 +97,14 @@ def build_pipeline(
         return {"candidates": merge_candidates([exact, fuzzy, semantic])}
 
     def rerank_node(state: RAGState) -> dict:
+        """Re-score merged candidates with the cross-encoder if enabled."""
         if reranker is None or not state["candidates"]:
-            return {}
+            return {"candidates": state["candidates"]}
         reranked = reranker.rerank(state["query"], state["candidates"], top_n=top_k)
         return {"candidates": reranked}
 
     def synthesize_node(state: RAGState) -> dict:
+        """Generate an answer from top-k candidates using the LLM or formatted text."""
         if not state["candidates"]:
             return {"answer": "No dictionary entries found for your query."}
 

@@ -5,11 +5,11 @@ from pathlib import Path
 
 import hydra
 from dotenv import load_dotenv
+from hydra.utils import instantiate
 from omegaconf import DictConfig
 from sqlalchemy.orm import sessionmaker
 from tqdm import tqdm
 
-from linguaalayam.corpus import datuk, dravidian, enml
 from linguaalayam.database import (
     batch_insert,
     build_engine,
@@ -25,12 +25,6 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 log = logging.getLogger(__name__)
 
-_PARSERS = {
-    "enml": enml.parse,
-    "datuk": datuk.parse,
-    "dravidian": dravidian.parse,
-}
-
 
 def _batched(items: list, size: int):
     """Yield successive batches of a specified size from a list of items."""
@@ -44,14 +38,7 @@ def _embed_with_checkpoint(
     service: EmbeddingService,
     checkpoint: VectorCheckpoint,
 ) -> dict[str, list[float]]:
-    """Embed entries, skipping those already in the checkpoint.
-
-    Appends each batch to the checkpoint file immediately after embedding
-    so progress is never lost on failure.
-
-    Returns a dict of {headword: vector} covering both newly embedded
-    and previously checkpointed entries.
-    """
+    """Embed entries skipping checkpointed ones; return {headword: vector} for all."""
     cached = checkpoint.load()
     to_embed = [e for e in entries if e.headword not in cached]
 
@@ -64,7 +51,7 @@ def _embed_with_checkpoint(
         )
 
     with tqdm(total=len(to_embed), desc=f"Embedding {source}", unit="entry") as pbar:
-        for batch in _batched(to_embed, service._cfg.batch_size):
+        for batch in _batched(to_embed, service.batch_size):
             vectors = service.encode(batch)
             checkpoint.append_batch([e.headword for e in batch], vectors)
             pbar.update(len(batch))
@@ -80,12 +67,7 @@ def _insert_with_checkpoint(
     checkpoint: VectorCheckpoint,
     db_batch_size: int,
 ) -> None:
-    """Insert entries into the DB in batches.
-
-    After each successful batch insert, removes those headwords from the
-    checkpoint so disk space is reclaimed progressively. Deletes the
-    checkpoint file entirely when all entries are inserted.
-    """
+    """Insert entries in DB batches; prune checkpoint after each successful batch."""
     with tqdm(total=len(entries), desc=f"Inserting {source}", unit="entry") as pbar:
         for i in range(0, len(entries), db_batch_size):
             batch_entries = entries[i : i + db_batch_size]
@@ -149,27 +131,7 @@ def _process_source(
     db_batch_size: int,
     limit: int | None,
 ) -> None:
-    """Handle the full pipeline for a single corpus source.
-
-    Parameters
-    ----------
-    source : str
-        The name of the corpus source (e.g. "enml").
-    source_cfg : DictConfig
-        Configuration for the corpus source, including file path and DB source name.
-    service : EmbeddingService
-        The embedding service instance to use for generating vectors.
-    session_factory : sessionmaker
-        Factory function for creating new database sessions.
-    data_dir : Path
-        Directory containing the source data files.
-    checkpoint_dir : Path
-        Directory to store checkpoint files for fault tolerance.
-    db_batch_size : int
-        The number of entries to insert into the database in each batch.
-    limit : int | None
-        Optional limit on the number of entries to process (for debugging).
-    """
+    """Parse, embed, and insert one corpus source end-to-end with checkpoint fault tolerance."""
     filepath = data_dir / source_cfg.path
     if not filepath.exists():
         log.error(
@@ -181,7 +143,7 @@ def _process_source(
         return
 
     log.info("%s: parsing %s", source, filepath)
-    all_entries: list[Embeddable] = _PARSERS[source](filepath)
+    all_entries: list[Embeddable] = instantiate(source_cfg.parser)(filepath)
 
     if not all_entries:
         log.warning("%s: no entries parsed, skipping", source)

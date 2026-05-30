@@ -23,13 +23,6 @@ class VectorCheckpoint:
     """
 
     def __init__(self, path: Path) -> None:
-        """Initialize the vector checkpoint.
-
-        Parameters
-        ----------
-        path : Path
-            Path to the checkpoint file.
-        """
         self._path = path
 
     def exists(self) -> bool:

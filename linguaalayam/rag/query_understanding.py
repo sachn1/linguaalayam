@@ -4,6 +4,7 @@ Strategy: try regex patterns first (free, instant), fall back to LLM only
 when no pattern matches (handles novel phrasings).
 """
 
+import logging
 import re
 from typing import TYPE_CHECKING, Literal
 
@@ -11,6 +12,8 @@ from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from linguaalayam.llm.adapters.base import LLMAdapter
+
+log = logging.getLogger(__name__)
 
 Intent = Literal["define", "translate", "compare", "usage", "unknown"]
 
@@ -40,6 +43,8 @@ _FALLBACK_PROMPT = (
 
 
 class QueryUnderstanding(BaseModel):
+    """Structured output from query understanding: extracted headword and intent."""
+
     headword: str
     intent: Intent
 
@@ -51,7 +56,20 @@ def understand_query(
     """Extract headword and intent from a natural language query.
 
     Tries regex patterns first; only calls the LLM if no pattern matches.
-    Falls back to the raw query with intent='unknown' if the LLM is absent or fails.
+
+    Parameters
+    ----------
+    query : str
+        Raw natural-language query from the user.
+    llm : LLMAdapter or None, optional
+        Language model adapter for LLM-based fallback extraction.
+        When ``None`` or ``has_llm=False``, unrecognised queries return
+        ``intent="unknown"`` with the raw query as headword.
+
+    Returns
+    -------
+    QueryUnderstanding
+        Extracted headword and intent label.
     """
     q = query.strip()
 
@@ -66,4 +84,5 @@ def understand_query(
     try:
         return llm.extract_structured(QueryUnderstanding, _FALLBACK_PROMPT.format(query=q))
     except Exception:
+        log.warning("LLM query understanding failed for %r — falling back to raw query", q, exc_info=True)
         return QueryUnderstanding(headword=q, intent="unknown")

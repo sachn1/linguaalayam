@@ -15,8 +15,16 @@ from linguaalayam.models.orm import DictionaryEntry
 def merge_candidates(lists: list[list[dict]]) -> list[dict]:
     """Merge results from multiple tools, deduplicating on (source, headword).
 
-    Priority: exact > fuzzy > semantic — the first tool to surface an entry wins.
-    Used by both the RAG pipeline and the eval runner.
+    Parameters
+    ----------
+    lists : list[list[dict]]
+        Result lists ordered by priority (exact, fuzzy, semantic).
+        Earlier lists win on duplicate ``(source, headword)`` keys.
+
+    Returns
+    -------
+    list[dict]
+        Deduplicated candidate list preserving priority order.
     """
     seen: set[tuple[str, str]] = set()
     merged = []
@@ -30,6 +38,7 @@ def merge_candidates(lists: list[list[dict]]) -> list[dict]:
 
 
 def _to_result(entry: DictionaryEntry, match_type: str, score: float) -> dict:
+    """Serialise a DictionaryEntry ORM row into the standard result dict."""
     return {
         "headword": entry.headword,
         "source": entry.source,
@@ -47,6 +56,13 @@ class DictionaryTools:
     Holds references to the session factory and embedding service so
     each tool method takes only domain-level arguments — the shape
     MCP tool handlers expect.
+
+    Parameters
+    ----------
+    session_factory : sessionmaker
+        SQLAlchemy session factory for opening DB sessions.
+    embedding_service : EmbeddingService
+        Service used to encode queries for semantic lookup.
     """
 
     def __init__(
@@ -62,7 +78,20 @@ class DictionaryTools:
         query: str,
         source: str | None = None,
     ) -> list[dict]:
-        """Return entries whose headword is a case-insensitive exact match for query."""
+        """Return entries whose headword is a case-insensitive exact match for query.
+
+        Parameters
+        ----------
+        query : str
+            Headword to look up (case-insensitive).
+        source : str or None, optional
+            Corpus filter; searches all corpora when ``None``.
+
+        Returns
+        -------
+        list[dict]
+            Matched entries with ``match_type="exact"`` and ``score=1.0``.
+        """
         with get_session(self._session_factory) as session:
             results = exact_search(session, query, source=source)
         return [_to_result(r, "exact", 1.0) for r in results]
@@ -77,6 +106,22 @@ class DictionaryTools:
         """Return entries whose headword is trigram-similar to query (pg_trgm).
 
         Falls back to an ILIKE-based search when running against SQLite (tests).
+
+        Parameters
+        ----------
+        query : str
+            Word or partial word to match against headwords.
+        source : str or None, optional
+            Corpus filter; searches all corpora when ``None``.
+        threshold : float, optional
+            Minimum pg_trgm similarity score (0–1); default ``0.3``.
+        top_k : int, optional
+            Maximum results to return; default ``10``.
+
+        Returns
+        -------
+        list[dict]
+            Matched entries with ``match_type="fuzzy"`` and pg_trgm similarity as score.
         """
         with get_session(self._session_factory) as session:
             results = fuzzy_search(session, query, source=source, threshold=threshold, limit=top_k)
@@ -88,7 +133,22 @@ class DictionaryTools:
         top_k: int = 5,
         source: str | None = None,
     ) -> list[dict]:
-        """Return entries ranked by cosine similarity of their embed_text to query."""
+        """Return entries ranked by cosine similarity of their embed_text to query.
+
+        Parameters
+        ----------
+        query : str
+            Natural-language query; embedded before the vector search.
+        top_k : int, optional
+            Number of top results to return; default ``5``.
+        source : str or None, optional
+            Corpus filter; searches all corpora when ``None``.
+
+        Returns
+        -------
+        list[dict]
+            Top-k entries with ``match_type="semantic"`` and cosine similarity as score.
+        """
         query_vector = self._embedder.encode_query(query)
         with get_session(self._session_factory) as session:
             results = similarity_search(session, query_vector, top_k=top_k, source=source)

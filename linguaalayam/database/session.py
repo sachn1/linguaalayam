@@ -1,10 +1,9 @@
-"""Database session management and utilities."""
+"""Database session management — engine factory, session context manager, and DDL helpers."""
 
 from collections.abc import Generator
 from contextlib import contextmanager
 from urllib.parse import quote_plus
 
-from dotenv import load_dotenv
 from omegaconf import DictConfig, OmegaConf
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
@@ -12,21 +11,25 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from linguaalayam.models.orm import Base
 
-load_dotenv()
-
 
 def build_engine(db_cfg: DictConfig) -> Engine:
-    """Build a SQLAlchemy engine for the database.
+    """Create a SQLAlchemy engine from a Hydra database config.
+
+    Registers a ``connect`` listener that ensures the ``vector`` extension is
+    present so pgvector operations work without a separate migration step.
 
     Parameters
     ----------
     db_cfg : DictConfig
-        Configuration for the database connection.
+        Database configuration with keys: ``user``, ``password``, ``host``,
+        ``port``, ``name``, ``pool_size``, ``max_overflow``.
+        An optional ``sslmode`` key (e.g. ``"require"``) is appended to the
+        connection URL when present.
 
     Returns
     -------
     Engine
-        The SQLAlchemy engine for the database.
+        Configured SQLAlchemy engine with connection pooling.
     """
     sslmode = OmegaConf.select(db_cfg, "sslmode")
     sslmode_param = f"?sslmode={sslmode}" if sslmode else ""
@@ -43,6 +46,7 @@ def build_engine(db_cfg: DictConfig) -> Engine:
 
     @event.listens_for(engine, "connect")
     def on_connect(dbapi_conn, _connection_record) -> None:  # pragma: no cover
+        """Ensure the pgvector extension is available on every new connection."""
         with dbapi_conn.cursor() as cur:
             cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
         dbapi_conn.commit()
@@ -51,34 +55,42 @@ def build_engine(db_cfg: DictConfig) -> Engine:
 
 
 def build_session_factory(engine: Engine) -> sessionmaker:
-    """Build a SQLAlchemy session factory.
+    """Create a SQLAlchemy session factory bound to the given engine.
 
     Parameters
     ----------
     engine : Engine
-        The SQLAlchemy engine to bind to the session factory.
+        The SQLAlchemy engine to bind sessions to.
 
     Returns
     -------
     sessionmaker
-        The SQLAlchemy session factory.
+        A callable session factory; call it to obtain a new ``Session``.
     """
     return sessionmaker(bind=engine, expire_on_commit=False)
 
 
 @contextmanager
 def get_session(session_factory: sessionmaker) -> Generator[Session, None, None]:
-    """
+    """Context manager that yields a transactional database session.
+
+    Commits on clean exit, rolls back on any exception, and always closes
+    the session on exit.
 
     Parameters
     ----------
     session_factory : sessionmaker
-        The SQLAlchemy session factory to use for creating sessions.
+        The session factory used to create the session.
 
     Yields
     ------
-    Generator[Session, None, None]
-        A generator that yields a SQLAlchemy session.
+    Session
+        An active SQLAlchemy session.
+
+    Raises
+    ------
+    Exception
+        Any exception raised within the ``with`` block after rolling back.
     """
     session = session_factory()
     try:
@@ -92,22 +104,22 @@ def get_session(session_factory: sessionmaker) -> Generator[Session, None, None]
 
 
 def create_tables(engine: Engine) -> None:
-    """Create database tables based on the defined ORM models.
+    """Create all ORM-defined tables in the database if they do not exist.
 
     Parameters
     ----------
     engine : Engine
-        The SQLAlchemy engine to use for creating the tables.
+        The SQLAlchemy engine pointing at the target database.
     """
     Base.metadata.create_all(bind=engine)
 
 
 def drop_tables(engine: Engine) -> None:
-    """Drop all tables in the database.
+    """Drop all ORM-defined tables from the database.
 
     Parameters
     ----------
     engine : Engine
-        The SQLAlchemy engine to use for dropping the tables.
+        The SQLAlchemy engine pointing at the target database.
     """
     Base.metadata.drop_all(bind=engine)

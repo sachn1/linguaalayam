@@ -15,6 +15,7 @@ from linguaalayam.rag.tools import DictionaryTools, merge_candidates
 
 
 def _find_rank(expected: str, candidates: list[dict]) -> int | None:
+    """Return 1-based rank of expected headword in candidates, or None."""
     for i, c in enumerate(candidates, 1):
         if c["headword"].lower() == expected.lower():
             return i
@@ -28,6 +29,7 @@ def _eval_query(
     fuzzy_threshold: float,
     fuzzy_limit: int,
 ) -> QueryResult:
+    """Run all three retrieval tools against a single query and score the result."""
     t0 = time.perf_counter()
 
     # Regex-only understanding — no LLM, keeps eval deterministic and free
@@ -67,6 +69,21 @@ def _eval_query(
 
 
 def run_eval(tools: DictionaryTools, cfg: DictConfig) -> list[QueryResult]:
+    """Run retrieval evaluation against a labeled query dataset.
+
+    Parameters
+    ----------
+    tools : DictionaryTools
+        Retrieval tools backed by a live database session.
+    cfg : DictConfig
+        Eval configuration; recognised keys: ``dataset``, ``top_k``,
+        ``fuzzy_threshold``, ``fuzzy_limit``.
+
+    Returns
+    -------
+    list[QueryResult]
+        One result per query in the dataset.
+    """
     dataset = load_dataset(cfg.dataset)
     top_k: int = cfg.get("top_k", 5)
     fuzzy_threshold: float = cfg.get("fuzzy_threshold", 0.3)
