@@ -26,9 +26,10 @@ EOF
 
 # Copy application source
 COPY linguaalayam/ ./linguaalayam/
+COPY README.md ./
 
 # Install the package itself
-RUN poetry install --without dev,huggingface --no-interaction
+RUN poetry install --without dev,huggingface --no-root --no-interaction
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
