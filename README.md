@@ -8,7 +8,29 @@ LinguAalayam is an open-source Malayalam lexical knowledge base and AI integrati
 
 ## MCP setup (Claude Code / Claude Desktop)
 
-Add to `.mcp.json` (Claude Code) or your Claude Desktop config:
+Add to `.mcp.json` (Claude Code) or your Claude Desktop config.
+
+**Without a local clone** (recommended — pulls directly from GitHub via `uvx`):
+
+```json
+{
+  "mcpServers": {
+    "linguaalayam": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/sachn1/linguaalayam", "mcp-server"],
+      "env": {
+        "DB_USER": "postgres",
+        "DB_PASSWORD": "yourpassword",
+        "DB_HOST": "localhost",
+        "DB_PORT": "5432",
+        "DB_NAME": "linguaalayam"
+      }
+    }
+  }
+}
+```
+
+**With a local clone** (uses your `.env` file automatically):
 
 ```json
 {
@@ -16,7 +38,7 @@ Add to `.mcp.json` (Claude Code) or your Claude Desktop config:
     "linguaalayam": {
       "command": "poetry",
       "args": ["run", "mcp-server"],
-      "cwd": "/path/to/LinguAalayam"
+      "cwd": "/path/to/linguaalayam"
     }
   }
 }

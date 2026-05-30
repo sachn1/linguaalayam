@@ -25,12 +25,14 @@
 - [x] Hydra-driven corpus parsers — adding a corpus requires only a YAML config entry, no Python change
 - [x] Code quality sweep — dead code removed, encapsulation fixed, silent failures logged
 
-### v0.6 — REST API and self-hosting
+### v0.6 — REST API, web UI, and mobile app
 - [ ] Thin FastAPI layer over `DictionaryTools` for HTTP access
-- [ ] Web frontend (Next.js / SvelteKit)
-- [ ] Mobile — Progressive Web App first; native (Flutter) if needed
-- [ ] Minimal-cost self-hosted deployment on a Hetzner CX22 VPS (~€4/month)
+- [ ] Web UI — HTMX + Jinja2 served from FastAPI; search page for SEO, link sharing, and desktop users
+- [ ] Mobile — Flutter app (Android + iOS); calls the same FastAPI endpoints; Android / Play Store first
+- [ ] Self-hosted deployment on a Hetzner CX32 VPS (~€6/month) — CX32 (8 GB RAM) required; embedding model alone is 1.1 GB, reranker ~400 MB, leaving safe headroom for Postgres + app
 - [ ] Docker image with pre-baked embedding and reranker model weights
+- [ ] `NoLLMAdapter` as default for the web app — core dictionary lookup needs no LLM or API key
+- [ ] Bring-your-own-key LLM synthesis (Anthropic / OpenAI) — optional power-user feature via settings UI
 
 ### v1.0 — Stable release (post v0.6)
 - [ ] Promote to stable after v0.6 ships and REST API is proven in production
@@ -40,3 +42,10 @@
 - [ ] `int8` quantisation for faster inference
 - [ ] Query caching for repeated lookups
 - [ ] Monitoring — retrieval latency and top-k quality metrics
+
+### v2.0 — On-device AI synthesis (in-app purchase)
+- [ ] Generate synthetic (query → answer) training pairs from existing corpus (headword + POS + definition + synonyms)
+- [ ] Fine-tune a small multilingual model (Gemma 2B or Qwen 2.5 1.5B) on Malayalam dictionary Q&A
+- [ ] Quality eval harness before shipping — answer quality metrics (BLEU + human eval on Malayalam output); do not ship without passing eval
+- [ ] Serverless inference (Modal or RunPod) — pay-per-request, no idle GPU cost
+- [ ] AI synthesis as in-app purchase — core app stays free, premium tier unlocks prose answers at lower price point than user-managed API keys
