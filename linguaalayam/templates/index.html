@@ -16,22 +16,24 @@
       hx-include="#mode,#source"
       hx-indicator="#spinner"
     />
-    <select id="mode" name="mode">
-      <option value="fuzzy">Fuzzy</option>
-      <option value="exact">Exact</option>
-      <option value="semantic">Semantic</option>
-    </select>
-    <select id="source" name="source">
-      <option value="">All corpora</option>
-      <option value="olam_enml">Olam (EN→ML)</option>
-      <option value="datuk">Datuk (ML→ML)</option>
-      <option value="ekkurup">Ekkurup (thesaurus)</option>
-    </select>
-  </div>
-  <p class="hint">
     <span id="spinner" class="htmx-indicator"><span class="spinner"></span></span>
-    Fuzzy matches approximate spellings · Exact matches headwords · Semantic matches meaning
-  </p>
+  </div>
+  <details class="advanced">
+    <summary>Advanced</summary>
+    <div class="advanced-row">
+      <select id="mode" name="mode">
+        <option value="fuzzy">Quick</option>
+        <option value="exact">Exact</option>
+        <option value="semantic">Smart</option>
+      </select>
+      <select id="source" name="source">
+        <option value="">All sources</option>
+        <option value="olam_enml">Olam (EN→ML)</option>
+        <option value="datuk">Datuk (ML→ML)</option>
+        <option value="ekkurup">Ekkurup (thesaurus)</option>
+      </select>
+    </div>
+  </details>
 </div>
 
 <div id="results"></div>

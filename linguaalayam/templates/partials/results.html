@@ -1,3 +1,23 @@
+{% if answer %}
+<style>
+  .answer-card {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .answer-label { font-size: 0.7rem; font-weight: 600; color: #92400e; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+</style>
+<div class="answer-card">
+  <p class="answer-label">Answer</p>
+  <p>{{ answer }}</p>
+</div>
+{% endif %}
+
 {% if results %}
 <style>
   .results-meta { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem; }
@@ -29,7 +49,10 @@
   .score { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.35rem; }
 </style>
 
-<p class="results-meta">{{ results | length }} result{% if results | length != 1 %}s{% endif %}</p>
+<p class="results-meta">
+  {{ results | length }} result{% if results | length != 1 %}s{% endif %}
+  {% if headword and headword != query %} &mdash; searched for <strong>{{ headword }}</strong>{% endif %}
+</p>
 
 {% for r in results %}
 <div class="entry">

@@ -9,6 +9,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Query
+from fastapi.staticfiles import StaticFiles
 from omegaconf import OmegaConf
 from pydantic import BaseModel
 
@@ -82,12 +83,14 @@ class LookupResult(BaseModel):
 
 
 app = FastAPI(
-    title="LinguAalayam API",
-    description="Malayalam lexical knowledge base — exact, fuzzy, and semantic lookup.",
+    title="LinguAalayam",
+    description="Your companion for Malayalam and English words — ask a question, get an answer.",
     version="0.6.0",
     lifespan=_lifespan,
 )
 
+_STATIC = Path(__file__).resolve().parents[1] / "static"
+app.mount("/static", StaticFiles(directory=str(_STATIC)), name="static")
 app.include_router(_web_router)
 
 

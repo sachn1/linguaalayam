@@ -3,12 +3,29 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{% block title %}LinguAalayam{% endblock %} — Malayalam Lexical Knowledge Base</title>
-  <meta name="description" content="Search Malayalam words across Olam, Datuk, and Ekkurup corpora with exact, fuzzy, and semantic lookup." />
+  <title>{% block title %}LinguAalayam{% endblock %} — Every word, explained.</title>
+  <meta name="description" content="Ask about any Malayalam or English word — meanings, translations, and usage, powered by multiple lexical sources." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Malayalam:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="manifest" href="/static/manifest.json" />
+  <meta name="theme-color" content="#b45309" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/static/sw.js");
+    }
+    htmx.on("htmx:configRequest", function (evt) {
+      const key = localStorage.getItem("llm_key");
+      const provider = localStorage.getItem("llm_provider");
+      if (key) {
+        evt.detail.headers["X-LLM-Key"] = key;
+        evt.detail.headers["X-LLM-Provider"] = provider || "anthropic";
+      }
+    });
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -102,6 +119,22 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    details.advanced { margin-top: 0.75rem; }
+    details.advanced summary {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      width: fit-content;
+    }
+    details.advanced summary:hover { color: var(--accent); }
+    .advanced-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+      flex-wrap: wrap;
+    }
+
     footer {
       text-align: center;
       padding: 2rem 1rem;
@@ -117,9 +150,12 @@
 <body>
   <header>
     <a href="/">
-      <h1>LinguAalayam</h1>
-      <span class="tagline ml">മലയാളം നിഘണ്ടു</span>
+      <h1>Lingu<span class="ml">ആലയം</span></h1>
+      <span class="tagline"><span class="ml">ഏതു വാക്കും അറിയൂ</span> &nbsp;·&nbsp; Every word, explained.</span>
     </a>
+    <nav style="margin-left:auto;">
+      <a href="/settings" style="font-size:0.8rem;color:var(--text-muted);text-decoration:none;" title="LLM settings">⚙ Settings</a>
+    </nav>
   </header>
 
   <main>
@@ -127,7 +163,6 @@
   </main>
 
   <footer>
-    Corpora: <a href="https://olam.in" target="_blank">Olam</a> · Datuk · Ekkurup &nbsp;·&nbsp;
     <a href="/docs" target="_blank">API docs</a>
   </footer>
 </body>

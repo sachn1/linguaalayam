@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Settings — LinguAalayam{% endblock %}
+
+{% block content %}
+<style>
+  .settings-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .settings-card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem; }
+  .settings-card p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem; }
+  .field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.75rem; }
+  .field label { font-size: 0.8rem; font-weight: 500; }
+  .field input, .field select {
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    font-family: inherit;
+    background: var(--surface);
+    outline: none;
+  }
+  .field input:focus { border-color: var(--accent); }
+  .actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+  .btn {
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-ghost:hover { background: var(--bg); }
+  .status { font-size: 0.8rem; margin-top: 0.75rem; color: var(--text-muted); }
+  .status.active { color: #16a34a; }
+</style>
+
+<div class="settings-card">
+  <h2>LLM Synthesis</h2>
+  <p>
+    Enter your own API key to get a natural-language answer synthesised from lookup results.
+    Your key is stored only in your browser — never sent to our servers at rest.
+  </p>
+
+  <div class="field">
+    <label for="provider">Provider</label>
+    <select id="provider">
+      <option value="anthropic">Anthropic (Claude)</option>
+      <option value="openai">OpenAI (GPT)</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="apikey">API Key</label>
+    <input type="password" id="apikey" placeholder="sk-ant-… or sk-…" autocomplete="off" />
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-primary" onclick="saveKey()">Save</button>
+    <button class="btn btn-ghost" onclick="clearKey()">Clear</button>
+  </div>
+
+  <p class="status" id="status"></p>
+</div>
+
+<script>
+  (function () {
+    const keyEl = document.getElementById("apikey");
+    const provEl = document.getElementById("provider");
+    const statusEl = document.getElementById("status");
+
+    const saved = localStorage.getItem("llm_key");
+    const savedProv = localStorage.getItem("llm_provider") || "anthropic";
+    provEl.value = savedProv;
+    if (saved) {
+      keyEl.placeholder = "Key saved — enter new key to replace";
+      statusEl.textContent = "✓ Key is set. Synthesis will be enabled on search.";
+      statusEl.className = "status active";
+    }
+
+    window.saveKey = function () {
+      const key = keyEl.value.trim();
+      if (!key) { statusEl.textContent = "Enter a key first."; statusEl.className = "status"; return; }
+      localStorage.setItem("llm_key", key);
+      localStorage.setItem("llm_provider", provEl.value);
+      keyEl.value = "";
+      keyEl.placeholder = "Key saved — enter new key to replace";
+      statusEl.textContent = "✓ Key saved. Synthesis enabled.";
+      statusEl.className = "status active";
+    };
+
+    window.clearKey = function () {
+      localStorage.removeItem("llm_key");
+      localStorage.removeItem("llm_provider");
+      keyEl.value = "";
+      keyEl.placeholder = "sk-ant-… or sk-…";
+      statusEl.textContent = "Key cleared. Synthesis disabled.";
+      statusEl.className = "status";
+    };
+  })();
+</script>
+{% endblock %}
