@@ -1,10 +1,10 @@
 name: CI
 
 on:
-  push:
-    branches: [develop, main]
   pull_request:
-    branches: [develop, main]
+    branches:
+      - develop
+      - master
 
 jobs:
   lint:
@@ -15,26 +15,32 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
-      - name: Install ruff
-        run: pip install "ruff==0.4.10"
+      - name: Install Poetry
+        run: pip install poetry
 
-      - name: ruff check
-        run: ruff check .
+      - name: Install dependencies
+        run: poetry install --without huggingface
 
-      - name: ruff format
-        run: ruff format --check .
+      - name: Ruff check
+        run: poetry run ruff check .
+
+      - name: Ruff format
+        run: poetry run ruff format --check .
 
   test:
-    name: Tests
+    name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
 
       - uses: snok/install-poetry@v1
         with:
@@ -45,10 +51,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .venv
-          key: venv-${{ runner.os }}-py3.11-${{ hashFiles('poetry.lock') }}
+          key: venv-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
 
       - name: Install dependencies
         run: poetry install --without huggingface
 
       - name: Run tests
-        run: poetry run pytest --cov=linguaalayam --cov-report=term-missing -q
+        run: poetry run pytest --cov=linguaalayam --cov-report=term-missing --cov-fail-under=80 -q

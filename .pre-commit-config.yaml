@@ -15,3 +15,8 @@ repos:
       - id: check-toml
       - id: check-merge-conflict
       - id: debug-statements
+
+  - repo: https://github.com/sachn1/readme-drift
+    rev: v1.0.1
+    hooks:
+      - id: readme-drift
