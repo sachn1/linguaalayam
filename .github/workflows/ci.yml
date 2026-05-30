@@ -50,3 +50,16 @@ jobs:
 
       - name: Run tests
         run: poetry run pytest --cov=linguaalayam --cov-report=term-missing --cov-fail-under=80 -q
+
+  tests:
+    name: Tests
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: All matrix jobs passed
+        run: |
+          if [[ "${{ needs.test.result }}" != "success" ]]; then
+            echo "Test matrix failed: ${{ needs.test.result }}"
+            exit 1
+          fi
