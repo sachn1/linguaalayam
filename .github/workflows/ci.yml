@@ -13,21 +13,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/ruff-action@v3
         with:
-          python-version: "3.12"
+          args: check .
 
-      - name: Install Poetry
-        run: pip install poetry
-
-      - name: Install dependencies
-        run: poetry install --without huggingface
-
-      - name: Ruff check
-        run: poetry run ruff check .
-
-      - name: Ruff format
-        run: poetry run ruff format --check .
+      - uses: astral-sh/ruff-action@v3
+        with:
+          args: format --check .
 
   test:
     name: Test (Python ${{ matrix.python-version }})
