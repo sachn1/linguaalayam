@@ -17,7 +17,7 @@ _SYNTHESIS_SYSTEM = (
     "translation, or usage directly. If the entries do not contain the answer, say so in one sentence."
 )
 
-_SYNTHESIS_TEMPLATE = "Question: {query}\n\n" "Dictionary entries:\n{entries}"
+_SYNTHESIS_TEMPLATE = "Question: {query}\n\nDictionary entries:\n{entries}"
 
 
 class RAGState(TypedDict):

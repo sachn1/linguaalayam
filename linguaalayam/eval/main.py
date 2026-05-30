@@ -43,8 +43,8 @@ def _print_summary(results: list[QueryResult], cfg: DictConfig) -> None:
     print(f"Model   : {cfg.embedding.model}")
     print(f"Top-k   : {top_k}")
     print()
-    print(f"Hit@1   : {hits_1/n:.3f}  ({hits_1}/{n})")
-    print(f"Hit@{top_k}   : {hits_k/n:.3f}  ({hits_k}/{n})")
+    print(f"Hit@1   : {hits_1 / n:.3f}  ({hits_1}/{n})")
+    print(f"Hit@{top_k}   : {hits_k / n:.3f}  ({hits_k}/{n})")
     print(f"MRR     : {mrr_val:.3f}")
     print(f"Latency : {avg_ms:.1f} ms avg")
     print()
@@ -53,7 +53,7 @@ def _print_summary(results: list[QueryResult], cfg: DictConfig) -> None:
     hit_count = hits_k or 1
     for tool in ("exact", "fuzzy", "semantic"):
         c = tools.get(tool, 0)
-        print(f"  {tool:<10}: {c:3}  ({c/hit_count*100:.1f}% of hits)")
+        print(f"  {tool:<10}: {c:3}  ({c / hit_count * 100:.1f}% of hits)")
     print(f"  {'miss':<10}: {tools.get('miss', 0):3}")
     print()
 
