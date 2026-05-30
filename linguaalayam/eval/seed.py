@@ -11,7 +11,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from linguaalayam.corpus.enml import EnMlEntry
+from linguaalayam.models.entries import EnMlEntry
 from linguaalayam.database import batch_insert, build_engine, build_session_factory, get_session
 from linguaalayam.embeddings import EmbeddingService
 from linguaalayam.eval.dataset import load_dataset
@@ -49,6 +49,7 @@ _DEFINITIONS: dict[str, list[tuple[str, str]]] = {
 
 
 def _build_entries() -> list[EnMlEntry]:
+    """Build EnMlEntry stubs for all headwords in the eval dataset."""
     dataset = load_dataset(
         Path(__file__).resolve().parent.parent.parent / "data/eval/queries.jsonl"
     )

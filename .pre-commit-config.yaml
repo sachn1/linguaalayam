@@ -1,17 +1,27 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.4
+    rev: v0.15.15
     hooks:
       - id: ruff
         args: [--fix]
-        exclude: ^alembic/versions/
+        exclude: ^migrations/
+      - id: ruff-format
+        exclude: ^migrations/
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
       - id: trailing-whitespace
+        exclude: ^migrations/
       - id: end-of-file-fixer
+        exclude: ^migrations/
       - id: check-yaml
       - id: check-toml
       - id: check-merge-conflict
       - id: debug-statements
+        exclude: ^migrations/
+
+  - repo: https://github.com/sachn1/readme-drift
+    rev: v1.0.1
+    hooks:
+      - id: readme-drift

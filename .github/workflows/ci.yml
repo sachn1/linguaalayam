@@ -1,10 +1,10 @@
 name: CI
 
 on:
-  push:
-    branches: [develop, main]
   pull_request:
-    branches: [develop, main]
+    branches:
+      - develop
+      - master
 
 jobs:
   lint:
@@ -13,28 +13,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/ruff-action@v3
         with:
-          python-version: "3.11"
+          args: check .
 
-      - name: Install ruff
-        run: pip install "ruff==0.4.10"
-
-      - name: ruff check
-        run: ruff check .
-
-      - name: ruff format
-        run: ruff format --check .
+      - uses: astral-sh/ruff-action@v3
+        with:
+          args: format --check .
 
   test:
-    name: Tests
+    name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
 
       - uses: snok/install-poetry@v1
         with:
@@ -45,10 +43,23 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .venv
-          key: venv-${{ runner.os }}-py3.11-${{ hashFiles('poetry.lock') }}
+          key: venv-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
 
       - name: Install dependencies
         run: poetry install --without huggingface
 
       - name: Run tests
-        run: poetry run pytest --cov=linguaalayam --cov-report=term-missing -q
+        run: poetry run pytest --cov=linguaalayam --cov-report=term-missing --cov-fail-under=80 -q
+
+  tests:
+    name: Tests
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: All matrix jobs passed
+        run: |
+          if [[ "${{ needs.test.result }}" != "success" ]]; then
+            echo "Test matrix failed: ${{ needs.test.result }}"
+            exit 1
+          fi

@@ -1,25 +1,27 @@
-from collections import defaultdict
+"""Parser for the Datuk Malayalam–Malayalam (ML→ML) corpus."""
+
 from pathlib import Path
 
+from linguaalayam.corpus.base import parse_definition_tsv
 from linguaalayam.models.entries import MlMlEntry
-
-_EMPTY_POS = {"", "-"}
 
 
 def parse(filepath: Path) -> list[MlMlEntry]:
-    raw: dict[str, list[tuple[str | None, str]]] = defaultdict(list)
+    """Parse the Datuk ML→ML TSV file into a list of entries.
 
-    with filepath.open(encoding="utf-8") as f:
-        for line in f:
-            parts = line.rstrip("\n").split("\t")
-            if len(parts) != 3:
-                continue
+    Each line has three tab-separated columns: Malayalam headword,
+    part-of-speech tag (wrapped in ``{}``), and a Malayalam definition.
+    Lines with a different column count are silently skipped. Entries
+    sharing the same headword are merged into a single :class:`MlMlEntry`.
 
-            headword, pos_raw, definition = parts
-            pos = pos_raw.strip("{}") or None
-            if pos in _EMPTY_POS:
-                pos = None
+    Parameters
+    ----------
+    filepath : Path
+        Path to the Datuk corpus file (tab-separated, UTF-8).
 
-            raw[headword].append((pos, definition))
-
-    return [MlMlEntry(headword=hw, definitions=defns) for hw, defns in raw.items()]
+    Returns
+    -------
+    list[MlMlEntry]
+        One entry per unique headword, with all POS/definition pairs collected.
+    """
+    return parse_definition_tsv(filepath, MlMlEntry)

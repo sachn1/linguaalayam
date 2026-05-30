@@ -8,16 +8,25 @@ from linguaalayam.models.entries import Embeddable
 
 
 class EmbeddingService:
-    """Service class for generating embeddings for dictionary entries."""
+    """Sentence-transformer wrapper that encodes dictionary entries into vectors.
+
+    Parameters
+    ----------
+    embedding_cfg : DictConfig
+        Configuration with the following keys:
+
+        - ``model`` — HuggingFace model ID or local path.
+        - ``batch_size`` — number of texts to encode per forward pass.
+        - ``normalize`` — whether to L2-normalise the output vectors.
+        - ``quantise`` — if ``True``, loads the model with ``int8`` weights.
+
+    Attributes
+    ----------
+    vector_size : int
+        Dimensionality of the embedding vectors produced by the model.
+    """
 
     def __init__(self, embedding_cfg: DictConfig) -> None:
-        """Initialize the embedding service.
-
-        Parameters
-        ----------
-        embedding_cfg : DictConfig
-            Configuration for the embedding model.
-        """
         self._cfg = embedding_cfg
         self._model = SentenceTransformer(
             embedding_cfg.model,
@@ -26,8 +35,13 @@ class EmbeddingService:
 
     @property
     def vector_size(self) -> int:
-        """Get the dimensionality of the embedding vectors."""
+        """Dimensionality of the embedding vectors produced by the model."""
         return self._model.get_sentence_embedding_dimension()
+
+    @property
+    def batch_size(self) -> int:
+        """Number of texts encoded per forward pass."""
+        return self._cfg.batch_size
 
     def encode(self, entries: list[Embeddable]) -> list[list[float]]:
         """Encode a list of embeddable entries into their vector representations.
@@ -35,12 +49,14 @@ class EmbeddingService:
         Parameters
         ----------
         entries : list[Embeddable]
-            List of entries to encode.
+            List of entries to encode. Each entry's ``to_embed_text()`` output
+            is used as the input text.
 
         Returns
         -------
         list[list[float]]
-            List of embedding vectors corresponding to the input entries.
+            List of embedding vectors corresponding to the input entries,
+            in the same order.
         """
         texts = [entry.to_embed_text() for entry in entries]
         vectors: np.ndarray = self._model.encode(
@@ -52,7 +68,7 @@ class EmbeddingService:
         return vectors.tolist()
 
     def encode_query(self, query: str) -> list[float]:
-        """Encode a query string into its vector representation.s
+        """Encode a free-text query string into its vector representation.
 
         Parameters
         ----------
@@ -62,7 +78,7 @@ class EmbeddingService:
         Returns
         -------
         list[float]
-            The embedding vector corresponding to the query string.
+            The embedding vector for the query.
         """
         vector: np.ndarray = self._model.encode(
             query,

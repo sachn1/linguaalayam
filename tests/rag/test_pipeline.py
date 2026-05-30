@@ -10,6 +10,7 @@ from linguaalayam.rag.query_understanding import QueryUnderstanding
 
 
 def _candidate(headword: str, match_type: str = "exact", score: float = 1.0) -> dict:
+    """Build a minimal candidate dict for the given headword."""
     return {
         "headword": headword,
         "source": "olam_enml",
@@ -22,23 +23,30 @@ def _candidate(headword: str, match_type: str = "exact", score: float = 1.0) -> 
 
 
 class TestFormatEntries:
+    """_format_entries text formatting checks."""
+
     def test_includes_headword(self):
+        """Formatted text should contain the candidate headword."""
         text = _format_entries([_candidate("run")])
         assert "run" in text
 
     def test_includes_embed_text(self):
+        """Formatted text should include the embed_text of each candidate."""
         text = _format_entries([_candidate("run")])
         assert "ഓടുക" in text
 
     def test_numbers_entries(self):
+        """Multiple entries should be numbered starting from [1]."""
         text = _format_entries([_candidate("run"), _candidate("walk")])
         assert "[1]" in text
         assert "[2]" in text
 
     def test_empty_list(self):
+        """Empty candidate list should produce an empty string."""
         assert _format_entries([]) == ""
 
     def test_no_score_handled(self):
+        """Candidate with score=None should not raise."""
         c = _candidate("run")
         c["score"] = None
         text = _format_entries([c])
@@ -46,7 +54,10 @@ class TestFormatEntries:
 
 
 class TestBuildPipeline:
+    """build_pipeline compilation and node behaviour."""
+
     def _make_tools(self, headword: str = "run"):
+        """Build a mock DictionaryTools returning one exact match."""
         tools = MagicMock()
         tools.exact_lookup.return_value = [_candidate(headword)]
         tools.fuzzy_lookup.return_value = []
@@ -54,6 +65,7 @@ class TestBuildPipeline:
         return tools
 
     def _make_llm(self, answer: str = "Test answer"):
+        """Build a mock LLMAdapter with a fixed complete() return value."""
         llm = MagicMock()
         llm.has_llm = True
         llm.extract_structured.return_value = QueryUnderstanding(headword="run", intent="define")
@@ -61,9 +73,11 @@ class TestBuildPipeline:
         return llm
 
     def _initial_state(self, query: str = "run") -> RAGState:
+        """Build a blank RAGState for the given query."""
         return {"query": query, "headword": None, "intent": None, "candidates": [], "answer": ""}
 
     def test_pipeline_returns_answer(self):
+        """Pipeline should return the LLM-generated answer in the 'answer' key."""
         tools = self._make_tools()
         llm = self._make_llm("Malayalam: ഓടുക")
         cfg = OmegaConf.create({"top_k": 5, "rerank": False})
@@ -72,6 +86,7 @@ class TestBuildPipeline:
         assert result["answer"] == "Malayalam: ഓടുക"
 
     def test_pipeline_sets_candidates(self):
+        """Pipeline should populate the candidates list after retrieval."""
         tools = self._make_tools("run")
         llm = self._make_llm()
         cfg = OmegaConf.create({"top_k": 5, "rerank": False})
@@ -80,6 +95,7 @@ class TestBuildPipeline:
         assert result["candidates"]
 
     def test_synthesize_returns_no_results_message(self):
+        """Should return a fallback message when no candidates are found."""
         tools = MagicMock()
         tools.exact_lookup.return_value = []
         tools.fuzzy_lookup.return_value = []
@@ -92,6 +108,7 @@ class TestBuildPipeline:
         assert "No dictionary entries" in result["answer"]
 
     def test_rerank_node_skips_without_reranker(self):
+        """rerank=True with reranker=None should not raise."""
         tools = self._make_tools()
         llm = self._make_llm()
         cfg = OmegaConf.create({"top_k": 5, "rerank": True})
@@ -100,6 +117,7 @@ class TestBuildPipeline:
         assert "answer" in result
 
     def test_rerank_node_uses_reranker(self):
+        """When reranker is set and rerank=True, reranker.rerank should be called."""
         tools = self._make_tools()
         llm = self._make_llm()
         mock_reranker = MagicMock()
@@ -110,6 +128,7 @@ class TestBuildPipeline:
         mock_reranker.rerank.assert_called_once()
 
     def test_source_passed_to_tools(self):
+        """Source filter in config should be forwarded to retrieval tools."""
         tools = self._make_tools()
         llm = self._make_llm()
         cfg = OmegaConf.create({"top_k": 5, "rerank": False, "source": "olam_enml"})
@@ -121,6 +140,7 @@ class TestBuildPipeline:
         )
 
     def test_nollm_skips_llm_call_and_returns_candidates(self):
+        """NoLLMAdapter should return formatted candidates without an API call."""
         tools = self._make_tools("run")
         llm = NoLLMAdapter()
         cfg = OmegaConf.create({"top_k": 5, "rerank": False})
@@ -130,6 +150,7 @@ class TestBuildPipeline:
         assert "run" in result["answer"]
 
     def test_nollm_no_candidates_returns_fallback_message(self):
+        """NoLLMAdapter with empty candidates should return the fallback message."""
         tools = MagicMock()
         tools.exact_lookup.return_value = []
         tools.fuzzy_lookup.return_value = []

@@ -20,6 +20,7 @@ log = logging.getLogger(__name__)
 
 
 def _print_summary(results: list[QueryResult], cfg: DictConfig) -> None:
+    """Print hit rates, MRR, tool breakdown, intent breakdown, and misses."""
     n = len(results)
     if n == 0:
         print("No results — is the dataset empty?")
@@ -42,8 +43,8 @@ def _print_summary(results: list[QueryResult], cfg: DictConfig) -> None:
     print(f"Model   : {cfg.embedding.model}")
     print(f"Top-k   : {top_k}")
     print()
-    print(f"Hit@1   : {hits_1/n:.3f}  ({hits_1}/{n})")
-    print(f"Hit@{top_k}   : {hits_k/n:.3f}  ({hits_k}/{n})")
+    print(f"Hit@1   : {hits_1 / n:.3f}  ({hits_1}/{n})")
+    print(f"Hit@{top_k}   : {hits_k / n:.3f}  ({hits_k}/{n})")
     print(f"MRR     : {mrr_val:.3f}")
     print(f"Latency : {avg_ms:.1f} ms avg")
     print()
@@ -52,7 +53,7 @@ def _print_summary(results: list[QueryResult], cfg: DictConfig) -> None:
     hit_count = hits_k or 1
     for tool in ("exact", "fuzzy", "semantic"):
         c = tools.get(tool, 0)
-        print(f"  {tool:<10}: {c:3}  ({c/hit_count*100:.1f}% of hits)")
+        print(f"  {tool:<10}: {c:3}  ({c / hit_count * 100:.1f}% of hits)")
     print(f"  {'miss':<10}: {tools.get('miss', 0):3}")
     print()
 
@@ -76,6 +77,7 @@ def _print_summary(results: list[QueryResult], cfg: DictConfig) -> None:
 
 
 def _write_results(results: list[QueryResult], path: Path) -> None:
+    """Write per-query results to a JSONL file at path."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
         for r in results:
@@ -103,7 +105,16 @@ def _write_results(results: list[QueryResult], path: Path) -> None:
 def main(cfg: DictConfig) -> None:  # pragma: no cover
     """Evaluate retrieval quality against the labeled query set.
 
-    Usage:
+    Parameters
+    ----------
+    cfg : DictConfig
+        Hydra configuration; reads ``cfg.database``, ``cfg.embedding``,
+        ``cfg.eval.dataset``, ``cfg.eval.output``, and eval tuning knobs.
+
+    Notes
+    -----
+    CLI examples::
+
         poetry run eval
         poetry run eval eval.top_k=10
         poetry run eval eval.dataset=data/eval/my_queries.jsonl eval.output=results/run1.jsonl

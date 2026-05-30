@@ -59,12 +59,15 @@ poetry run alembic upgrade head
 
 ## Data download
 
-Download the EN→ML dataset from [olam.in/p/open](https://olam.in/p/open) and place it at:
+Download the corpora from [olam.in/p/open](https://olam.in/p/open) and place them at:
 
 ```
 data/
-└── enml/
-    └── enml
+├── enml/
+│   ├── olam          # Olam EN→ML (TSV)
+│   └── ekkurup.yml   # Ekkurup EN→ML thesaurus (YAML)
+└── mlml/
+    └── datuk         # Datuk ML→ML (TSV)
 ```
 
 ---
@@ -72,7 +75,7 @@ data/
 ## Ingest
 
 ```bash
-poetry run ingest                               # full corpus ingest
+poetry run ingest                               # full corpus ingest (all three corpora)
 poetry run ingest corpus=debug                  # 50-entry test ingest
 poetry run ingest embedding=multilingual_e5_large
 ```
@@ -85,7 +88,6 @@ Ingestion is checkpoint-based — safe to restart after a failure without re-emb
 
 | Corpus | Type | Status |
 |---|---|---|
-| Olam EN→ML | English → Malayalam | ✅ Ingested |
-| Datuk | Malayalam → Malayalam | 🔜 v0.5 |
-| Dravidian comparative | ML / KN / TA / TE | 🔜 v0.5 |
-| EK Kurup | EN→ML thesaurus | 🔜 v0.5 |
+| Olam EN→ML | English → Malayalam | ✅ Active |
+| Datuk | Malayalam → Malayalam | ✅ Active |
+| Ekkurup | EN→ML thesaurus | ✅ Active |

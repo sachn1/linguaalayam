@@ -1,15 +1,24 @@
 sources:
   enml:
     enabled: true
-    path: enml/enml
+    path: enml/olam
     source_name: olam_enml
+    parser:
+      _target_: linguaalayam.corpus.enml.parse
+      _partial_: true
   datuk:
-    enabled: false
-    path: datuk/datuk
+    enabled: true
+    path: mlml/datuk
     source_name: datuk
-  dravidian:
-    enabled: false
-    path: dravidian/dravidian.tsv
-    source_name: dravidian_comparative
+    parser:
+      _target_: linguaalayam.corpus.datuk.parse
+      _partial_: true
+  ekkurup:
+    enabled: true
+    path: enml/ekkurup.yml
+    source_name: ekkurup
+    parser:
+      _target_: linguaalayam.corpus.ekkurup.parse
+      _partial_: true
 
 db_batch_size: 512

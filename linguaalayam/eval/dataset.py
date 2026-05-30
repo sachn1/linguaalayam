@@ -7,6 +7,20 @@ from pathlib import Path
 
 @dataclass
 class EvalQuery:
+    """A single labelled evaluation query.
+
+    Attributes
+    ----------
+    query : str
+        The natural-language query string as the user would type it.
+    expected_headword : str
+        The dictionary headword that a correct retrieval should surface.
+    intent : str
+        Query intent label (e.g. ``"define"``, ``"translate"``).
+    source : str or None
+        Optional corpus filter to restrict retrieval to a single source.
+    """
+
     query: str
     expected_headword: str
     intent: str
@@ -14,10 +28,28 @@ class EvalQuery:
 
 
 def load_dataset(path: str | Path) -> list[EvalQuery]:
-    """Load an eval dataset from a JSONL file.
+    """Load an evaluation dataset from a JSONL file.
 
-    Each line must have: query, expected_headword.
-    Optional fields: intent (default "define"), source (default null).
+    Each line must contain a JSON object with at minimum ``query`` and
+    ``expected_headword`` keys. ``intent`` defaults to ``"define"`` and
+    ``source`` defaults to ``None`` when absent.
+
+    Parameters
+    ----------
+    path : str or Path
+        Path to the JSONL file.
+
+    Returns
+    -------
+    list[EvalQuery]
+        Parsed evaluation queries in file order.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the file does not exist at ``path``.
+    ValueError
+        If any line contains malformed JSON.
     """
     p = Path(path)
     if not p.exists():

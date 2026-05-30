@@ -1,3 +1,5 @@
+"""Tests for _get_pending, _embed_with_checkpoint, and _insert_with_checkpoint."""
+
 from unittest.mock import MagicMock, patch
 
 
@@ -16,28 +18,33 @@ from linguaalayam.scripts.vector_checkpoint import VectorCheckpoint
 
 
 def _make_entries(*headwords: str) -> list[EnMlEntry]:
+    """Build a list of stub EnMlEntry objects from headwords."""
     return [EnMlEntry(headword=hw, definitions=[("v", "test")]) for hw in headwords]
 
 
 def test_get_pending_excludes_ingested():
+    """Already-ingested headwords should be filtered out."""
     entries = _make_entries("run", "walk", "fly")
     pending = _get_pending("enml", entries, ingested_headwords={"run"}, limit=None)
     assert [e.headword for e in pending] == ["walk", "fly"]
 
 
 def test_get_pending_returns_all_when_nothing_ingested():
+    """All entries should be pending when the ingested set is empty."""
     entries = _make_entries("run", "walk")
     pending = _get_pending("enml", entries, ingested_headwords=set(), limit=None)
     assert len(pending) == 2
 
 
 def test_get_pending_applies_limit():
+    """The limit parameter should truncate the pending list."""
     entries = _make_entries("run", "walk", "fly", "jump")
     pending = _get_pending("enml", entries, ingested_headwords=set(), limit=2)
     assert len(pending) == 2
 
 
 def test_get_pending_limit_applied_after_filter():
+    """Limit should be applied after filtering out ingested entries."""
     entries = _make_entries("run", "walk", "fly", "jump")
     # "run" is already ingested, so 3 remain, limit=2 takes first 2
     pending = _get_pending("enml", entries, ingested_headwords={"run"}, limit=2)
@@ -46,6 +53,7 @@ def test_get_pending_limit_applied_after_filter():
 
 
 def test_get_pending_returns_empty_when_all_ingested():
+    """Pending list should be empty when all headwords are already ingested."""
     entries = _make_entries("run", "walk")
     pending = _get_pending("enml", entries, ingested_headwords={"run", "walk"}, limit=None)
     assert pending == []
@@ -57,6 +65,7 @@ def test_get_pending_returns_empty_when_all_ingested():
 
 
 def test_embed_with_checkpoint_skips_cached(tmp_path, dummy_service):
+    """Headwords already in the checkpoint should not be re-embedded."""
     checkpoint = VectorCheckpoint(tmp_path / "enml.jsonl")
     checkpoint.append_batch(["run"], [[1.0, 0.0, 0.0, 0.0]])
 
@@ -68,6 +77,7 @@ def test_embed_with_checkpoint_skips_cached(tmp_path, dummy_service):
 
 
 def test_embed_with_checkpoint_appends_new_vectors(tmp_path, dummy_service):
+    """Newly embedded vectors should be written to the checkpoint."""
     checkpoint = VectorCheckpoint(tmp_path / "enml.jsonl")
     entries = _make_entries("run", "walk")
 
@@ -79,6 +89,7 @@ def test_embed_with_checkpoint_appends_new_vectors(tmp_path, dummy_service):
 
 
 def test_embed_with_checkpoint_returns_full_set(tmp_path, dummy_service):
+    """Returned dict should include both cached and newly embedded vectors."""
     checkpoint = VectorCheckpoint(tmp_path / "enml.jsonl")
     checkpoint.append_batch(["run"], [[9.0, 0.0, 0.0, 0.0]])
 
@@ -96,6 +107,7 @@ def test_embed_with_checkpoint_returns_full_set(tmp_path, dummy_service):
 
 
 def test_insert_clears_checkpoint_entries(tmp_path):
+    """Checkpoint file should be deleted after all entries are inserted."""
     checkpoint = VectorCheckpoint(tmp_path / "enml.jsonl")
     entries = _make_entries("run", "walk")
     vectors = {"run": [1.0, 0.0, 0.0, 0.0], "walk": [0.0, 1.0, 0.0, 0.0]}
@@ -117,6 +129,7 @@ def test_insert_clears_checkpoint_entries(tmp_path):
 
 
 def test_insert_calls_batch_insert(tmp_path):
+    """batch_insert should be called at least once for non-empty input."""
     checkpoint = VectorCheckpoint(tmp_path / "enml.jsonl")
     entries = _make_entries("run", "walk")
     vectors = {"run": [1.0, 0.0, 0.0, 0.0], "walk": [0.0, 1.0, 0.0, 0.0]}
