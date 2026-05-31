@@ -29,10 +29,10 @@
 - [x] Thin FastAPI layer over `DictionaryTools` — `/lookup/exact`, `/lookup/fuzzy`, `/lookup/semantic`
 - [x] Web UI — HTMX + Jinja2 served from FastAPI; search page with corpus and mode filters
 - [x] Progressive Web App — manifest, service worker, static mount; installable from browser on mobile and desktop
-- [ ] Mobile — Flutter app (Android + iOS) calling the same FastAPI endpoints; Android / Play Store first
 - [x] `NoLLMAdapter` as default for the web app — core dictionary lookup needs no LLM or API key
 - [x] Bring-your-own-key LLM synthesis (Anthropic / OpenAI) — key stored in browser localStorage, injected as request header, never persisted server-side
-- [ ] Self-hosted deployment on a Hetzner CX32 VPS (~€6/month) — CX32 (8 GB RAM) required; embedding model alone is 1.1 GB, reranker ~400 MB, leaving safe headroom for Postgres + app
+- [x] Self-hosted deployment on Hetzner CX33 (Nuremberg, €7.72/month) — Docker Compose, pre-baked model image, nginx reverse proxy
+- [x] Domain and HTTPS — [linguaalayam.org](https://linguaalayam.org) live with Let's Encrypt cert
 - [x] Docker image with pre-baked embedding and reranker model weights
 
 ### v1.0 — Stable release (post v0.6)
@@ -42,7 +42,6 @@
 - [ ] **Manglish input** — romanised Malayalam queries ("oduka" → "ഓടുക") via `indic-transliteration`; pre-processing step in `understand_query`, no schema changes
 - [ ] **Romanised output** — Malayalam definitions returned with Roman transliteration alongside for users who cannot read the script
 - [ ] Explore English gloss of ML→ML definitions (requires hosted model or translation API budget)
-- [ ] Custom GPT (OpenAI) pointing at the hosted REST API — zero-setup Malayalam lookup for free-tier ChatGPT users
 
 ### v2.0 — On-device AI synthesis (in-app purchase)
 - [ ] Generate synthetic (query → answer) training pairs from existing corpus (headword + POS + definition + synonyms)
@@ -50,6 +49,11 @@
 - [ ] Quality eval harness before shipping — answer quality metrics (BLEU + human eval on Malayalam output); do not ship without passing eval
 - [ ] Serverless inference (Modal or RunPod) — pay-per-request, no idle GPU cost
 - [ ] AI synthesis as in-app purchase — core app stays free, premium tier unlocks prose answers at lower price point than user-managed API keys
+
+### v3.0 — Mobile app
+- [ ] Android app via PWABuilder (TWA) — wrap the existing PWA for Play Store, no separate codebase
+- [ ] iOS — evaluate PWABuilder or a thin WKWebView wrapper
+- [ ] Push notification support for word-of-the-day (requires service worker update)
 
 ### Backlog
 - [ ] Embedding model evaluation — compare `multilingual-mpnet` vs `multilingual-e5-large`

@@ -1,5 +1,8 @@
 # Setup
 
+> **No setup required to try the app.** The hosted version is live at [linguaalayam.org](https://linguaalayam.org).
+> Follow this guide only if you want to run the full stack locally (ingest, RAG pipeline, MCP server).
+
 ## Prerequisites
 
 - Python 3.11+
