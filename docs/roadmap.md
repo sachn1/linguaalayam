@@ -25,20 +25,18 @@
 - [x] Hydra-driven corpus parsers — adding a corpus requires only a YAML config entry, no Python change
 - [x] Code quality sweep — dead code removed, encapsulation fixed, silent failures logged
 
-### v0.6 — REST API, web UI, and self-hosting
+### v1.0 — REST API, hosted MCP, and stable release
 - [x] Thin FastAPI layer over `DictionaryTools` — `/lookup/exact`, `/lookup/fuzzy`, `/lookup/semantic`
-- [x] Web UI — HTMX + Jinja2 served from FastAPI; search page with corpus and mode filters
-- [x] Progressive Web App — manifest, service worker, static mount; installable from browser on mobile and desktop
-- [x] `NoLLMAdapter` as default for the web app — core dictionary lookup needs no LLM or API key
+- [x] Web UI — HTMX + Jinja2 served from FastAPI; settings sidebar, structured POS-grouped results, live filter refresh
+- [x] Hosted MCP server at `/mcp` — zero-config for AI clients (`{ "url": "https://linguaalayam.org/mcp" }`)
 - [x] Bring-your-own-key LLM synthesis (Anthropic / OpenAI) — key stored in browser localStorage, injected as request header, never persisted server-side
-- [x] Self-hosted deployment on Hetzner CX33 (Nuremberg, €7.72/month) — Docker Compose, pre-baked model image, nginx reverse proxy
+- [x] Self-hosted deployment on Hetzner CX33 (Nuremberg, €7.72/month) — Docker Compose, nginx reverse proxy
 - [x] Domain and HTTPS — [linguaalayam.org](https://linguaalayam.org) live with Let's Encrypt cert
-- [x] Docker image with pre-baked embedding and reranker model weights
+- [x] CI/CD — GitHub Actions deploy to VPS on `bump:` commit via forced-command SSH key
+- [x] User guide, MCP client setup guide (Claude Code, Claude Desktop, Cursor, Windsurf, Cline, Continue)
 
-### v1.0 — Stable release (post v0.6)
-- [ ] Promote to stable after v0.6 ships and REST API is proven in production
-
-### v1.1 — Diaspora and accessibility
+### v1.1 — Diaspora, accessibility, and i18n
+- [ ] **UI language toggle** — English / Malayalam interface labels; JSON message bundles, no page reload
 - [ ] **Manglish input** — romanised Malayalam queries ("oduka" → "ഓടുക") via `indic-transliteration`; pre-processing step in `understand_query`, no schema changes
 - [ ] **Romanised output** — Malayalam definitions returned with Roman transliteration alongside for users who cannot read the script
 - [ ] Explore English gloss of ML→ML definitions (requires hosted model or translation API budget)
