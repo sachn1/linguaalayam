@@ -5,8 +5,8 @@ FROM python:3.11-slim
 # overwritten by poetry in the app Dockerfile. Only the HF cache persists.
 
 RUN pip install --no-cache-dir \
-    torch --index-url https://download.pytorch.org/whl/cpu \
-    sentence-transformers
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    torch sentence-transformers
 
 ENV HF_HOME=/app/.cache/huggingface
 
