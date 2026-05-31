@@ -37,6 +37,7 @@
 - [x] CPU-only PyTorch in Docker — explicit `pytorch-cpu` source, no CUDA packages on VPS
 
 ### v2.1 — Diaspora, accessibility, and i18n
+- [x] **Intent-based source filter** — corpus dropdown replaced with human-readable intents (EN → Malayalam, Thesaurus, Malayalam word); backend unchanged
 - [ ] **UI language toggle** — English / Malayalam interface labels; JSON message bundles, no page reload
 - [ ] **Manglish input** — romanised Malayalam queries ("oduka" → "ഓടുക") via `indic-transliteration`; pre-processing step in `understand_query`, no schema changes
 - [ ] **Romanised output** — Malayalam definitions returned with Roman transliteration alongside for users who cannot read the script

@@ -1,6 +1,8 @@
-# LinguAalayam
+# Linguആലയം (LinguAalayam)
 
 > ഏതു വാക്കും അറിയൂ — Every word, explained.
+>
+> *From Latin "lingua" (language) and Malayalam "ആലയം" (abode) — a home for words.*
 
 **[linguaalayam.org](https://linguaalayam.org)** · [API docs](https://linguaalayam.org/docs) · [MCP endpoint](https://linguaalayam.org/mcp)
 
