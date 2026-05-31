@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "linguaalayam"
-version = "2.0.0"
+version = "2.0.1"
 description = "Your companion for Malayalam and English words — ask a question, get an answer."
 authors = ["Sachin Nandakumar"]
 readme = "README.md"
