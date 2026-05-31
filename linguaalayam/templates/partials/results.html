@@ -1,4 +1,103 @@
 {% if answer %}
+<div class="answer-card">
+  <p class="answer-label">AI Answer</p>
+  <p>{{ answer }}</p>
+</div>
+{% endif %}
+
+{% if results %}
+
+{# collect unique sources to detect multi-corpus results #}
+{% set ns = namespace(seen_sources=[]) %}
+{% for r in results %}
+  {% if r.source not in ns.seen_sources %}
+    {% set ns.seen_sources = ns.seen_sources + [r.source] %}
+  {% endif %}
+{% endfor %}
+
+<p class="results-meta">
+  {{ results | length }} result{% if results | length != 1 %}s{% endif %}
+  {% if headword and headword != query %} for <strong>{{ headword }}</strong>{% endif %}
+  {% if ns.seen_sources | length > 1 %}
+  &nbsp;·&nbsp; <span class="multi-corpus-note" title="The same word can appear from multiple corpora — each provides different information.">{{ ns.seen_sources | length }} corpora</span>
+  {% endif %}
+</p>
+
+{% for r in results %}
+
+{# source display name and direction #}
+{% if r.source == 'olam_enml' %}
+  {% set source_label = 'Olam' %}
+  {% set source_dir = 'EN → ML' %}
+  {% set def_is_ml = true %}
+  {% set head_is_ml = false %}
+{% elif r.source == 'datuk' %}
+  {% set source_label = 'Datuk' %}
+  {% set source_dir = 'ML → ML' %}
+  {% set def_is_ml = false %}
+  {% set head_is_ml = true %}
+{% else %}
+  {% set source_label = 'Ekkurup' %}
+  {% set source_dir = 'EN thesaurus' %}
+  {% set def_is_ml = false %}
+  {% set head_is_ml = false %}
+{% endif %}
+
+<div class="entry">
+  <div class="entry-header">
+    <span class="headword {% if head_is_ml %}ml{% endif %}">{{ r.headword }}</span>
+    <span class="source-tag" title="{{ source_dir }}">{{ source_label }}</span>
+  </div>
+
+  {# --- definitions (olam_enml, datuk) --- #}
+  {% if r.data.definitions %}
+    <dl class="defs">
+    {% set ns2 = namespace(last_pos=None) %}
+    {% for pair in r.data.definitions %}
+      {% set pos = pair[0] %}
+      {% set text = pair[1] %}
+      {% if pos != ns2.last_pos %}
+        {% if ns2.last_pos is not none %}</dd>{% endif %}
+        <dt>{{ pos if pos else '—' }}</dt>
+        <dd><span class="{% if def_is_ml %}ml{% endif %}">{{ text }}</span>
+        {% set ns2.last_pos = pos %}
+      {% else %}
+        <span class="def-sep">,</span> <span class="{% if def_is_ml %}ml{% endif %}">{{ text }}</span>
+      {% endif %}
+    {% endfor %}
+    {% if r.data.definitions %}</dd>{% endif %}
+    </dl>
+
+  {# --- senses (ekkurup thesaurus) --- #}
+  {% elif r.data.senses %}
+    <dl class="defs">
+    {% for sense in r.data.senses %}
+      <dt>{{ sense.pos if sense.pos else '—' }}</dt>
+      <dd>
+        {% for group in sense.en %}
+          <span class="sense-group">{{ group | join(', ') }}</span>
+        {% endfor %}
+        {% if sense.ml %}
+          <span class="sense-arrow">→</span>
+          {% for group in sense.ml %}
+            <span class="ml">{{ group | join(', ') }}</span>
+          {% endfor %}
+        {% endif %}
+      </dd>
+    {% endfor %}
+    </dl>
+  {% endif %}
+
+  {% if r.match_type != 'exact' %}
+  <p class="score">{{ r.match_type }} · {{ (r.score * 100) | round | int }}% match</p>
+  {% endif %}
+</div>
+{% endfor %}
+
+{% elif query %}
+<div class="empty">No results for <strong>{{ query }}</strong></div>
+{% endif %}
+
 <style>
   .answer-card {
     background: #fffbeb;
@@ -8,19 +107,12 @@
     margin-bottom: 1rem;
     font-size: 0.95rem;
     line-height: 1.6;
-    color: var(--text);
   }
   .answer-label { font-size: 0.7rem; font-weight: 600; color: #92400e; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
-</style>
-<div class="answer-card">
-  <p class="answer-label">Answer</p>
-  <p>{{ answer }}</p>
-</div>
-{% endif %}
 
-{% if results %}
-<style>
   .results-meta { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem; }
+  .multi-corpus-note { cursor: help; border-bottom: 1px dashed var(--border); }
+
   .entry {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -32,46 +124,36 @@
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.6rem;
     gap: 0.5rem;
   }
-  .headword { font-size: 1.1rem; font-weight: 600; }
-  .badges { display: flex; gap: 0.35rem; flex-wrap: wrap; }
-  .badge {
+  .headword { font-size: 1.15rem; font-weight: 700; }
+  .source-tag {
     font-size: 0.7rem;
-    padding: 0.15rem 0.45rem;
+    padding: 0.15rem 0.5rem;
     border-radius: 99px;
     background: #f5f0eb;
     color: var(--accent);
-    font-weight: 500;
+    font-weight: 600;
+    flex-shrink: 0;
   }
-  .embed-text { font-size: 0.9rem; color: var(--text); line-height: 1.5; }
-  .score { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.35rem; }
-</style>
 
-<p class="results-meta">
-  {{ results | length }} result{% if results | length != 1 %}s{% endif %}
-  {% if headword and headword != query %} &mdash; searched for <strong>{{ headword }}</strong>{% endif %}
-</p>
+  dl.defs { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 0.2rem 0.75rem; align-items: baseline; }
+  dl.defs dt {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding-top: 0.15rem;
+    white-space: nowrap;
+  }
+  dl.defs dd { font-size: 0.9rem; line-height: 1.5; margin: 0; color: var(--text); }
+  .def-sep { color: var(--text-muted); }
+  .sense-group { color: var(--text-muted); }
+  .sense-arrow { margin: 0 0.3rem; color: var(--text-muted); }
 
-{% for r in results %}
-<div class="entry">
-  <div class="entry-header">
-    <span class="headword {% if r.source == 'datuk' %}ml{% endif %}">{{ r.headword }}</span>
-    <span class="badges">
-      <span class="badge">{{ r.source }}</span>
-      <span class="badge">{{ r.match_type }}</span>
-      {% if r.entry_type %}<span class="badge">{{ r.entry_type }}</span>{% endif %}
-    </span>
-  </div>
-  <p class="embed-text ml">{{ r.embed_text }}</p>
-  <p class="score">score {{ "%.3f" | format(r.score) }}</p>
-</div>
-{% endfor %}
+  .score { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.5rem; }
 
-{% elif query %}
-<style>
   .empty { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
 </style>
-<div class="empty">No results for <strong>{{ query }}</strong></div>
-{% endif %}
