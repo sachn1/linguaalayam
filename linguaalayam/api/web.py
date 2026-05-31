@@ -13,11 +13,13 @@ from linguaalayam.api.dependencies import get_tools
 from linguaalayam.llm.adapters.nollm import NoLLMAdapter
 from linguaalayam.rag.pipeline import _SYNTHESIS_SYSTEM, _SYNTHESIS_TEMPLATE, _format_entries
 from linguaalayam.rag.query_understanding import understand_query
+from linguaalayam.transliteration import malayalam_to_roman
 
 log = logging.getLogger(__name__)
 
 _NO_LLM = NoLLMAdapter()
 _TEMPLATES = Jinja2Templates(directory=str(Path(__file__).resolve().parents[1] / "templates"))
+_TEMPLATES.env.filters["romanise_ml"] = malayalam_to_roman
 
 router = APIRouter(include_in_schema=False)
 
@@ -59,6 +61,7 @@ def search(
     answer: str | None = None
     q = query.strip()
     src = source.strip() or None
+    romanise = request.headers.get("X-Romanise", "").strip() == "1"
 
     headword = q
     if q:
@@ -91,5 +94,6 @@ def search(
             "headword": headword,
             "answer": answer,
             "source_filter": src,
+            "romanise": romanise,
         },
     )
