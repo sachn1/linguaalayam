@@ -30,6 +30,7 @@ fastapi = {version = ">=0.110", extras = ["standard"]}
 uvicorn = {version = ">=0.29", extras = ["standard"]}
 jinja2 = ">=3.1,<4.0"
 httpx = ">=0.27"
+indic-transliteration = "^2.3.82"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
@@ -43,6 +44,7 @@ pandas = ">=2.0,<3.0"
 alembic = "^1.18.4"
 tqdm = "^4.66"
 commitizen = "^4.0"
+djlint = "^1.36.4"
 
 [tool.poetry.group.huggingface]
 optional = true
@@ -75,6 +77,14 @@ testpaths = ["tests", "docs"]
 line-length = 100
 target-version = "py311"
 exclude = ["migrations/", "notebooks/"]
+
+[tool.djlint]
+profile = "jinja"
+# H021 inline styles — intentional single-file CSS approach
+# H025 orphan tags — false positives from Jinja logic spanning blocks
+# H031 meta keywords — optional SEO tag
+# J004/J018 url_for — FastAPI serves static/internal URLs directly
+ignore = "H021,H025,H031,J004,J018"
 
 [[tool.poetry.source]]
 name = "pytorch-cpu"

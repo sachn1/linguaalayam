@@ -296,6 +296,22 @@ files = [
 dev = ["backports.zoneinfo ; python_version < \"3.9\"", "freezegun (>=1.0,<2.0)", "jinja2 (>=3.0)", "pytest (>=6.0)", "pytest-cov", "pytz", "setuptools", "tzdata ; sys_platform == \"win32\""]
 
 [[package]]
+name = "backports-functools-lru-cache"
+version = "2.0.0"
+description = "Backport of functools.lru_cache"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "backports.functools_lru_cache-2.0.0-py2.py3-none-any.whl", hash = "sha256:0a754323a46847735a112677fb8807b45f6d824d02a5795a50905218ac56a0d6"},
+    {file = "backports.functools_lru_cache-2.0.0.tar.gz", hash = "sha256:dcbfa5e0dae8a014168807c9e026d33eead71df5af76c1fb78fd248bf07f6f99"},
+]
+
+[package.extras]
+docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (<7.2.5)", "sphinx (>=3.5)", "sphinx-lint"]
+testing = ["pytest (>=6)", "pytest-black (>=0.3.7) ; platform_python_implementation != \"PyPy\"", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-mypy (>=0.9.1) ; platform_python_implementation != \"PyPy\"", "pytest-ruff"]
+
+[[package]]
 name = "beautifulsoup4"
 version = "4.14.3"
 description = "Screen-scraping library"
@@ -567,7 +583,7 @@ version = "8.3.3"
 description = "Composable command line interface toolkit"
 optional = false
 python-versions = ">=3.10"
-groups = ["main"]
+groups = ["main", "dev"]
 files = [
     {file = "click-8.3.3-py3-none-any.whl", hash = "sha256:a2bf429bb3033c89fa4936ffb35d5cb471e3719e1f3c8a7c3fff0b8314305613"},
     {file = "click-8.3.3.tar.gz", hash = "sha256:398329ad4837b2ff7cbe1dd166a4c0f8900c3ca3a218de04466f38f6497f18a2"},
@@ -814,6 +830,23 @@ cffi = {version = ">=2.0.0", markers = "python_full_version >= \"3.9.0\" and pla
 ssh = ["bcrypt (>=3.1.5)"]
 
 [[package]]
+name = "cssbeautifier"
+version = "1.15.4"
+description = "CSS unobfuscator and beautifier."
+optional = false
+python-versions = "*"
+groups = ["dev"]
+files = [
+    {file = "cssbeautifier-1.15.4-py3-none-any.whl", hash = "sha256:78c84d5e5378df7d08622bbd0477a1abdbd209680e95480bf22f12d5701efc98"},
+    {file = "cssbeautifier-1.15.4.tar.gz", hash = "sha256:9bb08dc3f64c101a01677f128acf01905914cf406baf87434dcde05b74c0acf5"},
+]
+
+[package.dependencies]
+editorconfig = ">=0.12.2"
+jsbeautifier = "*"
+six = ">=1.13.0"
+
+[[package]]
 name = "debugpy"
 version = "1.8.20"
 description = "An implementation of the Debug Adapter Protocol for Python"
@@ -927,6 +960,49 @@ files = [
 ]
 
 [[package]]
+name = "djlint"
+version = "1.36.4"
+description = "HTML Template Linter and Formatter"
+optional = false
+python-versions = ">=3.9"
+groups = ["dev"]
+files = [
+    {file = "djlint-1.36.4-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:a2dfb60883ceb92465201bfd392291a7597c6752baede6fbb6f1980cac8d6c5c"},
+    {file = "djlint-1.36.4-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:4bc6a1320c0030244b530ac200642f883d3daa451a115920ef3d56d08b644292"},
+    {file = "djlint-1.36.4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:3164a048c7bb0baf042387b1e33f9bbbf99d90d1337bb4c3d66eb0f96f5400a1"},
+    {file = "djlint-1.36.4-cp310-cp310-win_amd64.whl", hash = "sha256:3196d5277da5934962d67ad6c33a948ba77a7b6eadf064648bef6ee5f216b03c"},
+    {file = "djlint-1.36.4-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:3d68da0ed10ee9ca1e32e225cbb8e9b98bf7e6f8b48a8e4836117b6605b88cc7"},
+    {file = "djlint-1.36.4-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:c0478d5392247f1e6ee29220bbdbf7fb4e1bc0e7e83d291fda6fb926c1787ba7"},
+    {file = "djlint-1.36.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:962f7b83aee166e499eff916d631c6dde7f1447d7610785a60ed2a75a5763483"},
+    {file = "djlint-1.36.4-cp311-cp311-win_amd64.whl", hash = "sha256:53cbc450aa425c832f09bc453b8a94a039d147b096740df54a3547fada77ed08"},
+    {file = "djlint-1.36.4-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:ff9faffd7d43ac20467493fa71d5355b5b330a00ade1c4d1e859022f4195223b"},
+    {file = "djlint-1.36.4-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:79489e262b5ac23a8dfb7ca37f1eea979674cfc2d2644f7061d95bea12c38f7e"},
+    {file = "djlint-1.36.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:e58c5fa8c6477144a0be0a87273706a059e6dd0d6efae01146ae8c29cdfca675"},
+    {file = "djlint-1.36.4-cp312-cp312-win_amd64.whl", hash = "sha256:bb6903777bf3124f5efedcddf1f4716aef097a7ec4223fc0fa54b865829a6e08"},
+    {file = "djlint-1.36.4-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:ead475013bcac46095b1bbc8cf97ed2f06e83422335734363f8a76b4ba7e47c2"},
+    {file = "djlint-1.36.4-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:6c601dfa68ea253311deb4a29a7362b7a64933bdfcfb5a06618f3e70ad1fa835"},
+    {file = "djlint-1.36.4-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:bda5014f295002363381969864addeb2db13955f1b26e772657c3b273ed7809f"},
+    {file = "djlint-1.36.4-cp313-cp313-win_amd64.whl", hash = "sha256:16ce37e085afe5a30953b2bd87cbe34c37843d94c701fc68a2dda06c1e428ff4"},
+    {file = "djlint-1.36.4-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:89678661888c03d7bc6cadd75af69db29962b5ecbf93a81518262f5c48329f04"},
+    {file = "djlint-1.36.4-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:5b01a98df3e1ab89a552793590875bc6e954cad661a9304057db75363d519fa0"},
+    {file = "djlint-1.36.4-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:dabbb4f7b93223d471d09ae34ed515fef98b2233cbca2449ad117416c44b1351"},
+    {file = "djlint-1.36.4-cp39-cp39-win_amd64.whl", hash = "sha256:7a483390d17e44df5bc23dcea29bdf6b63f3ed8b4731d844773a4829af4f5e0b"},
+    {file = "djlint-1.36.4-py3-none-any.whl", hash = "sha256:e9699b8ac3057a6ed04fb90835b89bee954ed1959c01541ce4f8f729c938afdd"},
+    {file = "djlint-1.36.4.tar.gz", hash = "sha256:17254f218b46fe5a714b224c85074c099bcb74e3b2e1f15c2ddc2cf415a408a1"},
+]
+
+[package.dependencies]
+click = ">=8.0.1"
+colorama = ">=0.4.4"
+cssbeautifier = ">=1.14.4"
+jsbeautifier = ">=1.14.4"
+json5 = ">=0.9.11"
+pathspec = ">=0.12"
+pyyaml = ">=6"
+regex = ">=2023"
+tqdm = ">=4.62.2"
+
+[[package]]
 name = "dnspython"
 version = "2.8.0"
 description = "DNS toolkit"
@@ -963,6 +1039,21 @@ files = [
 dev = ["pre-commit (>=2.16.0) ; python_version >= \"3.9\"", "pydoctor (>=25.4.0)", "pytest"]
 docs = ["pydoctor (>=25.4.0)"]
 test = ["pytest"]
+
+[[package]]
+name = "editorconfig"
+version = "0.17.1"
+description = "EditorConfig File Locator and Interpreter for Python"
+optional = false
+python-versions = ">=3.9"
+groups = ["dev"]
+files = [
+    {file = "editorconfig-0.17.1-py3-none-any.whl", hash = "sha256:1eda9c2c0db8c16dbd50111b710572a5e6de934e39772de1959d41f64fc17c82"},
+    {file = "editorconfig-0.17.1.tar.gz", hash = "sha256:23c08b00e8e08cc3adcddb825251c497478df1dada6aefeb01e626ad37303745"},
+]
+
+[package.extras]
+dev = ["mypy (>=1.15)"]
 
 [[package]]
 name = "email-validator"
@@ -1691,6 +1782,29 @@ test = ["packaging", "pyfakefs", "pytest (>=6,!=8.1.*)", "pytest-perf (>=0.9.2)"
 type = ["pytest-mypy (>=1.0.1) ; platform_python_implementation != \"PyPy\""]
 
 [[package]]
+name = "indic-transliteration"
+version = "2.3.82"
+description = "Transliteration tools to convert text in one indic script encoding to another"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "indic_transliteration-2.3.82-py3-none-any.whl", hash = "sha256:243b8a444f14c1a811c03ba07e8aa300da61a7c4172a45556fdce1d963038019"},
+]
+
+[package.dependencies]
+"backports.functools_lru_cache" = "*"
+regex = "*"
+roman = "*"
+toml = "*"
+tqdm = "*"
+typer = "*"
+
+[package.extras]
+extras = ["aksharamukha", "pandas", "sandhi", "selenium", "tqdm", "vidyut"]
+test = ["pytest"]
+
+[[package]]
 name = "iniconfig"
 version = "2.3.0"
 description = "brain-dead simple config-ini parsing"
@@ -1967,6 +2081,22 @@ files = [
     {file = "joblib-1.4.2-py3-none-any.whl", hash = "sha256:06d478d5674cbc267e7496a410ee875abd68e4340feff4490bcb7afb88060ae6"},
     {file = "joblib-1.4.2.tar.gz", hash = "sha256:2382c5816b2636fbd20a09e0f4e9dad4736765fdfb7dca582943b9c1366b3f0e"},
 ]
+
+[[package]]
+name = "jsbeautifier"
+version = "1.15.4"
+description = "JavaScript unobfuscator and beautifier."
+optional = false
+python-versions = "*"
+groups = ["dev"]
+files = [
+    {file = "jsbeautifier-1.15.4-py3-none-any.whl", hash = "sha256:72f65de312a3f10900d7685557f84cb61a9733c50dcc27271a39f5b0051bf528"},
+    {file = "jsbeautifier-1.15.4.tar.gz", hash = "sha256:5bb18d9efb9331d825735fbc5360ee8f1aac5e52780042803943aa7f854f7592"},
+]
+
+[package.dependencies]
+editorconfig = ">=0.12.2"
+six = ">=1.13.0"
 
 [[package]]
 name = "json5"
@@ -3235,6 +3365,23 @@ qa = ["flake8 (==5.0.4)", "types-setuptools (==67.2.0.1)", "zuban (==0.5.1)"]
 testing = ["docopt", "pytest"]
 
 [[package]]
+name = "pathspec"
+version = "1.1.1"
+description = "Utility library for gitignore style pattern matching of file paths."
+optional = false
+python-versions = ">=3.9"
+groups = ["dev"]
+files = [
+    {file = "pathspec-1.1.1-py3-none-any.whl", hash = "sha256:a00ce642f577bf7f473932318056212bc4f8bfdf53128c78bbd5af0b9b20b189"},
+    {file = "pathspec-1.1.1.tar.gz", hash = "sha256:17db5ecd524104a120e173814c90367a96a98d07c45b2e10c2f3919fff91bf5a"},
+]
+
+[package.extras]
+hyperscan = ["hyperscan (>=0.7)"]
+optional = ["typing-extensions (>=4)"]
+re2 = ["google-re2 (>=1.1)"]
+
+[[package]]
 name = "pexpect"
 version = "4.9.0"
 description = "Pexpect allows easy control of interactive console applications."
@@ -4210,7 +4357,7 @@ version = "2024.11.6"
 description = "Alternative regular expression module, to replace re."
 optional = false
 python-versions = ">=3.8"
-groups = ["main", "huggingface"]
+groups = ["main", "dev", "huggingface"]
 files = [
     {file = "regex-2024.11.6-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:ff590880083d60acc0433f9c3f713c51f7ac6ebb9adf889c79a261ecf541aa91"},
     {file = "regex-2024.11.6-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:658f90550f38270639e83ce492f27d2c8d2cd63805c65a13a14d36ca126753f0"},
@@ -4588,6 +4735,18 @@ files = [
     {file = "rignore-0.7.6-pp39-pypy39_pp73-musllinux_1_2_i686.whl", hash = "sha256:1c6795e3694d750ae5ef172eab7d68a52aefbd9168d2e06647df691db2b03a50"},
     {file = "rignore-0.7.6-pp39-pypy39_pp73-musllinux_1_2_x86_64.whl", hash = "sha256:750a83a254b020e1193bfa7219dc7edca26bd8888a94cdc59720cbe386ab0c72"},
     {file = "rignore-0.7.6.tar.gz", hash = "sha256:00d3546cd793c30cb17921ce674d2c8f3a4b00501cb0e3dd0e82217dbeba2671"},
+]
+
+[[package]]
+name = "roman"
+version = "5.2"
+description = "Integer to Roman numerals converter"
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "roman-5.2-py3-none-any.whl", hash = "sha256:89d3b47400388806d06ff77ea77c79ab080bc127820dea6bf34e1f1c1b8e676e"},
+    {file = "roman-5.2.tar.gz", hash = "sha256:275fe9f46290f7d0ffaea1c33251b92b8e463ace23660508ceef522e7587cb6f"},
 ]
 
 [[package]]
@@ -5443,6 +5602,18 @@ huggingface-hub = ">=0.16.4,<1.0"
 dev = ["tokenizers[testing]"]
 docs = ["setuptools-rust", "sphinx", "sphinx-rtd-theme"]
 testing = ["black (==22.3)", "datasets", "numpy", "pytest", "requests", "ruff"]
+
+[[package]]
+name = "toml"
+version = "0.10.2"
+description = "Python Library for Tom's Obvious, Minimal Language"
+optional = false
+python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
+groups = ["main"]
+files = [
+    {file = "toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"},
+    {file = "toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f"},
+]
 
 [[package]]
 name = "tomlkit"
@@ -6457,4 +6628,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "f2f62d06174242b4537f09bbcb0ce65929e0f64b297681e4b526a4361a90d776"
+content-hash = "93bbab7b08950d33b15337c2cc2d25fb7dfe3b34c9c8afa60d4b52d973025e71"

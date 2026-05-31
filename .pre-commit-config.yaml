@@ -21,6 +21,12 @@ repos:
       - id: debug-statements
         exclude: ^migrations/
 
+  - repo: https://github.com/djlint/djLint
+    rev: v1.36.4
+    hooks:
+      - id: djlint-jinja
+        files: linguaalayam/templates/
+
   - repo: https://github.com/sachn1/readme-drift
     rev: v1.0.1
     hooks:
