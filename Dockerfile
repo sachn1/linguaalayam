@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
@@ -29,7 +29,7 @@ COPY linguaalayam/ ./linguaalayam/
 COPY README.md ./
 
 # Install the package itself
-RUN poetry install --without dev,huggingface --no-root --no-interaction
+RUN poetry install --without dev,huggingface --no-interaction
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
