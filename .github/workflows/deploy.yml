@@ -1,0 +1,28 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    name: Deploy to Hetzner VPS
+    runs-on: ubuntu-latest
+    # Only run on the bump commit — after version is finalised
+    if: startsWith(github.event.head_commit.message, 'bump:')
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            cd /root/linguaalayam
+            git fetch --tags
+            git pull origin master
+            docker compose up --build -d app
+            echo "Deployed $(git describe --tags --abbrev=0)"
