@@ -27,10 +27,14 @@ def _make_llm(provider: str, key: str):
     if provider == "openai":
         from linguaalayam.llm.adapters.openai import OpenAIAdapter
 
-        return OpenAIAdapter(OmegaConf.create({"api_key": key, "model": "gpt-4o-mini", "max_tokens": 512}))
+        return OpenAIAdapter(
+            OmegaConf.create({"api_key": key, "model": "gpt-4o-mini", "max_tokens": 512})
+        )
     from linguaalayam.llm.adapters.anthropic import AnthropicAdapter
 
-    return AnthropicAdapter(OmegaConf.create({"api_key": key, "model": "claude-haiku-4-5-20251001", "max_tokens": 512}))
+    return AnthropicAdapter(
+        OmegaConf.create({"api_key": key, "model": "claude-haiku-4-5-20251001", "max_tokens": 512})
+    )
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -81,5 +85,11 @@ def search(
     return _TEMPLATES.TemplateResponse(
         request,
         "partials/results.html",
-        {"results": results, "query": q, "headword": headword, "answer": answer},
+        {
+            "results": results,
+            "query": q,
+            "headword": headword,
+            "answer": answer,
+            "source_filter": src,
+        },
     )
