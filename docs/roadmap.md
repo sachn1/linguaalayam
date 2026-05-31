@@ -25,7 +25,7 @@
 - [x] Hydra-driven corpus parsers — adding a corpus requires only a YAML config entry, no Python change
 - [x] Code quality sweep — dead code removed, encapsulation fixed, silent failures logged
 
-### v1.0 — REST API, hosted MCP, and stable release
+### v2.0 — REST API, hosted MCP, and stable release
 - [x] Thin FastAPI layer over `DictionaryTools` — `/lookup/exact`, `/lookup/fuzzy`, `/lookup/semantic`
 - [x] Web UI — HTMX + Jinja2 served from FastAPI; settings sidebar, structured POS-grouped results, live filter refresh
 - [x] Hosted MCP server at `/mcp` — zero-config for AI clients (`{ "url": "https://linguaalayam.org/mcp" }`)
@@ -34,21 +34,22 @@
 - [x] Domain and HTTPS — [linguaalayam.org](https://linguaalayam.org) live with Let's Encrypt cert
 - [x] CI/CD — GitHub Actions deploy to VPS on `bump:` commit via forced-command SSH key
 - [x] User guide, MCP client setup guide (Claude Code, Claude Desktop, Cursor, Windsurf, Cline, Continue)
+- [x] CPU-only PyTorch in Docker — explicit `pytorch-cpu` source, no CUDA packages on VPS
 
-### v1.1 — Diaspora, accessibility, and i18n
+### v2.1 — Diaspora, accessibility, and i18n
 - [ ] **UI language toggle** — English / Malayalam interface labels; JSON message bundles, no page reload
 - [ ] **Manglish input** — romanised Malayalam queries ("oduka" → "ഓടുക") via `indic-transliteration`; pre-processing step in `understand_query`, no schema changes
 - [ ] **Romanised output** — Malayalam definitions returned with Roman transliteration alongside for users who cannot read the script
 - [ ] Explore English gloss of ML→ML definitions (requires hosted model or translation API budget)
 
-### v2.0 — On-device AI synthesis (in-app purchase)
+### v3.0 — On-device AI synthesis (in-app purchase)
 - [ ] Generate synthetic (query → answer) training pairs from existing corpus (headword + POS + definition + synonyms)
 - [ ] Fine-tune a small multilingual model (Gemma 2B or Qwen 2.5 1.5B) on Malayalam dictionary Q&A
 - [ ] Quality eval harness before shipping — answer quality metrics (BLEU + human eval on Malayalam output); do not ship without passing eval
 - [ ] Serverless inference (Modal or RunPod) — pay-per-request, no idle GPU cost
 - [ ] AI synthesis as in-app purchase — core app stays free, premium tier unlocks prose answers at lower price point than user-managed API keys
 
-### v3.0 — Mobile app
+### v4.0 — Mobile app
 - [ ] Android app via PWABuilder (TWA) — wrap the existing PWA for Play Store, no separate codebase
 - [ ] iOS — evaluate PWABuilder or a thin WKWebView wrapper
 - [ ] Push notification support for word-of-the-day (requires service worker update)

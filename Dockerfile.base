@@ -1,0 +1,17 @@
+FROM python:3.11-slim
+
+# Purpose: bake HuggingFace model weights into a reusable image layer.
+# The pip installs here are only to run the download script — they are
+# overwritten by poetry in the app Dockerfile. Only the HF cache persists.
+
+RUN pip install --no-cache-dir \
+    torch --index-url https://download.pytorch.org/whl/cpu \
+    sentence-transformers
+
+ENV HF_HOME=/app/.cache/huggingface
+
+RUN python -c "
+from sentence_transformers import SentenceTransformer, CrossEncoder
+SentenceTransformer('sentence-transformers/paraphrase-multilingual-mpnet-base-v2')
+CrossEncoder('cross-encoder/mmarco-mMiniLMv2-L12-H384-v1')
+"
