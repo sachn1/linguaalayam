@@ -40,10 +40,10 @@
         hx-target="#results"
         hx-include="#query,#mode"
         hx-indicator="#spinner">
-        <option value="">All corpora</option>
-        <option value="olam_enml">Olam — English → Malayalam</option>
-        <option value="datuk">Datuk — Malayalam → Malayalam</option>
-        <option value="ekkurup">Ekkurup — English thesaurus</option>
+        <option value="">All</option>
+        <option value="olam_enml">EN → Malayalam</option>
+        <option value="ekkurup">Thesaurus</option>
+        <option value="datuk">Malayalam word</option>
       </select>
     </div>
     <div class="mode-help">
@@ -58,6 +58,18 @@
       <div class="mode-help-row">
         <span class="mode-badge">Smart</span>
         <span>Finds words by <em>meaning</em> — type a description or phrase: <em>"complete absence of sound"</em>, <em>"feeling of nostalgia"</em>, <em>"to move quickly on foot"</em>. No LLM key required for search. Add an <a href="/settings" style="color:var(--accent)">API key</a> to get a prose explanation instead of raw entries.</span>
+      </div>
+      <div class="mode-help-row">
+        <span class="mode-badge">EN → ML</span>
+        <span>Translate an English word to Malayalam. Uses the Olam dictionary.</span>
+      </div>
+      <div class="mode-help-row">
+        <span class="mode-badge">Thesaurus</span>
+        <span>Find English synonyms and their Malayalam equivalents. Uses the Ekkurup thesaurus.</span>
+      </div>
+      <div class="mode-help-row">
+        <span class="mode-badge">ML word</span>
+        <span>Look up a Malayalam word with its Malayalam definition. Uses the Datuk dictionary.</span>
       </div>
     </div>
   </details>
