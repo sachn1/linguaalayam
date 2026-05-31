@@ -13,6 +13,9 @@ RUN pip install --no-cache-dir poetry
 # Copy dependency files first for layer caching
 COPY pyproject.toml poetry.lock ./
 
+# Force CPU-only PyTorch — VPS has no GPU, CUDA build is ~2 GB wasted
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
 # Install production deps only (no dev, no huggingface extras)
 RUN poetry config virtualenvs.create false \
     && poetry install --without dev,huggingface --no-root --no-interaction
