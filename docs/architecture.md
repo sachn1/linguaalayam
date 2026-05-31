@@ -1,7 +1,7 @@
 # Architecture
 
-Three independent subsystems share the same Postgres + pgvector database:
-the **ingestion pipeline**, the **RAG pipeline**, and the **MCP server**.
+Four independent subsystems share the same Postgres + pgvector database:
+the **ingestion pipeline**, the **RAG pipeline**, the **REST API / web UI**, and the **MCP server**.
 
 Three corpora are active: **Olam** (EN→ML), **Datuk** (ML→ML), and **Ekkurup** (EN→ML thesaurus). Each corpus is wired via a `parser._target_` entry in `config/corpus/all.yaml`; no Python code change is needed to add a new corpus.
 
@@ -37,6 +37,23 @@ flowchart LR
 
 `understand_query` tries regex patterns first and only calls the LLM adapter for unrecognised phrasings.
 When `llm=nollm`, synthesis skips the LLM and returns formatted top-k candidates directly.
+
+---
+
+## REST API and web UI
+
+```mermaid
+flowchart LR
+    B[browser / API client] --> F[FastAPI\n/lookup/exact\n/lookup/fuzzy\n/lookup/semantic]
+    B --> W[Web UI\nHTMX + Jinja2]
+    F --> DT[DictionaryTools]
+    W --> F
+    DT --> DB[(PostgreSQL\npgvector)]
+    F --> L[LLMAdapter\nBYOK via X-LLM-Key header]
+```
+
+Deployed at [linguaalayam.org](https://linguaalayam.org) — Hetzner CX33, Docker Compose, nginx reverse proxy, Let's Encrypt HTTPS.
+LLM synthesis is opt-in: the user supplies their own API key in the browser settings page; the key is never persisted server-side.
 
 ---
 
@@ -84,7 +101,9 @@ No LLM involvement — pure retrieval. The embedding model loads once at startup
 | Embeddings | sentence-transformers (`paraphrase-multilingual-mpnet-base-v2`) |
 | RAG graph | LangGraph + LangChain |
 | LLM | Anthropic Claude or OpenAI via `LLMAdapter`; `NoLLMAdapter` for zero-key usage |
+| REST API / Web UI | FastAPI, HTMX, Jinja2 |
 | MCP | FastMCP (`mcp` SDK) |
+| Deployment | Docker Compose, nginx, Let's Encrypt (Hetzner CX33) |
 | Config | Hydra |
 | Testing | pytest, ruff, pre-commit |
 

@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "linguaalayam"
 version = "0.5.0-rc.0"
-description = "Malayalam dictionary RAG pipeline and MCP server"
+description = "Your companion for Malayalam and English words — ask a question, get an answer."
 authors = ["Sachin Nandakumar"]
 readme = "README.md"
 packages = [{ include = "linguaalayam" }]
@@ -25,6 +25,10 @@ pydantic = ">=2.0"
 langchain-openai = ">=0.3"
 mcp = {version = ">=1.0", extras = ["cli"]}
 pyyaml = ">=6.0"
+fastapi = {version = ">=0.110", extras = ["standard"]}
+uvicorn = {version = ">=0.29", extras = ["standard"]}
+jinja2 = ">=3.1,<4.0"
+httpx = ">=0.27"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
@@ -52,13 +56,14 @@ debug-retriever = "linguaalayam.scripts.debug_retriever:main"
 rag = "linguaalayam.rag.main:main"
 eval = "linguaalayam.eval.main:main"
 mcp-server = "linguaalayam.mcp.server:main"
+api-server = "linguaalayam.api.app:main"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
 version_provider = "poetry"
 version_scheme = "semver2"
 tag_format = "v$version"
-major_version_zero = true
+major_version_zero = false
 update_changelog_on_bump = false
 
 [tool.pytest.ini_options]

@@ -83,7 +83,7 @@ user query
 
 | Module | Purpose |
 |---|---|
-| `linguaalayam/models/entries.py` | Entry types (`EnMlEntry`, `MlMlEntry`, `EkkurupEntry`, `CrossLingualEntry`), each with `to_embed_text()` |
+| `linguaalayam/models/entries.py` | Entry types (`EnMlEntry`, `MlMlEntry`, `EkkurupEntry`), each with `to_embed_text()` |
 | `linguaalayam/models/orm.py` | SQLAlchemy `DictionaryEntry` ORM — headword, embed_text, JSONB data, Vector(768) |
 | `linguaalayam/corpus/base.py` | `parse_definition_tsv()` — shared 3-column TSV helper used by `enml.py` and `datuk.py` |
 | `linguaalayam/corpus/` | One parser per corpus (`enml.py`, `datuk.py`, `ekkurup.py`), each exposes `parse()` |
@@ -112,7 +112,7 @@ Table `dictionary_entries`: `source` + `headword` have a UNIQUE constraint (ON C
 
 1. Create a parser in `linguaalayam/corpus/` exposing a `parse(filepath: Path) -> list[Embeddable]` function.
    - If the format is a 3-column definition TSV (headword, POS, definition), use `parse_definition_tsv` from `corpus/base.py` — one-line body.
-   - Otherwise implement parsing directly as in `ekkurup.py` (YAML) or `dravidian.py` (4-column TSV).
+   - Otherwise implement parsing directly as in `ekkurup.py` (YAML).
 2. Add a source entry to `config/corpus/all.yaml` and `config/corpus/debug.yaml` with `parser._target_` pointing to your `parse` function and `parser._partial_: true`. No Python code change needed in `ingest.py`.
 
 ## Adding a new LLM provider
@@ -132,12 +132,15 @@ Requires a `.env` file with: `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB
 
 Schema: `major.minor.patch` (semantic versioning, `major_version_zero = true` until v1.0).
 
-| Branch flow | Tag format | Command |
-|---|---|---|
-| feature → develop | `v0.5.0-rc.1` | `cz bump --pre-release rc` |
-| develop → main | `v0.5.0` | `cz bump` |
+Trunk-based flow — all feature and fix branches target `master` directly via PR. The bump workflow runs automatically on every push to `master` and calls `cz bump` which reads conventional commits to determine the increment:
 
-Release candidates mark a feature-complete state pending final QA on `develop`. The main branch carries only clean releases. After `v0.6.0`, set `major_version_zero = false` in `pyproject.toml` before bumping to `v1.0.0`.
+| Commit prefix | Bump |
+|---|---|
+| `fix:` | patch |
+| `feat:` | minor |
+| `feat!:` / `BREAKING CHANGE:` footer | major (minor while `major_version_zero = true`) |
+
+To cut v1.0.0: set `major_version_zero = false` in `pyproject.toml`, then include a `feat!:` or `BREAKING CHANGE:` commit in the PR to `master`.
 
 ## Embedding models
 

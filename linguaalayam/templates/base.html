@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}LinguAalayam{% endblock %} — Every word, explained.</title>
+  <meta name="description" content="Ask about any Malayalam or English word — meanings, translations, and usage, powered by multiple lexical sources." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Malayalam:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="manifest" href="/static/manifest.json" />
+  <meta name="theme-color" content="#b45309" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/static/sw.js");
+    }
+    htmx.on("htmx:configRequest", function (evt) {
+      const key = localStorage.getItem("llm_key");
+      const provider = localStorage.getItem("llm_provider");
+      if (key) {
+        evt.detail.headers["X-LLM-Key"] = key;
+        evt.detail.headers["X-LLM-Provider"] = provider || "anthropic";
+      }
+    });
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #fafaf9;
+      --surface: #ffffff;
+      --border: #e5e5e5;
+      --text: #1c1917;
+      --text-muted: #78716c;
+      --accent: #b45309;
+      --accent-hover: #92400e;
+      --radius: 8px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .ml { font-family: 'Noto Sans Malayalam', sans-serif; }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    header a.brand { text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; }
+    header h1 { font-size: 1.125rem; font-weight: 600; }
+    header .tagline { font-size: 0.8rem; color: var(--text-muted); }
+
+    .settings-btn {
+      margin-left: auto;
+      background: none;
+      border: none;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0.25rem 0.5rem;
+      border-radius: var(--radius);
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .settings-btn:hover { color: var(--accent); background: var(--bg); }
+
+    main { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    .search-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 0.6rem 0.875rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus { border-color: var(--accent); }
+
+    select {
+      padding: 0.6rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      font-family: inherit;
+      background: var(--surface);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; }
+
+    #results { min-height: 2rem; }
+
+    .htmx-indicator { opacity: 0; transition: opacity 0.15s; }
+    .htmx-request .htmx-indicator { opacity: 1; }
+    .spinner {
+      display: inline-block;
+      width: 1rem; height: 1rem;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-left: 0.5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    details.advanced { margin-top: 0.75rem; }
+    details.advanced summary {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      width: fit-content;
+    }
+    details.advanced summary:hover { color: var(--accent); }
+    .advanced-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      margin-top: 3rem;
+    }
+    footer a { color: var(--text-muted); display: inline-flex; align-items: center; gap: 0.3rem; }
+    footer svg { width: 14px; height: 14px; fill: currentColor; }
+
+    /* ── Settings sidebar ── */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.25);
+      z-index: 999;
+      backdrop-filter: blur(1px);
+    }
+    .sidebar-overlay.open { display: block; }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      right: 0;
+      height: 100%;
+      width: min(420px, 100vw);
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      box-shadow: -4px 0 24px rgba(0,0,0,0.08);
+      z-index: 1000;
+      transform: translateX(100%);
+      transition: transform 0.25s ease;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar.open { transform: translateX(0); }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+      z-index: 1;
+    }
+    .sidebar-header h2 { font-size: 0.95rem; font-weight: 600; }
+    .sidebar-close {
+      background: none;
+      border: none;
+      font-size: 1.1rem;
+      cursor: pointer;
+      color: var(--text-muted);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      line-height: 1;
+    }
+    .sidebar-close:hover { color: var(--text); background: var(--bg); }
+
+    .sidebar-body { padding: 1.25rem; flex: 1; }
+
+    /* Settings cards inside sidebar */
+    .s-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      background: var(--bg);
+    }
+    .s-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.2rem; }
+    .s-card .s-desc { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.5; }
+    .s-card .s-desc a { color: var(--accent); }
+    .s-field { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.65rem; }
+    .s-field label { font-size: 0.78rem; font-weight: 500; }
+    .s-field input, .s-field select {
+      padding: 0.5rem 0.7rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      font-family: inherit;
+      background: var(--surface);
+      outline: none;
+    }
+    .s-field input:focus { border-color: var(--accent); }
+    .s-field-hint { font-size: 0.72rem; color: var(--text-muted); }
+    .s-field-hint a { color: var(--accent); }
+    .s-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+    .s-btn {
+      padding: 0.45rem 0.9rem;
+      border-radius: var(--radius);
+      font-size: 0.825rem;
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+    }
+    .s-btn-primary { background: var(--accent); color: #fff; }
+    .s-btn-primary:hover { background: var(--accent-hover); }
+    .s-btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .s-btn-ghost:hover { background: var(--surface); }
+    .s-status { font-size: 0.75rem; margin-top: 0.6rem; color: var(--text-muted); }
+    .s-status.active { color: #16a34a; }
+
+    .s-corpus-row { font-size: 0.78rem; color: var(--text-muted); line-height: 1.6; padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
+    .s-corpus-row:last-child { border-bottom: none; }
+    .s-corpus-row strong { color: var(--text); }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header>
+    <a href="/" class="brand">
+      <h1>Lingu<span class="ml">ആലയം</span></h1>
+      <span class="tagline"><span class="ml">ഏതു വാക്കും അറിയൂ</span> &nbsp;·&nbsp; Every word, explained.</span>
+    </a>
+    <button class="settings-btn" onclick="openSidebar()" title="Settings">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </button>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    <a href="/docs" target="_blank">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/></svg>
+      API docs
+    </a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/sachn1/linguaalayam/blob/master/linguaalayam/mcp/README.md" target="_blank" title="Connect this dictionary to Claude, Cursor, Windsurf, and more">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      MCP for AI assistants
+    </a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/sachn1/linguaalayam" target="_blank">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+      GitHub
+    </a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/sachn1/linguaalayam/issues/new" target="_blank" title="Report a bug or request a feature">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Open an issue
+    </a>
+  </footer>
+
+  <!-- Settings sidebar -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <div class="sidebar" id="settings-sidebar" role="dialog" aria-label="Settings">
+    <div class="sidebar-header">
+      <h2>Settings</h2>
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close">✕</button>
+    </div>
+    <div class="sidebar-body">
+
+      <div class="s-card">
+        <h3>AI Synthesis <span style="font-weight:400;color:var(--text-muted);font-size:0.8rem;">— optional</span></h3>
+        <p class="s-desc">
+          Without a key, search works fully — Quick, Exact, and Smart all return dictionary entries.
+          Add your own API key to get a plain-language explanation written by an AI.
+          Your key is stored only in this browser, never on our servers.
+        </p>
+
+        <div class="s-field">
+          <label for="sb-provider">Provider</label>
+          <select id="sb-provider">
+            <option value="anthropic">Anthropic — Claude</option>
+            <option value="openai">OpenAI — GPT-4</option>
+          </select>
+          <span class="s-field-hint">
+            Get a key:
+            <a href="https://console.anthropic.com/settings/keys" target="_blank">Anthropic</a>
+            &nbsp;·&nbsp;
+            <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI</a>
+          </span>
+        </div>
+
+        <div class="s-field">
+          <label for="sb-apikey">API Key</label>
+          <input type="password" id="sb-apikey" placeholder="sk-ant-… or sk-…" autocomplete="off" />
+          <span class="s-field-hint">Stored only in your browser's localStorage.</span>
+        </div>
+
+        <div class="s-actions">
+          <button class="s-btn s-btn-primary" onclick="sbSave()">Save</button>
+          <button class="s-btn s-btn-ghost" onclick="sbClear()">Clear</button>
+        </div>
+        <p class="s-status" id="sb-status"></p>
+      </div>
+
+      <div class="s-card">
+        <h3>Corpora</h3>
+        <p class="s-desc">Filter by corpus in Search options on the main page.</p>
+        <div class="s-corpus-row"><strong>Olam</strong> (English → Malayalam) — English words with Malayalam translations.</div>
+        <div class="s-corpus-row"><strong>Datuk</strong> (Malayalam → Malayalam) — Malayalam words with Malayalam definitions.</div>
+        <div class="s-corpus-row"><strong>Ekkurup</strong> (English thesaurus) — English synonym groups with Malayalam equivalents.</div>
+        <p class="s-desc" style="margin-top:0.75rem;margin-bottom:0">
+          Source: <a href="https://olam.in/p/open" target="_blank">olam.in/p/open</a> ·
+          <a href="https://github.com/sachn1/linguaalayam/blob/master/docs/user-guide.md" target="_blank">User guide ↗</a>
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Sidebar open/close
+    function openSidebar() {
+      document.getElementById('settings-sidebar').classList.add('open');
+      document.getElementById('sidebar-overlay').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeSidebar() {
+      document.getElementById('settings-sidebar').classList.remove('open');
+      document.getElementById('sidebar-overlay').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeSidebar(); });
+
+    // Settings logic
+    (function () {
+      const keyEl = document.getElementById('sb-apikey');
+      const provEl = document.getElementById('sb-provider');
+      const statusEl = document.getElementById('sb-status');
+
+      const saved = localStorage.getItem('llm_key');
+      const savedProv = localStorage.getItem('llm_provider') || 'anthropic';
+      provEl.value = savedProv;
+      if (saved) {
+        keyEl.placeholder = 'Key saved — enter new key to replace';
+        statusEl.textContent = '✓ Key is set. AI synthesis enabled.';
+        statusEl.className = 's-status active';
+      }
+
+      window.sbSave = function () {
+        const key = keyEl.value.trim();
+        if (!key) { statusEl.textContent = 'Enter a key first.'; statusEl.className = 's-status'; return; }
+        localStorage.setItem('llm_key', key);
+        localStorage.setItem('llm_provider', provEl.value);
+        keyEl.value = '';
+        keyEl.placeholder = 'Key saved — enter new key to replace';
+        statusEl.textContent = '✓ Key saved. AI synthesis enabled.';
+        statusEl.className = 's-status active';
+      };
+
+      window.sbClear = function () {
+        localStorage.removeItem('llm_key');
+        localStorage.removeItem('llm_provider');
+        keyEl.value = '';
+        keyEl.placeholder = 'sk-ant-… or sk-…';
+        statusEl.textContent = 'Key cleared. Raw dictionary results only.';
+        statusEl.className = 's-status';
+      };
+    })();
+  </script>
+</body>
+</html>

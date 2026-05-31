@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Settings — LinguAalayam{% endblock %}
+
+{% block content %}
+<style>
+  .settings-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .settings-card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem; }
+  .settings-card .desc { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.5; }
+  .field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.75rem; }
+  .field label { font-size: 0.8rem; font-weight: 500; }
+  .field input, .field select {
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    font-family: inherit;
+    background: var(--surface);
+    outline: none;
+  }
+  .field input:focus { border-color: var(--accent); }
+  .field-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.1rem; }
+  .field-hint a { color: var(--accent); }
+  .actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+  .btn {
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-ghost:hover { background: var(--bg); }
+  .status { font-size: 0.8rem; margin-top: 0.75rem; color: var(--text-muted); }
+  .status.active { color: #16a34a; }
+  .info-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+  .info-box strong { color: var(--text); }
+</style>
+
+<div class="settings-card">
+  <h2>AI Synthesis — optional</h2>
+  <p class="desc">
+    By default, search shows raw dictionary entries. Add your own API key to get a plain-language
+    explanation written by an AI — like asking a question and getting a human-readable answer
+    instead of a list of definitions.
+  </p>
+
+  <div class="info-box">
+    <strong>Without a key</strong> — search still works fully. Quick, Exact, and Smart modes all
+    return dictionary entries. Smart mode uses meaning-based search powered by a multilingual
+    model running on our server — no key needed.<br><br>
+    <strong>With a key</strong> — after search results are found, an AI reads them and writes a
+    natural explanation in English. Your key is stored only in this browser and is sent directly
+    to the AI provider with each request. It is never stored on our servers.
+  </div>
+
+  <div class="field">
+    <label for="provider">Provider</label>
+    <select id="provider">
+      <option value="anthropic">Anthropic — Claude</option>
+      <option value="openai">OpenAI — ChatGPT / GPT-4</option>
+    </select>
+    <span class="field-hint">
+      Get a key:
+      <a href="https://console.anthropic.com/settings/keys" target="_blank">Anthropic Console</a>
+      &nbsp;·&nbsp;
+      <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a>
+    </span>
+  </div>
+
+  <div class="field">
+    <label for="apikey">API Key</label>
+    <input type="password" id="apikey" placeholder="sk-ant-… or sk-…" autocomplete="off" />
+    <span class="field-hint">Starts with <code>sk-ant-</code> for Anthropic or <code>sk-</code> for OpenAI. Stored only in your browser's localStorage.</span>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-primary" onclick="saveKey()">Save</button>
+    <button class="btn btn-ghost" onclick="clearKey()">Clear</button>
+  </div>
+
+  <p class="status" id="status"></p>
+</div>
+
+<div class="settings-card">
+  <h2>About the corpora</h2>
+  <p class="desc">
+    LinguAalayam searches three open Malayalam corpora. You can filter by corpus in Search options on the main page.
+  </p>
+  <div class="info-box">
+    <strong>Olam (English → Malayalam)</strong> — English words with Malayalam translations and definitions.<br><br>
+    <strong>Datuk (Malayalam → Malayalam)</strong> — Malayalam headwords with Malayalam definitions. Useful for understanding a word in depth in Malayalam.<br><br>
+    <strong>Ekkurup (English thesaurus)</strong> — English synonym groups with Malayalam equivalents. Useful when you know the meaning but not the exact word.
+  </div>
+  <p class="desc" style="margin-bottom:0">
+    All corpora are from <a href="https://olam.in/p/open" target="_blank" style="color:var(--accent)">olam.in/p/open</a>.
+    For technical details see the <a href="https://github.com/sachn1/linguaalayam/blob/master/docs/user-guide.md" target="_blank" style="color:var(--accent)">user guide ↗</a>.
+  </p>
+</div>
+
+<script>
+  (function () {
+    const keyEl = document.getElementById("apikey");
+    const provEl = document.getElementById("provider");
+    const statusEl = document.getElementById("status");
+
+    const saved = localStorage.getItem("llm_key");
+    const savedProv = localStorage.getItem("llm_provider") || "anthropic";
+    provEl.value = savedProv;
+    if (saved) {
+      keyEl.placeholder = "Key saved — enter a new key to replace";
+      statusEl.textContent = "✓ Key is set. AI synthesis is enabled on search.";
+      statusEl.className = "status active";
+    }
+
+    window.saveKey = function () {
+      const key = keyEl.value.trim();
+      if (!key) { statusEl.textContent = "Enter a key first."; statusEl.className = "status"; return; }
+      localStorage.setItem("llm_key", key);
+      localStorage.setItem("llm_provider", provEl.value);
+      keyEl.value = "";
+      keyEl.placeholder = "Key saved — enter a new key to replace";
+      statusEl.textContent = "✓ Key saved. AI synthesis enabled.";
+      statusEl.className = "status active";
+    };
+
+    window.clearKey = function () {
+      localStorage.removeItem("llm_key");
+      localStorage.removeItem("llm_provider");
+      keyEl.value = "";
+      keyEl.placeholder = "sk-ant-… or sk-…";
+      statusEl.textContent = "Key cleared. Synthesis disabled — raw dictionary results only.";
+      statusEl.className = "status";
+    };
+  })();
+</script>
+{% endblock %}

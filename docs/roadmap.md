@@ -25,17 +25,35 @@
 - [x] Hydra-driven corpus parsers — adding a corpus requires only a YAML config entry, no Python change
 - [x] Code quality sweep — dead code removed, encapsulation fixed, silent failures logged
 
-### v0.6 — REST API and self-hosting
-- [ ] Thin FastAPI layer over `DictionaryTools` for HTTP access
-- [ ] Web frontend (Next.js / SvelteKit)
-- [ ] Mobile — Progressive Web App first; native (Flutter) if needed
-- [ ] Minimal-cost self-hosted deployment on a Hetzner CX22 VPS (~€4/month)
-- [ ] Docker image with pre-baked embedding and reranker model weights
+### v1.0 — REST API, hosted MCP, and stable release
+- [x] Thin FastAPI layer over `DictionaryTools` — `/lookup/exact`, `/lookup/fuzzy`, `/lookup/semantic`
+- [x] Web UI — HTMX + Jinja2 served from FastAPI; settings sidebar, structured POS-grouped results, live filter refresh
+- [x] Hosted MCP server at `/mcp` — zero-config for AI clients (`{ "url": "https://linguaalayam.org/mcp" }`)
+- [x] Bring-your-own-key LLM synthesis (Anthropic / OpenAI) — key stored in browser localStorage, injected as request header, never persisted server-side
+- [x] Self-hosted deployment on Hetzner CX33 (Nuremberg, €7.72/month) — Docker Compose, nginx reverse proxy
+- [x] Domain and HTTPS — [linguaalayam.org](https://linguaalayam.org) live with Let's Encrypt cert
+- [x] CI/CD — GitHub Actions deploy to VPS on `bump:` commit via forced-command SSH key
+- [x] User guide, MCP client setup guide (Claude Code, Claude Desktop, Cursor, Windsurf, Cline, Continue)
 
-### v1.0 — Stable release (post v0.6)
-- [ ] Promote to stable after v0.6 ships and REST API is proven in production
+### v1.1 — Diaspora, accessibility, and i18n
+- [ ] **UI language toggle** — English / Malayalam interface labels; JSON message bundles, no page reload
+- [ ] **Manglish input** — romanised Malayalam queries ("oduka" → "ഓടുക") via `indic-transliteration`; pre-processing step in `understand_query`, no schema changes
+- [ ] **Romanised output** — Malayalam definitions returned with Roman transliteration alongside for users who cannot read the script
+- [ ] Explore English gloss of ML→ML definitions (requires hosted model or translation API budget)
 
-### v1.x — Improvements and optimisations
+### v2.0 — On-device AI synthesis (in-app purchase)
+- [ ] Generate synthetic (query → answer) training pairs from existing corpus (headword + POS + definition + synonyms)
+- [ ] Fine-tune a small multilingual model (Gemma 2B or Qwen 2.5 1.5B) on Malayalam dictionary Q&A
+- [ ] Quality eval harness before shipping — answer quality metrics (BLEU + human eval on Malayalam output); do not ship without passing eval
+- [ ] Serverless inference (Modal or RunPod) — pay-per-request, no idle GPU cost
+- [ ] AI synthesis as in-app purchase — core app stays free, premium tier unlocks prose answers at lower price point than user-managed API keys
+
+### v3.0 — Mobile app
+- [ ] Android app via PWABuilder (TWA) — wrap the existing PWA for Play Store, no separate codebase
+- [ ] iOS — evaluate PWABuilder or a thin WKWebView wrapper
+- [ ] Push notification support for word-of-the-day (requires service worker update)
+
+### Backlog
 - [ ] Embedding model evaluation — compare `multilingual-mpnet` vs `multilingual-e5-large`
 - [ ] `int8` quantisation for faster inference
 - [ ] Query caching for repeated lookups

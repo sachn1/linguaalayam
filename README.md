@@ -1,31 +1,46 @@
 # LinguAalayam
 
-LinguAalayam is an open-source Malayalam lexical knowledge base and AI integration layer. It ingests three Malayalam corpora — **Olam** (English→Malayalam), **Datuk** (Malayalam→Malayalam), and **Ekkurup** (English→Malayalam thesaurus) — into a local Postgres + pgvector database and enables hybrid retrieval: exact headword, trigram fuzzy, and HNSW semantic search. A LangGraph RAG pipeline synthesises natural-language answers through a configurable LLM adapter (Anthropic, OpenAI, or no LLM). The retrieval layer is also exposed as an MCP server for Claude Code and Claude Desktop, with both callable tools and URI-addressed dictionary resources.
+> ഏതു വാക്കും അറിയൂ — Every word, explained.
+
+**[linguaalayam.org](https://linguaalayam.org)** · [API docs](https://linguaalayam.org/docs) · [MCP endpoint](https://linguaalayam.org/mcp)
+
+LinguAalayam is an open-source Malayalam lexical knowledge base and AI integration layer. It ingests three corpora — **Olam** (English→Malayalam), **Datuk** (Malayalam→Malayalam), and **Ekkurup** (English→Malayalam thesaurus) — into a Postgres + pgvector database and enables hybrid retrieval: exact headword, trigram fuzzy, and HNSW semantic search. A LangGraph RAG pipeline synthesises natural-language answers through a configurable LLM adapter (Anthropic, OpenAI, or no LLM). The retrieval layer is exposed as a hosted MCP server — any MCP-compatible AI client can use it with just a URL.
 
 > Built with the assistance of [Claude](https://claude.ai) (Anthropic).
 
 ---
 
-## MCP setup (Claude Code / Claude Desktop)
+## REST API
 
-Add to `.mcp.json` (Claude Code) or your Claude Desktop config:
+The hosted API is available at `https://linguaalayam.org`. No API key required for dictionary lookup.
+
+```
+GET /lookup/exact?query=run&source=olam_enml
+GET /lookup/fuzzy?query=run&top_k=5
+GET /lookup/semantic?query=ഓടുക&top_k=5
+```
+
+Full OpenAPI docs: [linguaalayam.org/docs](https://linguaalayam.org/docs)
+
+---
+
+## MCP setup (Claude Code, Claude Desktop, Cursor, Windsurf, Cline, and more)
+
+The MCP server is hosted at `linguaalayam.org/mcp` — no local install, no Python, no database:
 
 ```json
 {
   "mcpServers": {
     "linguaalayam": {
-      "command": "poetry",
-      "args": ["run", "mcp-server"],
-      "cwd": "/path/to/LinguAalayam"
+      "url": "https://linguaalayam.org/mcp"
     }
   }
 }
 ```
 
-Three tools: `exact_lookup`, `fuzzy_lookup`, `semantic_lookup`.
-One resource: `dictionary://{headword}`.
+Three tools: `exact_lookup`, `fuzzy_lookup`, `semantic_lookup`. Works with any LLM backend.
 
-See [linguaalayam/mcp/README.md](linguaalayam/mcp/README.md) for the Inspector, notebook testing, and Claude Desktop config.
+See [linguaalayam/mcp/README.md](linguaalayam/mcp/README.md) for client-specific config file paths (Claude Desktop, Cursor, Windsurf, Cline, Continue) and self-hosted setup.
 
 ---
 
@@ -57,9 +72,11 @@ See [docs/setup.md](docs/setup.md) for database setup, environment variables, an
 
 ## Docs
 
+- [User guide](docs/user-guide.md) — search modes, corpora, AI synthesis explained
 - [Architecture](docs/architecture.md) — system flow, module reference, tech stack
 - [Roadmap](docs/roadmap.md) — versioned goals
 - [Setup](docs/setup.md) — database, environment, migrations, corpora
+- [API docs](https://linguaalayam.org/docs) — live OpenAPI / Swagger UI
 - [MCP server](linguaalayam/mcp/README.md) — tools, resources, testing
 - [RAG pipeline](linguaalayam/rag/README.md) — nodes, config, debug tool
 - [Evaluation](linguaalayam/eval/README.md) — metrics, query categories
