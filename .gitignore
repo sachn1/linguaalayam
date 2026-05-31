@@ -8,6 +8,7 @@ data/**
 !data/eval/
 !data/eval/*.jsonl
 *.json
+!*/static/locales/*.json
 
 # hydra
 outputs/
