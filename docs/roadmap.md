@@ -39,24 +39,44 @@
 ### v2.1 — Diaspora, accessibility, and i18n
 - [x] **Intent-based source filter** — corpus dropdown replaced with human-readable intents (EN → Malayalam, Thesaurus, Malayalam word); backend unchanged
 - [ ] **UI language toggle** — English / Malayalam interface labels; JSON message bundles, no page reload
-- [ ] **Manglish input** — romanised Malayalam queries ("oduka" → "ഓടുക") via `indic-transliteration`; pre-processing step in `understand_query`, no schema changes
+- [ ] **Manglish input** — blocked on embedding eval (see ⚠ Critical below); if LaBSE bridges romanised → Malayalam semantically, smart search handles it without a separate transliteration layer; build only if eval shows the gap remains
 - [ ] **Romanised output** — Malayalam definitions returned with Roman transliteration alongside for users who cannot read the script
-- [ ] Explore English gloss of ML→ML definitions (requires hosted model or translation API budget)
+- [ ] **PWA baseline** — `manifest.json` + service worker; enables "Add to Home Screen" on Android/iOS and is prerequisite for Play Store TWA
 
-### v3.0 — On-device AI synthesis (in-app purchase)
+
+### ⚠ Critical: Malayalam embedding quality (target v2.2)
+Malayalam semantic search quality is untested. `paraphrase-multilingual-mpnet-base-v2` was trained on predominantly European and high-resource languages — Malayalam coverage is unknown and likely poor. Symptoms: semantically similar Malayalam words may not retrieve each other; cross-lingual EN→ML semantic search may be unreliable.
+
+- [ ] **Eval harness on Malayalam queries** — add Malayalam-specific labeled query set to `eval/`; run retrieval metrics (MRR, recall@k) separately for EN and ML headwords
+- [ ] **Embedding model comparison** — benchmark `multilingual-mpnet` vs `multilingual-e5-large` vs `LaBSE` on the Malayalam eval set; LaBSE has stronger Indic language coverage
+- [ ] **Replace model if needed** — if LaBSE or e5-large significantly outperforms, swap in via Hydra config; no schema change required (both produce 768-d vectors)
+- [ ] **Re-ingest if model changes** — embeddings are model-specific; a model swap requires full re-ingest; budget ~2h on CPU
+
+Do not ship Manglish input or any Malayalam semantic feature without passing this eval first.
+
+### v2.2 — Multilingual query and broader i18n
+- [ ] **Multilingual query input** — detect non-EN/ML query language, translate to EN via LLM adapter, show detected translation in grey below search box; lookup proceeds on translated query
+- [ ] **i18n foundation** — locale JSON bundles for UI strings; architecture supports adding community-translated locales beyond EN/ML
+
+### v3.0 — Android app
+- [ ] **Android TWA via PWABuilder** — wrap the existing PWA for Play Store; no separate codebase; requires icons, Play Developer account, and `assetlinks.json` on domain
+- [ ] **iOS** — evaluate PWABuilder or thin WKWebView wrapper; ship after Android is stable
+
+### v3.1 — Word of the Day
+- [ ] **Word of the Day** — daily featured word, filtered by frequency list to exclude common words (top 5k excluded); alternates EN/ML by default
+- [ ] **User preference** — app settings: EN only / ML only / alternate; stored in `localStorage`
+- [ ] **Push notifications** — service worker push for word-of-the-day on Android (requires v2.1 PWA baseline)
+
+### v3.2 — On-device AI synthesis (in-app purchase)
 - [ ] Generate synthetic (query → answer) training pairs from existing corpus (headword + POS + definition + synonyms)
 - [ ] Fine-tune a small multilingual model (Gemma 2B or Qwen 2.5 1.5B) on Malayalam dictionary Q&A
 - [ ] Quality eval harness before shipping — answer quality metrics (BLEU + human eval on Malayalam output); do not ship without passing eval
 - [ ] Serverless inference (Modal or RunPod) — pay-per-request, no idle GPU cost
 - [ ] AI synthesis as in-app purchase — core app stays free, premium tier unlocks prose answers at lower price point than user-managed API keys
 
-### v4.0 — Mobile app
-- [ ] Android app via PWABuilder (TWA) — wrap the existing PWA for Play Store, no separate codebase
-- [ ] iOS — evaluate PWABuilder or a thin WKWebView wrapper
-- [ ] Push notification support for word-of-the-day (requires service worker update)
 
 ### Backlog
-- [ ] Embedding model evaluation — compare `multilingual-mpnet` vs `multilingual-e5-large`
+- [ ] Explore English gloss of ML→ML definitions (requires hosted model or translation API budget)
 - [ ] `int8` quantisation for faster inference
 - [ ] Query caching for repeated lookups
 - [ ] Monitoring — retrieval latency and top-k quality metrics
