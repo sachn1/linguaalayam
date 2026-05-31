@@ -3,7 +3,7 @@ services:
     image: ankane/pgvector
     restart: unless-stopped
     environment:
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       POSTGRES_DB: ${DB_NAME:-linguaalayam}
     volumes:
       - pgdata:/var/lib/postgresql/data

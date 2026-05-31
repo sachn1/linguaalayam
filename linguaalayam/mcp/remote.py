@@ -8,6 +8,7 @@ from mcp.server.fastmcp import FastMCP
 from starlette.applications import Starlette
 
 from linguaalayam.api.dependencies import get_tools
+from linguaalayam.mcp.shared import format_results as _format
 
 mcp = FastMCP(
     "linguaalayam",
@@ -18,9 +19,6 @@ mcp = FastMCP(
         "Use semantic_lookup for meaning-based queries or when the exact headword is unknown."
     ),
 )
-
-
-from linguaalayam.mcp.shared import format_results as _format
 
 
 @mcp.resource("dictionary://{headword}")
