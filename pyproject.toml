@@ -90,6 +90,14 @@ update_changelog_on_bump = false
 addopts = "--markdown-docs"
 testpaths = ["tests", "docs"]
 
+[tool.coverage.run]
+omit = [
+    # require live DB or HuggingFace models — not unit-testable
+    "linguaalayam/eval/model_compare.py",
+    "linguaalayam/eval/prepare_corpus_sample.py",
+    "linguaalayam/eval/prepare_eval_queries.py",
+]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"
