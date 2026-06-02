@@ -13,11 +13,17 @@ from linguaalayam.api.dependencies import get_tools
 from linguaalayam.llm.adapters.nollm import NoLLMAdapter
 from linguaalayam.rag.pipeline import _SYNTHESIS_SYSTEM, _SYNTHESIS_TEMPLATE, _format_entries
 from linguaalayam.rag.query_understanding import understand_query
+from linguaalayam.transliteration import (
+    is_latin_script,
+    malayalam_to_roman,
+    roman_to_malayalam_candidates,
+)
 
 log = logging.getLogger(__name__)
 
 _NO_LLM = NoLLMAdapter()
 _TEMPLATES = Jinja2Templates(directory=str(Path(__file__).resolve().parents[1] / "templates"))
+_TEMPLATES.env.filters["romanise_ml"] = malayalam_to_roman
 
 router = APIRouter(include_in_schema=False)
 
@@ -59,6 +65,7 @@ def search(
     answer: str | None = None
     q = query.strip()
     src = source.strip() or None
+    romanise = request.headers.get("X-Romanise", "").strip() == "1"
 
     headword = q
     if q:
@@ -66,10 +73,27 @@ def search(
         tools = get_tools()
         if mode == "exact":
             results = tools.exact_lookup(headword, source=src)
-        elif mode == "semantic":
+        elif mode == "semantic" or (mode == "fuzzy" and " " in headword):
+            # Multi-word fuzzy queries (understand_query couldn't reduce to single headword)
+            # are phrases/definitions — semantic retrieval handles them better than trigram.
             results = tools.semantic_lookup(q, top_k=top_k, source=src)
         else:
             results = tools.fuzzy_lookup(headword, source=src, top_k=top_k)
+
+        # Manglish fallback: Latin query with no results → try transliterated candidates.
+        if not results and is_latin_script(headword):
+            for ml_candidate in roman_to_malayalam_candidates(headword):
+                if mode == "exact":
+                    results = tools.exact_lookup(ml_candidate, source=src)
+                else:
+                    results = tools.fuzzy_lookup(ml_candidate, source=src, top_k=top_k)
+                if results:
+                    break
+
+        # Semantic fallback for single-word fuzzy queries that got no results.
+        # Multi-word queries already went through semantic above; skip to avoid double call.
+        if not results and mode == "fuzzy" and " " not in headword:
+            results = tools.semantic_lookup(q, top_k=top_k, source=src)
 
         llm_key = request.headers.get("X-LLM-Key", "").strip()
         if llm_key and results:
@@ -91,5 +115,6 @@ def search(
             "headword": headword,
             "answer": answer,
             "source_filter": src,
+            "romanise": romanise,
         },
     )

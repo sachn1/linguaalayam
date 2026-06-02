@@ -1,5 +1,71 @@
-dataset: data/eval/queries.jsonl
+dataset: data/eval/queries_en.jsonl   # single-dataset fallback (used if datasets not set)
+datasets:
+  - path: data/eval/queries_en.jsonl
+    label: "EN-input"          # Latin/English/Manglish input queries
+  - path: data/eval/queries_ml.jsonl
+    label: "ML-input"          # Malayalam/Manglish-expected queries
 output: null
 top_k: 5
 fuzzy_threshold: 0.3
 fuzzy_limit: 10
+
+compare:
+  corpus_sample: data/eval/corpus_sample.jsonl
+  sample_size: 5000
+  top_k: 5
+  mlflow: true
+  # Only these intents are scored in eval-embedding (semantic quality only).
+  # Exact and fuzzy intents pass/fail independently of the embedding model.
+  # Use eval-retrieval for the full pipeline view including exact + fuzzy.
+  semantic_intents:
+    - en_from_en_semantic
+    - en_from_ml_semantic
+    - ml_from_ml_semantic
+    - ml_from_en_semantic
+    - ml_from_manglish    # ISO romanised ML → ML headword: test if embedding bridges script gap
+    - en_from_manglish    # ISO romanised ML → EN headword: test cross-script semantic
+  datasets:
+    - path: data/eval/queries_en.jsonl
+      label: "EN-input"
+    - path: data/eval/queries_ml.jsonl
+      label: "ML-input"
+  models:
+    - key: mpnet
+      enabled: true
+      hf_id: sentence-transformers/paraphrase-multilingual-mpnet-base-v2
+      dim: 768
+      query_prefix: ""
+      passage_prefix: ""
+      label: "mpnet-multilingual (baseline)"
+
+    - key: labse
+      enabled: true
+      hf_id: sentence-transformers/LaBSE
+      dim: 768
+      query_prefix: ""
+      passage_prefix: ""
+      label: "LaBSE"
+
+    - key: e5base
+      enabled: true
+      hf_id: intfloat/multilingual-e5-base
+      dim: 768
+      query_prefix: "query: "
+      passage_prefix: "passage: "
+      label: "e5-base-multilingual"
+
+    - key: e5large
+      enabled: false
+      hf_id: intfloat/multilingual-e5-large
+      dim: 1024
+      query_prefix: "query: "
+      passage_prefix: "passage: "
+      label: "e5-large-multilingual"
+
+    - key: vyakyarth
+      enabled: true
+      hf_id: krutrim-ai-labs/vyakyarth
+      dim: 768
+      query_prefix: ""
+      passage_prefix: ""
+      label: "vyakyarth (Krutrim)"

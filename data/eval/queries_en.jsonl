@@ -1,0 +1,50 @@
+{"query": "Days are numbered", "expected_headword": "Days are numbered", "intent": "en_from_en_exact", "source": null}
+{"query": "Wheedle out", "expected_headword": "Wheedle out", "intent": "en_from_en_exact", "source": null}
+{"query": "Painting brush", "expected_headword": "Painting brush", "intent": "en_from_en_exact", "source": null}
+{"query": "Yowl", "expected_headword": "Yowl", "intent": "en_from_en_exact", "source": null}
+{"query": "Painless", "expected_headword": "Painless", "intent": "en_from_en_exact", "source": null}
+{"query": "Parrot fashion", "expected_headword": "Parrot fashion", "intent": "en_from_en_exact", "source": null}
+{"query": "Let slide", "expected_headword": "Let slide", "intent": "en_from_en_exact", "source": null}
+{"query": "Causationist", "expected_headword": "Causationist", "intent": "en_from_en_exact", "source": null}
+{"query": "Morbid", "expected_headword": "Morbid", "intent": "en_from_en_exact", "source": null}
+{"query": "Clutch", "expected_headword": "Clutch", "intent": "en_from_en_exact", "source": null}
+{"query": "cowardly", "expected_headword": "pusillanimous", "intent": "en_from_en_semantic", "source": null}
+{"query": "safe", "expected_headword": "locker", "intent": "en_from_en_semantic", "source": null}
+{"query": "unexpected", "expected_headword": "uninvited", "intent": "en_from_en_semantic", "source": null}
+{"query": "reduce", "expected_headword": "boil something down", "intent": "en_from_en_semantic", "source": null}
+{"query": "discernment", "expected_headword": "cognition", "intent": "en_from_en_semantic", "source": null}
+{"query": "seat of state", "expected_headword": "throne", "intent": "en_from_en_semantic", "source": null}
+{"query": "inconvenience", "expected_headword": "nuisance", "intent": "en_from_en_semantic", "source": null}
+{"query": "fooling around", "expected_headword": "tomfoolery", "intent": "en_from_en_semantic", "source": null}
+{"query": "confront", "expected_headword": "stand up to someone", "intent": "en_from_en_semantic", "source": null}
+{"query": "adjoining", "expected_headword": "neighbouring", "intent": "en_from_en_semantic", "source": null}
+{"query": "pusillanimous", "expected_headword": "നിഷ്പൗരുഷ", "intent": "ml_from_en_exact", "source": null}
+{"query": "locker", "expected_headword": "അലമാര", "intent": "ml_from_en_exact", "source": null}
+{"query": "uninvited", "expected_headword": "അനാഹൂത", "intent": "ml_from_en_exact", "source": null}
+{"query": "boil something down", "expected_headword": "ഘനീകരിക്കുക", "intent": "ml_from_en_exact", "source": null}
+{"query": "cognition", "expected_headword": "അറിവ്", "intent": "ml_from_en_exact", "source": null}
+{"query": "throne", "expected_headword": "സിംഹാസനം", "intent": "ml_from_en_exact", "source": null}
+{"query": "nuisance", "expected_headword": "ഉപദ്രവം", "intent": "ml_from_en_exact", "source": null}
+{"query": "tomfoolery", "expected_headword": "വിഡ്ഢിത്തം", "intent": "ml_from_en_exact", "source": null}
+{"query": "stand up to someone", "expected_headword": "ധിക്കരിക്കുക", "intent": "ml_from_en_exact", "source": null}
+{"query": "neighbouring", "expected_headword": "സാമന്ത", "intent": "ml_from_en_exact", "source": null}
+{"query": "cowardly", "expected_headword": "നിഷ്പൗരുഷ", "intent": "ml_from_en_semantic", "source": null}
+{"query": "safe", "expected_headword": "അലമാര", "intent": "ml_from_en_semantic", "source": null}
+{"query": "unexpected", "expected_headword": "അനാഹൂത", "intent": "ml_from_en_semantic", "source": null}
+{"query": "reduce", "expected_headword": "ഘനീകരിക്കുക", "intent": "ml_from_en_semantic", "source": null}
+{"query": "discernment", "expected_headword": "അറിവ്", "intent": "ml_from_en_semantic", "source": null}
+{"query": "seat of state", "expected_headword": "സിംഹാസനം", "intent": "ml_from_en_semantic", "source": null}
+{"query": "inconvenience", "expected_headword": "ഉപദ്രവം", "intent": "ml_from_en_semantic", "source": null}
+{"query": "fooling around", "expected_headword": "വിഡ്ഢിത്തം", "intent": "ml_from_en_semantic", "source": null}
+{"query": "confront", "expected_headword": "ധിക്കരിക്കുക", "intent": "ml_from_en_semantic", "source": null}
+{"query": "adjoining", "expected_headword": "സാമന്ത", "intent": "ml_from_en_semantic", "source": null}
+{"query": "niṣpaൗruṣa", "expected_headword": "pusillanimous", "intent": "en_from_manglish", "source": null}
+{"query": "alamāra", "expected_headword": "locker", "intent": "en_from_manglish", "source": null}
+{"query": "anāhūta", "expected_headword": "uninvited", "intent": "en_from_manglish", "source": null}
+{"query": "ghanīkarikkuka", "expected_headword": "boil something down", "intent": "en_from_manglish", "source": null}
+{"query": "aṟiv", "expected_headword": "cognition", "intent": "en_from_manglish", "source": null}
+{"query": "siṁhāsanaṁ", "expected_headword": "throne", "intent": "en_from_manglish", "source": null}
+{"query": "upadravaṁ", "expected_headword": "nuisance", "intent": "en_from_manglish", "source": null}
+{"query": "viḍḍhittaṁ", "expected_headword": "tomfoolery", "intent": "en_from_manglish", "source": null}
+{"query": "dhikkarikkuka", "expected_headword": "stand up to someone", "intent": "en_from_manglish", "source": null}
+{"query": "sāmanta", "expected_headword": "neighbouring", "intent": "en_from_manglish", "source": null}

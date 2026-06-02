@@ -36,27 +36,47 @@
 - [x] User guide, MCP client setup guide (Claude Code, Claude Desktop, Cursor, Windsurf, Cline, Continue)
 - [x] CPU-only PyTorch in Docker — explicit `pytorch-cpu` source, no CUDA packages on VPS
 
-### v2.1 — Diaspora, accessibility, and i18n
+### v2.1 — Intent-based source filter
 - [x] **Intent-based source filter** — corpus dropdown replaced with human-readable intents (EN → Malayalam, Thesaurus, Malayalam word); backend unchanged
-- [ ] **UI language toggle** — English / Malayalam interface labels; JSON message bundles, no page reload
-- [ ] **Manglish input** — romanised Malayalam queries ("oduka" → "ഓടുക") via `indic-transliteration`; pre-processing step in `understand_query`, no schema changes
-- [ ] **Romanised output** — Malayalam definitions returned with Roman transliteration alongside for users who cannot read the script
-- [ ] Explore English gloss of ML→ML definitions (requires hosted model or translation API budget)
 
-### v3.0 — On-device AI synthesis (in-app purchase)
+### v2.2 — Diaspora, accessibility, i18n, and search quality
+- [x] **UI language toggle** — English / Malayalam interface labels; JSON locale bundles, no page reload
+- [x] **Romanised output toggle** — Malayalam definitions returned with ISO romanisation alongside for users who cannot read the script (toggle with **A ↔ അ** button)
+- [x] **Smart multi-word search** — phrases and definition queries (multiple words in fuzzy mode) automatically route to semantic retrieval instead of trigram matching
+- [x] **Manglish input (formal romanisation)** — Latin queries that miss exact/fuzzy are tried against multiple formal transliteration schemes; falls back to semantic if no match. Known limitation: informal romanisation ("oduka") is not reliably handled — see v2.3.
+- [x] **Evaluation harness** — corpus-derived query sets (10 intents, EN + ML inputs, generated from live DB); offline model comparison with per-intent metrics and MLflow tracking
+
+### v2.3 — Search quality and full Manglish support
+- [ ] **Production embedding upgrade** — eval confirms the current model underperforms on Malayalam semantic and cross-lingual queries; upgrade and re-ingest (~2h CPU); no schema change
+- [ ] **Phonetic romanisation index** — add `headword_roman` column (diacritic-stripped ISO romanisation) with pg_trgm index; enables reliable informal Manglish matching (e.g. "oduka" → "ഓടുക") without relying on semantic fallback
+- [ ] **Cross-lingual result bridging** — EN query surfaces Malayalam equivalents; ML query surfaces English equivalents; requires either the embedding upgrade or an explicit Ekkurup-based cross-source link
+
+### v2.4 — PWA and broader i18n
+- [ ] **PWA baseline** — `manifest.json` + service worker; enables "Add to Home Screen" on Android/iOS and is prerequisite for Play Store TWA
+- [ ] **Multilingual query input** — detect non-EN/ML query language, translate to EN via LLM adapter, show detected translation in grey below search box; lookup proceeds on translated query
+- [ ] **i18n foundation** — locale JSON bundles for UI strings; architecture supports adding community-translated locales beyond EN/ML
+
+### v3.0 — Android app
+- [ ] **Android TWA via PWABuilder** — wrap the existing PWA for Play Store; no separate codebase; requires icons, Play Developer account, and `assetlinks.json` on domain
+- [ ] **iOS** — evaluate PWABuilder or thin WKWebView wrapper; ship after Android is stable
+
+### v3.1 — Word of the Day
+- [ ] **Word of the Day** — daily featured word, filtered by frequency list to exclude common words (top 5k excluded); alternates EN/ML by default
+- [ ] **User preference** — app settings: EN only / ML only / alternate; stored in `localStorage`
+- [ ] **Push notifications** — service worker push for word-of-the-day on Android (requires v2.1 PWA baseline)
+
+### v3.2 — On-device AI synthesis (in-app purchase)
 - [ ] Generate synthetic (query → answer) training pairs from existing corpus (headword + POS + definition + synonyms)
-- [ ] Fine-tune a small multilingual model (Gemma 2B or Qwen 2.5 1.5B) on Malayalam dictionary Q&A
+- [ ] Fine-tune a small multilingual model on Malayalam dictionary Q&A
 - [ ] Quality eval harness before shipping — answer quality metrics (BLEU + human eval on Malayalam output); do not ship without passing eval
 - [ ] Serverless inference (Modal or RunPod) — pay-per-request, no idle GPU cost
 - [ ] AI synthesis as in-app purchase — core app stays free, premium tier unlocks prose answers at lower price point than user-managed API keys
 
-### v4.0 — Mobile app
-- [ ] Android app via PWABuilder (TWA) — wrap the existing PWA for Play Store, no separate codebase
-- [ ] iOS — evaluate PWABuilder or a thin WKWebView wrapper
-- [ ] Push notification support for word-of-the-day (requires service worker update)
 
 ### Backlog
-- [ ] Embedding model evaluation — compare `multilingual-mpnet` vs `multilingual-e5-large`
+- [ ] `ml_from_ml_semantic` retrieval quality — definition → headword currently at 20% hit@1 in the pipeline; revisit after embedding upgrade to confirm whether gap closes or requires fine-tuning
+- [ ] Reranker for mixed-script result sets — deduplicate and rerank exact + fuzzy + semantic hits in a single pass
+- [ ] Explore English gloss of ML→ML definitions (requires hosted model or translation API budget)
 - [ ] `int8` quantisation for faster inference
 - [ ] Query caching for repeated lookups
-- [ ] Monitoring — retrieval latency and top-k quality metrics
+- [ ] Monitoring — retrieval latency and top-k quality metrics in production

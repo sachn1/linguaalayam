@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{% block title %}Linguആലയം{% endblock %} — Every word, explained.</title>
+  <title>{% block title %}Linguആലയം{% endblock title %} — Every word, explained.</title>
   <meta name="description" content="Ask about any Malayalam or English word — meanings, translations, and usage, powered by multiple lexical sources." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -23,6 +23,9 @@
       if (key) {
         evt.detail.headers["X-LLM-Key"] = key;
         evt.detail.headers["X-LLM-Provider"] = provider || "anthropic";
+      }
+      if (localStorage.getItem("romanise") === "1") {
+        evt.detail.headers["X-Romanise"] = "1";
       }
     });
   </script>
@@ -261,8 +264,23 @@
     .s-corpus-row { font-size: 0.78rem; color: var(--text-muted); line-height: 1.6; padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
     .s-corpus-row:last-child { border-bottom: none; }
     .s-corpus-row strong { color: var(--text); }
+
+    .lang-toggle { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+    .lang-btn {
+      flex: 1;
+      padding: 0.4rem 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.82rem;
+      font-family: inherit;
+      cursor: pointer;
+      background: var(--surface);
+      color: var(--text-muted);
+      transition: background 0.15s, color 0.15s;
+    }
+    .lang-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
   </style>
-  {% block head %}{% endblock %}
+  {% block head %}{% endblock head %}
 </head>
 <body>
   <header>
@@ -272,12 +290,12 @@
     </a>
     <button class="settings-btn" onclick="openSidebar()" title="Settings">
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      Settings
+      <span data-i18n="settings_btn">Settings</span>
     </button>
   </header>
 
   <main>
-    {% block content %}{% endblock %}
+    {% block content %}{% endblock content %}
   </main>
 
   <footer>
@@ -306,21 +324,29 @@
   <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
   <div class="sidebar" id="settings-sidebar" role="dialog" aria-label="Settings">
     <div class="sidebar-header">
-      <h2>Settings</h2>
+      <h2 data-i18n="settings_title">Settings</h2>
       <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close">✕</button>
     </div>
     <div class="sidebar-body">
 
       <div class="s-card">
-        <h3>AI Synthesis <span style="font-weight:400;color:var(--text-muted);font-size:0.8rem;">— optional</span></h3>
-        <p class="s-desc">
+        <h3 data-i18n="interface_language">Interface language</h3>
+        <div class="lang-toggle">
+          <button class="lang-btn" data-lang="en" onclick="loadLocale('en')">English</button>
+          <button class="lang-btn" data-lang="ml" onclick="loadLocale('ml')" style="font-family:'Noto Sans Malayalam',sans-serif">മലയാളം</button>
+        </div>
+      </div>
+
+      <div class="s-card">
+        <h3><span data-i18n="ai_synthesis">AI Synthesis</span> <span style="font-weight:400;color:var(--text-muted);font-size:0.8rem;" data-i18n="ai_synthesis_optional">— optional</span></h3>
+        <p class="s-desc" data-i18n="ai_synthesis_desc">
           Without a key, search works fully — Quick, Exact, and Smart all return dictionary entries.
           Add your own API key to get a plain-language explanation written by an AI.
           Your key is stored only in this browser, never on our servers.
         </p>
 
         <div class="s-field">
-          <label for="sb-provider">Provider</label>
+          <label for="sb-provider" data-i18n="provider">Provider</label>
           <select id="sb-provider">
             <option value="anthropic">Anthropic — Claude</option>
             <option value="openai">OpenAI — GPT-4</option>
@@ -334,24 +360,24 @@
         </div>
 
         <div class="s-field">
-          <label for="sb-apikey">API Key</label>
+          <label for="sb-apikey" data-i18n="api_key">API Key</label>
           <input type="password" id="sb-apikey" placeholder="sk-ant-… or sk-…" autocomplete="off" />
-          <span class="s-field-hint">Stored only in your browser's localStorage.</span>
+          <span class="s-field-hint" data-i18n="api_key_hint">Stored only in your browser's localStorage.</span>
         </div>
 
         <div class="s-actions">
-          <button class="s-btn s-btn-primary" onclick="sbSave()">Save</button>
-          <button class="s-btn s-btn-ghost" onclick="sbClear()">Clear</button>
+          <button class="s-btn s-btn-primary" onclick="sbSave()" data-i18n="save">Save</button>
+          <button class="s-btn s-btn-ghost" onclick="sbClear()" data-i18n="clear">Clear</button>
         </div>
         <p class="s-status" id="sb-status"></p>
       </div>
 
       <div class="s-card">
-        <h3>Corpora</h3>
-        <p class="s-desc">Filter by corpus in Search options on the main page.</p>
-        <div class="s-corpus-row"><strong>Olam</strong> (English → Malayalam) — English words with Malayalam translations.</div>
-        <div class="s-corpus-row"><strong>Datuk</strong> (Malayalam → Malayalam) — Malayalam words with Malayalam definitions.</div>
-        <div class="s-corpus-row"><strong>Ekkurup</strong> (English thesaurus) — English synonym groups with Malayalam equivalents.</div>
+        <h3 data-i18n="corpora">Corpora</h3>
+        <p class="s-desc" data-i18n="corpora_desc">Filter by corpus in Search options on the main page.</p>
+        <div class="s-corpus-row"><strong>Olam</strong> <span data-i18n="corpus_olam_desc">(English → Malayalam) — English words with Malayalam translations.</span></div>
+        <div class="s-corpus-row"><strong>Datuk</strong> <span data-i18n="corpus_datuk_desc">(Malayalam → Malayalam) — Malayalam words with Malayalam definitions.</span></div>
+        <div class="s-corpus-row"><strong>Ekkurup</strong> <span data-i18n="corpus_ekkurup_desc">(English thesaurus) — English synonym groups with Malayalam equivalents.</span></div>
         <p class="s-desc" style="margin-top:0.75rem;margin-bottom:0">
           Source: <a href="https://olam.in/p/open" target="_blank">olam.in/p/open</a> ·
           <a href="https://github.com/sachn1/linguaalayam/blob/master/docs/user-guide.md" target="_blank">User guide ↗</a>
@@ -360,6 +386,48 @@
 
     </div>
   </div>
+
+  <script>
+    // i18n
+    (function () {
+      const cache = {};
+      let current = localStorage.getItem('ui_locale') || 'en';
+
+      function apply() {
+        const b = cache[current];
+        if (!b) return;
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+          const v = b[el.dataset.i18n];
+          if (v != null) el.textContent = v;
+        });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+          const v = b[el.dataset.i18nPlaceholder];
+          if (v != null) el.placeholder = v;
+        });
+        document.querySelectorAll('[data-i18n-html]').forEach(el => {
+          const v = b[el.dataset.i18nHtml];
+          if (v != null) el.innerHTML = v;
+        });
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.lang === current);
+        });
+      }
+
+      async function loadLocale(lang) {
+        if (!cache[lang]) {
+          const r = await fetch('/static/locales/' + lang + '.json');
+          cache[lang] = await r.json();
+        }
+        current = lang;
+        localStorage.setItem('ui_locale', lang);
+        apply();
+      }
+
+      window.loadLocale = loadLocale;
+      document.addEventListener('htmx:afterSettle', apply);
+      loadLocale(current);
+    })();
+  </script>
 
   <script>
     // Sidebar open/close
@@ -389,6 +457,13 @@
         statusEl.textContent = '✓ Key is set. AI synthesis enabled.';
         statusEl.className = 's-status active';
       }
+
+      window.toggleRomanise = function(currentlyOn) {
+        if (currentlyOn) localStorage.removeItem('romanise');
+        else localStorage.setItem('romanise', '1');
+        const queryEl = document.getElementById('query');
+        if (queryEl) htmx.trigger(queryEl, 'input');
+      };
 
       window.sbSave = function () {
         const key = keyEl.value.trim();

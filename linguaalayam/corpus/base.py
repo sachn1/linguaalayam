@@ -1,5 +1,6 @@
 """Shared corpus-parser infrastructure — TSV helper."""
 
+import re
 from collections import defaultdict
 from pathlib import Path
 from typing import TypeVar
@@ -7,6 +8,14 @@ from typing import TypeVar
 T = TypeVar("T")
 
 _EMPTY_POS: frozenset[str] = frozenset({"", "-"})
+
+# ASCII colon used as visarga (ഃ U+0D03) in some corpus sources.
+# Replace only when adjacent to Malayalam Unicode characters (U+0D00–U+0D7F).
+_VISARGA_RE = re.compile(r"(?<=[ഀ-ൿ]):(?=[ഀ-ൿ]|\s|$)")
+
+
+def _normalise(text: str) -> str:
+    return _VISARGA_RE.sub("ഃ", text)
 
 
 def parse_definition_tsv(filepath: Path, entry_cls: type[T]) -> list[T]:
@@ -36,6 +45,8 @@ def parse_definition_tsv(filepath: Path, entry_cls: type[T]) -> list[T]:
                 continue
 
             headword, pos_raw, definition = parts
+            headword = _normalise(headword)
+            definition = _normalise(definition)
             pos: str | None = pos_raw.strip("{}") or None
             if pos in _EMPTY_POS:
                 pos = None

@@ -20,11 +20,20 @@ docker exec -it linguaalayam-pg psql -U postgres -c "CREATE DATABASE linguaalaya
 
 Copy `.env.example` to `.env` — DB values must match the Docker setup above. Then run migrations.
 
+## GPU setup (local only)
+
+Use `make install-local` for local development. It runs `poetry install` then auto-detects a GPU via `nvidia-smi` and installs CUDA torch if present. CI uses `poetry install` directly (CPU torch from lockfile).
+
+**IMPORTANT for Claude Code**: After any `poetry lock` or change to `pyproject.toml` on this machine, run `make install-local` — not bare `poetry install` — to preserve the GPU torch override.
+
+CI and Docker builds always use CPU torch — do not change `pyproject.toml` for this.
+
 ## Commands
 
 ```bash
 # Setup
-poetry install
+make install-local          # local dev (GPU auto-detected)
+poetry install              # CI / CPU-only
 poetry run pre-commit install
 poetry run alembic upgrade head
 
