@@ -1,4 +1,17 @@
-.PHONY: check lint format test ingest ingest-debug rag mcp
+.PHONY: install install-local check lint format test ingest ingest-debug rag mcp
+
+# Standard install (CPU torch — matches CI and production)
+install:
+	poetry install
+
+# Local dev install: CPU torch first, then CUDA override if GPU present
+install-local: install
+	@if command -v nvidia-smi > /dev/null 2>&1; then \
+		echo "GPU detected — installing CUDA torch (cu128)..."; \
+		poetry run pip install torch --index-url https://download.pytorch.org/whl/cu128 --force-reinstall; \
+	else \
+		echo "No GPU detected — CPU torch from lockfile"; \
+	fi
 
 check:
 	poetry run pre-commit run --all-files

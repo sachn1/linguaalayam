@@ -36,25 +36,23 @@
 - [x] User guide, MCP client setup guide (Claude Code, Claude Desktop, Cursor, Windsurf, Cline, Continue)
 - [x] CPU-only PyTorch in Docker — explicit `pytorch-cpu` source, no CUDA packages on VPS
 
-### v2.1 — Diaspora, accessibility, and i18n
+### v2.1 — Intent-based source filter
 - [x] **Intent-based source filter** — corpus dropdown replaced with human-readable intents (EN → Malayalam, Thesaurus, Malayalam word); backend unchanged
-- [ ] **UI language toggle** — English / Malayalam interface labels; JSON message bundles, no page reload
-- [ ] **Manglish input** — blocked on embedding eval (see ⚠ Critical below); if LaBSE bridges romanised → Malayalam semantically, smart search handles it without a separate transliteration layer; build only if eval shows the gap remains
-- [ ] **Romanised output** — Malayalam definitions returned with Roman transliteration alongside for users who cannot read the script
+
+### v2.2 — Diaspora, accessibility, i18n, and search quality
+- [x] **UI language toggle** — English / Malayalam interface labels; JSON locale bundles, no page reload
+- [x] **Romanised output toggle** — Malayalam definitions returned with ISO romanisation alongside for users who cannot read the script (toggle with **A ↔ അ** button)
+- [x] **Smart multi-word search** — phrases and definition queries (multiple words in fuzzy mode) automatically route to semantic retrieval instead of trigram matching
+- [x] **Manglish input (formal romanisation)** — Latin queries that miss exact/fuzzy are tried against multiple formal transliteration schemes; falls back to semantic if no match. Known limitation: informal romanisation ("oduka") is not reliably handled — see v2.3.
+- [x] **Evaluation harness** — corpus-derived query sets (10 intents, EN + ML inputs, generated from live DB); offline model comparison with per-intent metrics and MLflow tracking
+
+### v2.3 — Search quality and full Manglish support
+- [ ] **Production embedding upgrade** — eval confirms the current model underperforms on Malayalam semantic and cross-lingual queries; upgrade and re-ingest (~2h CPU); no schema change
+- [ ] **Phonetic romanisation index** — add `headword_roman` column (diacritic-stripped ISO romanisation) with pg_trgm index; enables reliable informal Manglish matching (e.g. "oduka" → "ഓടുക") without relying on semantic fallback
+- [ ] **Cross-lingual result bridging** — EN query surfaces Malayalam equivalents; ML query surfaces English equivalents; requires either the embedding upgrade or an explicit Ekkurup-based cross-source link
+
+### v2.4 — PWA and broader i18n
 - [ ] **PWA baseline** — `manifest.json` + service worker; enables "Add to Home Screen" on Android/iOS and is prerequisite for Play Store TWA
-
-
-### ⚠ Critical: Malayalam embedding quality (target v2.2)
-Malayalam semantic search quality is untested. `paraphrase-multilingual-mpnet-base-v2` was trained on predominantly European and high-resource languages — Malayalam coverage is unknown and likely poor. Symptoms: semantically similar Malayalam words may not retrieve each other; cross-lingual EN→ML semantic search may be unreliable.
-
-- [ ] **Eval harness on Malayalam queries** — add Malayalam-specific labeled query set to `eval/`; run retrieval metrics (MRR, recall@k) separately for EN and ML headwords
-- [ ] **Embedding model comparison** — benchmark `multilingual-mpnet` vs `multilingual-e5-large` vs `LaBSE` on the Malayalam eval set; LaBSE has stronger Indic language coverage
-- [ ] **Replace model if needed** — if LaBSE or e5-large significantly outperforms, swap in via Hydra config; no schema change required (both produce 768-d vectors)
-- [ ] **Re-ingest if model changes** — embeddings are model-specific; a model swap requires full re-ingest; budget ~2h on CPU
-
-Do not ship Manglish input or any Malayalam semantic feature without passing this eval first.
-
-### v2.2 — Multilingual query and broader i18n
 - [ ] **Multilingual query input** — detect non-EN/ML query language, translate to EN via LLM adapter, show detected translation in grey below search box; lookup proceeds on translated query
 - [ ] **i18n foundation** — locale JSON bundles for UI strings; architecture supports adding community-translated locales beyond EN/ML
 
@@ -69,14 +67,16 @@ Do not ship Manglish input or any Malayalam semantic feature without passing thi
 
 ### v3.2 — On-device AI synthesis (in-app purchase)
 - [ ] Generate synthetic (query → answer) training pairs from existing corpus (headword + POS + definition + synonyms)
-- [ ] Fine-tune a small multilingual model (Gemma 2B or Qwen 2.5 1.5B) on Malayalam dictionary Q&A
+- [ ] Fine-tune a small multilingual model on Malayalam dictionary Q&A
 - [ ] Quality eval harness before shipping — answer quality metrics (BLEU + human eval on Malayalam output); do not ship without passing eval
 - [ ] Serverless inference (Modal or RunPod) — pay-per-request, no idle GPU cost
 - [ ] AI synthesis as in-app purchase — core app stays free, premium tier unlocks prose answers at lower price point than user-managed API keys
 
 
 ### Backlog
+- [ ] `ml_from_ml_semantic` retrieval quality — definition → headword currently at 20% hit@1 in the pipeline; revisit after embedding upgrade to confirm whether gap closes or requires fine-tuning
+- [ ] Reranker for mixed-script result sets — deduplicate and rerank exact + fuzzy + semantic hits in a single pass
 - [ ] Explore English gloss of ML→ML definitions (requires hosted model or translation API budget)
 - [ ] `int8` quantisation for faster inference
 - [ ] Query caching for repeated lookups
-- [ ] Monitoring — retrieval latency and top-k quality metrics
+- [ ] Monitoring — retrieval latency and top-k quality metrics in production

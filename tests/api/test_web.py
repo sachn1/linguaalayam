@@ -29,6 +29,7 @@ def client(mock_tools):
 
 # ── route smoke tests ──────────────────────────────────────────────────────────
 
+
 def test_index_returns_200(client):
     r = client.get("/")
     assert r.status_code == 200
@@ -41,12 +42,15 @@ def test_search_empty_query(client):
 
 
 def test_search_fuzzy(client, mock_tools):
+    mock_tools.fuzzy_lookup.return_value = [MagicMock()]  # results found — no fallback
     r = client.get("/search?query=run&mode=fuzzy")
     assert r.status_code == 200
     mock_tools.fuzzy_lookup.assert_called_once()
+    mock_tools.semantic_lookup.assert_not_called()
 
 
 def test_search_exact(client, mock_tools):
+    mock_tools.exact_lookup.return_value = [MagicMock()]  # results found — no fallback
     r = client.get("/search?query=run&mode=exact")
     assert r.status_code == 200
     mock_tools.exact_lookup.assert_called_once()
@@ -59,6 +63,7 @@ def test_search_semantic(client, mock_tools):
 
 
 def test_search_with_source_filter(client, mock_tools):
+    mock_tools.fuzzy_lookup.return_value = [MagicMock()]
     r = client.get("/search?query=run&mode=fuzzy&source=olam_enml")
     assert r.status_code == 200
     _, kwargs = mock_tools.fuzzy_lookup.call_args
@@ -71,7 +76,33 @@ def test_search_no_results_shows_empty_state(client):
     assert "No results" in r.text
 
 
+# ── manglish and semantic fallback ────────────────────────────────────────────
+
+
+def test_search_fuzzy_multiword_routes_to_semantic(client, mock_tools):
+    """Multi-word fuzzy queries bypass trigram and go straight to semantic."""
+    r = client.get("/search?query=ഒരു+ജലസ്ഥലം&mode=fuzzy")
+    assert r.status_code == 200
+    mock_tools.fuzzy_lookup.assert_not_called()
+    mock_tools.semantic_lookup.assert_called_once()
+
+
+def test_search_fuzzy_no_results_semantic_fallback(client, mock_tools):
+    """Single-word fuzzy with no results falls back to semantic."""
+    r = client.get("/search?query=xyzzy&mode=fuzzy")
+    assert r.status_code == 200
+    mock_tools.semantic_lookup.assert_called()
+
+
+def test_search_exact_no_semantic_fallback(client, mock_tools):
+    """Exact mode never falls back to semantic."""
+    r = client.get("/search?query=xyzzy&mode=exact")
+    assert r.status_code == 200
+    mock_tools.semantic_lookup.assert_not_called()
+
+
 # ── locale bundle tests ────────────────────────────────────────────────────────
+
 
 def test_locale_files_exist():
     assert (_LOCALES / "en.json").exists()

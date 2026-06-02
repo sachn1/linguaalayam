@@ -4,7 +4,10 @@ LLM-free by design: uses regex-only query understanding so results are determini
 and no API key is needed. Measures retrieval quality only; answer quality is separate.
 """
 
+from __future__ import annotations
+
 import time
+from collections.abc import Callable
 
 from omegaconf import DictConfig
 
@@ -12,6 +15,8 @@ from linguaalayam.eval.dataset import EvalQuery, load_dataset
 from linguaalayam.eval.metrics import QueryResult
 from linguaalayam.rag.query_understanding import understand_query
 from linguaalayam.rag.tools import DictionaryTools, merge_candidates
+
+SemanticFn = Callable[[str, str | None, int], list[dict]]
 
 
 def _find_rank(expected: str, candidates: list[dict]) -> int | None:
@@ -28,8 +33,17 @@ def _eval_query(
     top_k: int,
     fuzzy_threshold: float,
     fuzzy_limit: int,
+    semantic_fn: SemanticFn | None = None,
 ) -> QueryResult:
-    """Run all three retrieval tools against a single query and score the result."""
+    """Run all three retrieval tools against a single query and score the result.
+
+    Parameters
+    ----------
+    semantic_fn : callable or None
+        If provided, replaces ``tools.semantic_lookup`` for this query.
+        Signature: ``(query_text, source, top_k) -> list[dict]``.
+        Used to test candidate embedding models without re-ingesting the DB.
+    """
     t0 = time.perf_counter()
 
     # Regex-only understanding — no LLM, keeps eval deterministic and free
@@ -40,7 +54,11 @@ def _eval_query(
     fuzzy = tools.fuzzy_lookup(
         headword, source=q.source, threshold=fuzzy_threshold, top_k=fuzzy_limit
     )
-    semantic = tools.semantic_lookup(q.query, top_k=top_k, source=q.source)
+
+    if semantic_fn is not None:
+        semantic = semantic_fn(q.query, q.source, top_k)
+    else:
+        semantic = tools.semantic_lookup(q.query, top_k=top_k, source=q.source)
 
     merged = merge_candidates([exact, fuzzy, semantic])
     top = merged[:top_k]
@@ -68,7 +86,12 @@ def _eval_query(
     )
 
 
-def run_eval(tools: DictionaryTools, cfg: DictConfig) -> list[QueryResult]:
+def run_eval(
+    tools: DictionaryTools,
+    cfg: DictConfig,
+    queries: list[EvalQuery] | None = None,
+    semantic_fn: SemanticFn | None = None,
+) -> list[QueryResult]:
     """Run retrieval evaluation against a labeled query dataset.
 
     Parameters
@@ -78,18 +101,31 @@ def run_eval(tools: DictionaryTools, cfg: DictConfig) -> list[QueryResult]:
     cfg : DictConfig
         Eval configuration; recognised keys: ``dataset``, ``top_k``,
         ``fuzzy_threshold``, ``fuzzy_limit``.
+    queries : list[EvalQuery] or None
+        Pre-loaded queries. If ``None``, loaded from ``cfg.dataset``.
+    semantic_fn : callable or None
+        If provided, replaces DB-backed semantic search. Use to test
+        candidate embedding models without re-ingesting the corpus.
+        Signature: ``(query_text, source, top_k) -> list[dict]``.
 
     Returns
     -------
     list[QueryResult]
         One result per query in the dataset.
     """
-    dataset = load_dataset(cfg.dataset)
+    dataset = queries if queries is not None else load_dataset(cfg.dataset)
     top_k: int = cfg.get("top_k", 5)
     fuzzy_threshold: float = cfg.get("fuzzy_threshold", 0.3)
     fuzzy_limit: int = cfg.get("fuzzy_limit", 10)
 
     return [
-        _eval_query(q, tools, top_k=top_k, fuzzy_threshold=fuzzy_threshold, fuzzy_limit=fuzzy_limit)
+        _eval_query(
+            q,
+            tools,
+            top_k=top_k,
+            fuzzy_threshold=fuzzy_threshold,
+            fuzzy_limit=fuzzy_limit,
+            semantic_fn=semantic_fn,
+        )
         for q in dataset
     ]

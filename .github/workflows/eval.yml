@@ -85,4 +85,4 @@ jobs:
           if [ -n "${{ github.event.inputs.output }}" ]; then
             OVERRIDES="$OVERRIDES eval.output=${{ github.event.inputs.output }}"
           fi
-          poetry run eval $OVERRIDES
+          poetry run eval-retrieval $OVERRIDES

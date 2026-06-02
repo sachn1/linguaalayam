@@ -7,6 +7,7 @@ __pycache__
 data/**
 !data/eval/
 !data/eval/*.jsonl
+data/eval/corpus_sample.jsonl
 *.json
 !*/static/locales/*.json
 
@@ -32,3 +33,6 @@ uv.lock
 # db dumps
 *.dump
 *.sql
+
+# mlflow
+mlruns/
