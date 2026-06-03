@@ -1,5 +1,6 @@
 """HTMX web UI routes — search page served as Jinja2 templates."""
 
+import importlib.metadata
 import logging
 from pathlib import Path
 from typing import Annotated
@@ -24,6 +25,7 @@ log = logging.getLogger(__name__)
 _NO_LLM = NoLLMAdapter()
 _TEMPLATES = Jinja2Templates(directory=str(Path(__file__).resolve().parents[1] / "templates"))
 _TEMPLATES.env.filters["romanise_ml"] = malayalam_to_roman
+_TEMPLATES.env.globals["app_version"] = importlib.metadata.version("linguaalayam")
 
 router = APIRouter(include_in_schema=False)
 

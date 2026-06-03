@@ -11,6 +11,7 @@ from typing import Any, Literal
 from dotenv import load_dotenv
 from fastapi import FastAPI, Query, Response
 from fastapi.staticfiles import StaticFiles
+from httpx import ASGITransport, AsyncClient
 from omegaconf import OmegaConf
 from pydantic import BaseModel
 from starlette.middleware.gzip import GZipMiddleware
@@ -103,9 +104,30 @@ app = FastAPI(
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
 _STATIC = Path(__file__).resolve().parents[1] / "static"
+_mcp_starlette = get_mcp_app()
+
 app.mount("/static", StaticFiles(directory=str(_STATIC)), name="static")
 app.include_router(_web_router)
-app.mount("/mcp", get_mcp_app())
+app.mount("/mcp", _mcp_starlette)
+
+
+@app.get("/.well-known/oauth-authorization-server", include_in_schema=False)
+async def oauth_discovery_root() -> Response:
+    """RFC 8414 AS metadata at domain root.
+
+    Claude.ai strips the path component from the issuer URL and looks for OAuth
+    metadata at the domain root.  Proxy the request to FastMCP's sub-app so the
+    response stays in sync with AuthSettings without any duplication.
+    """
+    async with AsyncClient(
+        transport=ASGITransport(app=_mcp_starlette), base_url="http://localhost"
+    ) as client:
+        r = await client.get("/.well-known/oauth-authorization-server")
+    return Response(
+        content=r.content,
+        status_code=r.status_code,
+        media_type=r.headers.get("content-type", "application/json"),
+    )
 
 
 @app.get("/health")
