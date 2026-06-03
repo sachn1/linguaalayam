@@ -46,19 +46,14 @@
 - [x] **Manglish input (formal romanisation)** — Latin queries that miss exact/fuzzy are tried against multiple formal transliteration schemes; falls back to semantic if no match. Known limitation: informal romanisation ("oduka") is not reliably handled — see v2.3.
 - [x] **Evaluation harness** — corpus-derived query sets (10 intents, EN + ML inputs, generated from live DB); offline model comparison with per-intent metrics and MLflow tracking
 
-### v2.3 — Search quality and full Manglish support
-- [ ] **Production embedding upgrade** — eval confirms the current model underperforms on Malayalam semantic and cross-lingual queries; upgrade and re-ingest (~2h CPU); no schema change
-- [ ] **Phonetic romanisation index** — add `headword_roman` column (diacritic-stripped ISO romanisation) with pg_trgm index; enables reliable informal Manglish matching (e.g. "oduka" → "ഓടുക") without relying on semantic fallback
-- [ ] **Cross-lingual result bridging** — EN query surfaces Malayalam equivalents; ML query surfaces English equivalents; requires either the embedding upgrade or an explicit Ekkurup-based cross-source link
+### v2.3 — Logo, MCP setup page, and OAuth
+- [x] **Elephant logo** — amber elephant mark; transparent PNG; used as favicon, navbar logo, and PWA install icon
+- [x] **One-click MCP setup page** — `/mcp/setup` with prominent URL copy box, per-client step-by-step guide, and developer configs collapsed; connection test button
+- [x] **OAuth 2.0 for Claude.ai browser connector** — passthrough `OAuthAuthorizationServerProvider` (RFC 7591 dynamic registration, PKCE/S256, token refresh, revocation); `MCP_ISSUER_URL` env var; FastMCP 2.x wires all endpoints automatically
 
-### v2.4 — PWA and broader i18n
-- [ ] **PWA baseline** — `manifest.json` + service worker; enables "Add to Home Screen" on Android/iOS and is prerequisite for Play Store TWA
-- [ ] **Multilingual query input** — detect non-EN/ML query language, translate to EN via LLM adapter, show detected translation in grey below search box; lookup proceeds on translated query
+### v3.0 — i18n foundation and Android
 - [ ] **i18n foundation** — locale JSON bundles for UI strings; architecture supports adding community-translated locales beyond EN/ML
-
-### v3.0 — Android app
 - [ ] **Android TWA via PWABuilder** — wrap the existing PWA for Play Store; no separate codebase; requires icons, Play Developer account, and `assetlinks.json` on domain
-- [ ] **iOS** — evaluate PWABuilder or thin WKWebView wrapper; ship after Android is stable
 
 ### v3.1 — Word of the Day
 - [ ] **Word of the Day** — daily featured word, filtered by frequency list to exclude common words (top 5k excluded); alternates EN/ML by default
@@ -74,7 +69,11 @@
 
 
 ### Backlog
-- [ ] `ml_from_ml_semantic` retrieval quality — definition → headword currently at 20% hit@1 in the pipeline; revisit after embedding upgrade to confirm whether gap closes or requires fine-tuning
+- [ ] **Production embedding upgrade** — eval confirms the current model underperforms on Malayalam semantic and cross-lingual queries; upgrade and re-ingest (~2h CPU); no schema change
+- [ ] **Phonetic romanisation index** — add `headword_roman` column (diacritic-stripped ISO romanisation) with pg_trgm index; enables reliable informal Manglish matching (e.g. "oduka" → "ഓടുക")
+- [ ] **Cross-lingual result bridging** — EN query surfaces Malayalam equivalents; ML query surfaces English equivalents
+- [ ] **Multilingual query input** — detect non-EN/ML query language, translate to EN via LLM adapter
+- [ ] `ml_from_ml_semantic` retrieval quality — definition → headword currently at 20% hit@1; revisit after embedding upgrade
 - [ ] Reranker for mixed-script result sets — deduplicate and rerank exact + fuzzy + semantic hits in a single pass
 - [ ] Explore English gloss of ML→ML definitions (requires hosted model or translation API budget)
 - [ ] `int8` quantisation for faster inference
