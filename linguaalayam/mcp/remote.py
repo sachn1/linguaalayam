@@ -43,7 +43,7 @@ mcp = FastMCP(
         ),
         revocation_options=RevocationOptions(enabled=True),
         required_scopes=["dictionary"],
-        resource_server_url=AnyHttpUrl(_ISSUER_URL),
+        resource_server_url=None,
     ),
     auth_server_provider=_oauth_provider,
 )
