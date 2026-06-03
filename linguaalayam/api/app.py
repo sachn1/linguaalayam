@@ -1,5 +1,6 @@
 """FastAPI REST layer over LinguAalayam's DictionaryTools."""
 
+import json
 import os
 import subprocess
 import time
@@ -116,13 +117,32 @@ async def oauth_discovery_root() -> Response:
     """RFC 8414 AS metadata at domain root.
 
     Claude.ai strips the path component from the issuer URL and looks for OAuth
-    metadata at the domain root.  Proxy the request to FastMCP's sub-app so the
-    response stays in sync with AuthSettings without any duplication.
+    metadata at the domain root.  Proxy to FastMCP's sub-app and patch the
+    token_endpoint_auth_methods to include "none" so public PKCE clients
+    (Claude.ai browser connector) don't abort on metadata inspection.
     """
     async with AsyncClient(
         transport=ASGITransport(app=_mcp_starlette), base_url="http://localhost"
     ) as client:
         r = await client.get("/.well-known/oauth-authorization-server")
+
+    if r.status_code == 200:
+        try:
+            meta = r.json()
+            for field in (
+                "token_endpoint_auth_methods_supported",
+                "revocation_endpoint_auth_methods_supported",
+            ):
+                if field in meta and "none" not in meta[field]:
+                    meta[field] = ["none", *meta[field]]
+            return Response(
+                content=json.dumps(meta),
+                status_code=200,
+                media_type="application/json",
+            )
+        except Exception:
+            pass
+
     return Response(
         content=r.content,
         status_code=r.status_code,

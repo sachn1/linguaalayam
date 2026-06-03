@@ -14,6 +14,7 @@ import os
 
 from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions, RevocationOptions
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import AnyHttpUrl
 from starlette.applications import Starlette
 
@@ -29,6 +30,9 @@ mcp = FastMCP(
     "linguaalayam",
     # Mount point is /mcp; path '/' means the MCP endpoint is at /mcp (not /mcp/mcp).
     streamable_http_path="/",
+    # DNS rebinding protection defaults to localhost-only when host="127.0.0.1".
+    # Disable it here — we run behind nginx which handles host/origin security.
+    transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
     instructions=(
         "Malayalam lexical knowledge base built on the Olam, Datuk, and Ekkurup corpora. "
         "Use exact_lookup first for a known word spelling. "
