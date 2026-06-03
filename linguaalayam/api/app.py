@@ -112,6 +112,26 @@ app.include_router(_web_router)
 app.mount("/mcp", _mcp_starlette)
 
 
+@app.get("/.well-known/oauth-protected-resource/mcp", include_in_schema=False)
+@app.get("/.well-known/oauth-protected-resource/mcp/", include_in_schema=False)
+async def oauth_protected_resource_metadata() -> Response:
+    """RFC 9728 protected resource metadata.
+
+    Claude.ai derives this URL from the MCP endpoint path and reads
+    `authorization_servers` from it to find the OAuth server.
+    """
+    from linguaalayam.mcp.remote import _ISSUER_URL
+
+    resource = _ISSUER_URL.rstrip("/")
+    meta = {
+        "resource": resource,
+        "authorization_servers": [resource],
+        "scopes_supported": ["dictionary"],
+        "bearer_methods_supported": ["header"],
+    }
+    return Response(content=json.dumps(meta), status_code=200, media_type="application/json")
+
+
 @app.get("/.well-known/oauth-authorization-server", include_in_schema=False)
 async def oauth_discovery_root() -> Response:
     """RFC 8414 AS metadata at domain root.
