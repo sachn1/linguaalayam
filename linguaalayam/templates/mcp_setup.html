@@ -1,0 +1,388 @@
+{% extends "base.html" %}
+{% block title %}
+    Connect to AI assistants — LinguAalayam
+{% endblock title %}
+{% block content %}
+    <style>
+  .setup-wrap { max-width: 620px; margin: 0 auto; padding: 2rem 1.5rem 3rem; }
+
+  /* hero */
+  .hero { text-align: center; margin-bottom: 2rem; }
+  .hero h1 { font-size: 1.35rem; font-weight: 700; margin-bottom: 0.4rem; }
+  .hero p { font-size: 0.875rem; color: var(--text-muted); line-height: 1.6; max-width: 420px; margin: 0 auto; }
+
+  /* url box */
+  .url-box {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    margin: 1.5rem 0 0.75rem;
+  }
+  .url-box .url-text {
+    flex: 1;
+    font-family: 'Menlo','Consolas',monospace;
+    font-size: 0.9rem;
+    color: var(--accent);
+    font-weight: 600;
+    word-break: break-all;
+  }
+  .btn-copy {
+    padding: 0.4rem 0.9rem;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .btn-copy:hover { background: var(--accent-hover); }
+  .btn-copy.copied { background: #16a34a; }
+
+  /* test */
+  .test-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem; }
+  .btn-test {
+    padding: 0.4rem 0.9rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-family: inherit;
+    cursor: pointer;
+    color: var(--text-muted);
+  }
+  .btn-test:hover { border-color: var(--accent); color: var(--accent); }
+  .ping-ok { color: #16a34a; font-size: 0.82rem; font-weight: 500; }
+  .ping-err { color: #dc2626; font-size: 0.82rem; font-weight: 500; }
+
+  /* steps cards */
+  .client-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 0.75rem;
+  }
+  .client-card .client-head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.6rem;
+  }
+  .client-card .client-name { font-weight: 600; font-size: 0.95rem; }
+  .client-card .badge {
+    font-size: 0.68rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    background: #dcfce7;
+    color: #15803d;
+    font-weight: 600;
+  }
+  .steps { list-style: none; padding: 0; margin: 0; }
+  .steps li {
+    display: flex;
+    gap: 0.65rem;
+    align-items: baseline;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    padding: 0.2rem 0;
+  }
+  .steps li .n {
+    flex-shrink: 0;
+    width: 1.2rem;
+    height: 1.2rem;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 0.68rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .steps li code { font-size: 0.8rem; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1rem 0.35rem; }
+
+  /* section divider */
+  .section-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 2rem 0 0.75rem;
+  }
+
+  /* developer section */
+  details.dev-section {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 0.75rem;
+    background: var(--surface);
+  }
+  details.dev-section summary {
+    padding: 0.9rem 1.25rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+  }
+  details.dev-section summary::-webkit-details-marker { display: none; }
+  details.dev-section summary .arrow { font-size: 0.75rem; color: var(--text-muted); transition: transform 0.15s; }
+  details.dev-section[open] summary .arrow { transform: rotate(180deg); }
+  .dev-body { padding: 0 1.25rem 1.25rem; }
+  .dev-body h3 { font-size: 0.82rem; font-weight: 600; margin: 1rem 0 0.4rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .dev-body h3:first-child { margin-top: 0; }
+
+  /* snippet */
+  .snippet-wrap { position: relative; }
+  .snippet-wrap pre {
+    background: #1c1917; color: #e7e5e4;
+    border-radius: var(--radius);
+    padding: 0.85rem 1rem;
+    font-family: 'Menlo','Consolas',monospace;
+    font-size: 0.78rem;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin: 0;
+  }
+  .copy-btn {
+    position: absolute; top: 0.4rem; right: 0.4rem;
+    background: rgba(255,255,255,0.1);
+    border: none; border-radius: 4px;
+    color: #a8a29e; font-size: 0.7rem;
+    padding: 0.2rem 0.55rem;
+    cursor: pointer; font-family: inherit;
+  }
+  .copy-btn:hover { background: rgba(255,255,255,0.18); color: #fff; }
+  .copy-btn.copied { color: #86efac; }
+  .path-hint { font-size: 0.78rem; color: var(--text-muted); margin: 0.4rem 0 0; }
+  .path-hint code { font-size: 0.75rem; }
+    </style>
+    <div class="setup-wrap">
+        <!-- Hero -->
+        <div class="hero">
+            <h1>Connect to any AI assistant</h1>
+            <p>
+                LinguAalayam is a hosted dictionary server. Paste the URL below into your AI app — no install, no account, no setup.
+            </p>
+        </div>
+        <!-- URL copy box -->
+        <div class="url-box">
+            <span class="url-text" id="mcp-url">https://linguaalayam.org/mcp</span>
+            <button class="btn-copy" onclick="copyUrl(this)">Copy URL</button>
+        </div>
+        <div class="test-row">
+            <button class="btn-test"
+                    hx-get="/mcp/setup/ping"
+                    hx-target="#ping-result"
+                    hx-swap="innerHTML">Test connection</button>
+            <span id="ping-result"></span>
+        </div>
+        <!-- Easy clients -->
+        <p class="section-label">How to connect</p>
+        <!-- Claude.ai -->
+        <div class="client-card">
+            <div class="client-head">
+                <span class="client-name">Claude (claude.ai)</span>
+                <span class="badge">URL only</span>
+            </div>
+            <ol class="steps">
+                <li>
+                    <span class="n">1</span>
+                    Open <strong>Settings → Integrations</strong>
+                </li>
+                <li>
+                    <span class="n">2</span>
+                    Click <strong>Add integration</strong> and choose <strong>MCP server</strong>
+                </li>
+                <li>
+                    <span class="n">3</span>
+                    Paste the URL above → <strong>Connect</strong>
+                </li>
+            </ol>
+        </div>
+        <!-- Claude Code -->
+        <div class="client-card">
+            <div class="client-head">
+                <span class="client-name">Claude Code</span>
+                <span class="badge">One command</span>
+            </div>
+            <ol class="steps">
+                <li>
+                    <span class="n">1</span>
+                    Run this once inside any project:
+                </li>
+            </ol>
+            <div class="snippet-wrap" style="margin-top:0.5rem">
+                <pre id="snippet-cli">claude mcp add --transport http linguaalayam https://linguaalayam.org/mcp</pre>
+                <button class="copy-btn" onclick="copySnippet('snippet-cli', this)">Copy</button>
+            </div>
+        </div>
+        <!-- Developer section -->
+        <p class="section-label" style="margin-top:2.5rem">Developer / manual setup</p>
+        <!-- Claude Desktop -->
+        <details class="dev-section">
+            <summary>
+                Claude Desktop (macOS / Windows / Linux)
+                <span class="arrow">▼</span>
+            </summary>
+            <div class="dev-body">
+                <h3>Config snippet</h3>
+                <div class="snippet-wrap">
+                    <pre id="snippet-desktop">{
+  "mcpServers": {
+    "linguaalayam": {
+      "url": "https://linguaalayam.org/mcp"
+    }
+  }
+}</pre>
+                    <button class="copy-btn" onclick="copySnippet('snippet-desktop', this)">Copy</button>
+                </div>
+                <p class="path-hint">
+                    macOS: <code>~/Library/Application Support/Claude/claude_desktop_config.json</code>
+                    <br>
+                    Windows: <code>%APPDATA%\Claude\claude_desktop_config.json</code>
+                    <br>
+                    Linux: <code>~/.config/Claude/claude_desktop_config.json</code>
+                    <br>
+                    Restart Claude Desktop after saving.
+                </p>
+            </div>
+        </details>
+        <!-- Cursor -->
+        <details class="dev-section">
+            <summary>
+                Cursor
+                <span class="arrow">▼</span>
+            </summary>
+            <div class="dev-body">
+                <div class="snippet-wrap">
+                    <pre id="snippet-cursor">{
+  "mcpServers": {
+    "linguaalayam": {
+      "url": "https://linguaalayam.org/mcp"
+    }
+  }
+}</pre>
+                    <button class="copy-btn" onclick="copySnippet('snippet-cursor', this)">Copy</button>
+                </div>
+                <p class="path-hint">
+                    Global: <code>~/.cursor/mcp.json</code> · Project: <code>.cursor/mcp.json</code>
+                    <br>
+                    Reload Window (Cmd/Ctrl+Shift+P) after saving.
+                </p>
+            </div>
+        </details>
+        <!-- Windsurf -->
+        <details class="dev-section">
+            <summary>
+                Windsurf
+                <span class="arrow">▼</span>
+            </summary>
+            <div class="dev-body">
+                <div class="snippet-wrap">
+                    <pre id="snippet-windsurf">{
+  "mcpServers": {
+    "linguaalayam": {
+      "url": "https://linguaalayam.org/mcp"
+    }
+  }
+}</pre>
+                    <button class="copy-btn" onclick="copySnippet('snippet-windsurf', this)">Copy</button>
+                </div>
+                <p class="path-hint">
+                    File: <code>~/.codeium/windsurf/mcp_config.json</code> · Restart Windsurf after saving.
+                </p>
+            </div>
+        </details>
+        <!-- Cline -->
+        <details class="dev-section">
+            <summary>
+                Cline (VS Code)
+                <span class="arrow">▼</span>
+            </summary>
+            <div class="dev-body">
+                <div class="snippet-wrap">
+                    <pre id="snippet-cline">{
+  "cline.mcpServers": {
+    "linguaalayam": {
+      "url": "https://linguaalayam.org/mcp"
+    }
+  }
+}</pre>
+                    <button class="copy-btn" onclick="copySnippet('snippet-cline', this)">Copy</button>
+                </div>
+                <p class="path-hint">
+                    VS Code settings → search <code>Cline MCP</code> → Edit in settings.json.
+                    <br>
+                    Or: Cline sidebar → MCP Servers tab → Add Server → paste the URL directly.
+                </p>
+            </div>
+        </details>
+        <!-- Continue -->
+        <details class="dev-section">
+            <summary>
+                Continue (VS Code / JetBrains)
+                <span class="arrow">▼</span>
+            </summary>
+            <div class="dev-body">
+                <div class="snippet-wrap">
+                    <pre id="snippet-continue">mcpServers:
+  - name: linguaalayam
+    url: https://linguaalayam.org/mcp</pre>
+                    <button class="copy-btn" onclick="copySnippet('snippet-continue', this)">Copy</button>
+                </div>
+                <p class="path-hint">
+                    File: <code>~/.continue/config.yaml</code>
+                </p>
+            </div>
+        </details>
+        <!-- Tools reference -->
+        <details class="dev-section">
+            <summary>
+                Available tools
+                <span class="arrow">▼</span>
+            </summary>
+            <div class="dev-body">
+                <p style="font-size:0.82rem;
+                          color:var(--text-muted);
+                          margin-bottom:0.75rem;
+                          line-height:1.5">
+                    Three tools are available. All accept an optional <code>source</code> parameter
+                    (<code>olam_enml</code>, <code>datuk</code>, <code>ekkurup</code>) to filter by corpus.
+                </p>
+                <div class="snippet-wrap">
+                    <pre>exact_lookup(word, source?)        — exact headword match
+fuzzy_lookup(query, top_k?, source?) — trigram similarity
+semantic_lookup(query, top_k?, source?) — meaning-based search</pre>
+                </div>
+            </div>
+        </details>
+    </div>
+    <script>
+  function copyUrl(btn) {
+    navigator.clipboard.writeText(document.getElementById("mcp-url").textContent).then(() => {
+      btn.textContent = "Copied!";
+      btn.classList.add("copied");
+      setTimeout(() => { btn.textContent = "Copy URL"; btn.classList.remove("copied"); }, 1800);
+    });
+  }
+  function copySnippet(id, btn) {
+    navigator.clipboard.writeText(document.getElementById(id).textContent).then(() => {
+      btn.textContent = "Copied!";
+      btn.classList.add("copied");
+      setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("copied"); }, 1800);
+    });
+  }
+    </script>
+{% endblock content %}

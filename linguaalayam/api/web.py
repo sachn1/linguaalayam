@@ -53,6 +53,22 @@ def settings(request: Request):
     return _TEMPLATES.TemplateResponse(request, "settings.html")
 
 
+@router.get("/mcp/setup", response_class=HTMLResponse)
+def mcp_setup(request: Request):
+    return _TEMPLATES.TemplateResponse(request, "mcp_setup.html")
+
+
+@router.get("/mcp/setup/ping", response_class=HTMLResponse)
+def mcp_ping(request: Request):
+    try:
+        get_tools()
+        return HTMLResponse('<span class="ping-ok">✓ Server is reachable</span>')
+    except Exception:
+        return HTMLResponse(
+            '<span class="ping-err">✗ Server error — try again</span>', status_code=503
+        )
+
+
 @router.get("/search", response_class=HTMLResponse)
 def search(
     request: Request,
