@@ -104,8 +104,8 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 
 _STATIC = Path(__file__).resolve().parents[1] / "static"
 app.mount("/static", StaticFiles(directory=str(_STATIC)), name="static")
-app.mount("/mcp", get_mcp_app())
 app.include_router(_web_router)
+app.mount("/mcp", get_mcp_app())
 
 
 @app.get("/health")

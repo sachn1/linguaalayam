@@ -2,13 +2,28 @@
 
 Shares DictionaryTools with the REST API (no second DB connection or model load).
 Clients connect via URL: https://linguaalayam.org/mcp — no local install required.
+
+OAuth 2.0 (RFC 7591 dynamic registration + PKCE) is enabled so Claude.ai's browser
+MCP connector can authenticate. The provider is a passthrough — it auto-approves
+every authorization request because LinguAalayam is a public dictionary service with
+no user accounts. Tokens are in-memory; a server restart invalidates them and clients
+re-authorize automatically.
 """
 
+import os
+
+from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions, RevocationOptions
 from mcp.server.fastmcp import FastMCP
+from pydantic import AnyHttpUrl
 from starlette.applications import Starlette
 
 from linguaalayam.api.dependencies import get_tools
+from linguaalayam.api.oauth import PassthroughOAuthProvider
 from linguaalayam.mcp.shared import format_results as _format
+
+_ISSUER_URL = os.environ.get("MCP_ISSUER_URL", "http://localhost:8000/mcp")
+
+_oauth_provider = PassthroughOAuthProvider()
 
 mcp = FastMCP(
     "linguaalayam",
@@ -18,6 +33,19 @@ mcp = FastMCP(
         "Use fuzzy_lookup for approximate matches or typos. "
         "Use semantic_lookup for meaning-based queries or when the exact headword is unknown."
     ),
+    auth=AuthSettings(
+        issuer_url=AnyHttpUrl(_ISSUER_URL),
+        service_documentation_url=AnyHttpUrl("https://linguaalayam.org/mcp/setup"),
+        client_registration_options=ClientRegistrationOptions(
+            enabled=True,
+            valid_scopes=["dictionary"],
+            default_scopes=["dictionary"],
+        ),
+        revocation_options=RevocationOptions(enabled=True),
+        required_scopes=["dictionary"],
+        resource_server_url=AnyHttpUrl(_ISSUER_URL),
+    ),
+    auth_server_provider=_oauth_provider,
 )
 
 
