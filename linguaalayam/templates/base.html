@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Malayalam:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="manifest" href="/static/manifest.json" />
+  <link rel="icon" href="/static/logo.png" type="image/png" />
   <meta name="theme-color" content="#b45309" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -62,6 +63,7 @@
     }
 
     header a.brand { text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; }
+    header a.brand img { height: 36px; width: 36px; border-radius: 8px; flex-shrink: 0; }
     header h1 { font-size: 1.125rem; font-weight: 600; }
     header .tagline { font-size: 0.8rem; color: var(--text-muted); }
 
@@ -285,6 +287,7 @@
 <body>
   <header>
     <a href="/" class="brand">
+      <img src="/static/logo.png" alt="LinguAalayam" />
       <h1>Lingu<span class="ml">ആലയം</span></h1>
       <span class="tagline"><span class="ml">ഏതു വാക്കും അറിയൂ</span> &nbsp;·&nbsp; Every word, explained.</span>
     </a>
@@ -304,7 +307,7 @@
       API docs
     </a>
     &nbsp;·&nbsp;
-    <a href="https://github.com/sachn1/linguaalayam/blob/master/linguaalayam/mcp/README.md" target="_blank" title="Connect this dictionary to Claude, Cursor, Windsurf, and more">
+    <a href="/mcp/setup" title="Connect this dictionary to Claude, Cursor, Windsurf, and more">
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
       MCP for AI assistants
     </a>
