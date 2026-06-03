@@ -27,6 +27,8 @@ _oauth_provider = PassthroughOAuthProvider()
 
 mcp = FastMCP(
     "linguaalayam",
+    # Mount point is /mcp; path '/' means the MCP endpoint is at /mcp (not /mcp/mcp).
+    streamable_http_path="/",
     instructions=(
         "Malayalam lexical knowledge base built on the Olam, Datuk, and Ekkurup corpora. "
         "Use exact_lookup first for a known word spelling. "
@@ -104,5 +106,11 @@ def semantic_lookup(
     return _format(results, query, "semantic")
 
 
+_mcp_app: Starlette | None = None
+
+
 def get_mcp_app() -> Starlette:
-    return mcp.streamable_http_app()
+    global _mcp_app
+    if _mcp_app is None:
+        _mcp_app = mcp.streamable_http_app()
+    return _mcp_app
