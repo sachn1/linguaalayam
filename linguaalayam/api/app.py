@@ -129,7 +129,10 @@ async def oauth_discovery_root() -> Response:
     if r.status_code == 200:
         try:
             meta = r.json()
-            for field in ("token_endpoint_auth_methods_supported", "revocation_endpoint_auth_methods_supported"):
+            for field in (
+                "token_endpoint_auth_methods_supported",
+                "revocation_endpoint_auth_methods_supported",
+            ):
                 if field in meta and "none" not in meta[field]:
                     meta[field] = ["none", *meta[field]]
             return Response(
