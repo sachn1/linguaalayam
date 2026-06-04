@@ -38,7 +38,12 @@ uv.lock
 # mlflow
 mlruns/
 
-# Android signing key — never commit
-android/android-keystore.jks
-android/*.jks
-android/*.keystore
+# Android — build output and signing keys, never commit
+*.apk
+*.aab
+*.idsig
+*.keystore
+*.jks
+build/
+.gradle/
+store_icon.png
