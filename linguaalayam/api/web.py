@@ -55,6 +55,11 @@ def settings(request: Request):
     return _TEMPLATES.TemplateResponse(request, "settings.html")
 
 
+@router.get("/privacy", response_class=HTMLResponse)
+def privacy(request: Request):
+    return _TEMPLATES.TemplateResponse(request, "privacy.html")
+
+
 @router.get("/mcp/setup", response_class=HTMLResponse)
 def mcp_setup(request: Request):
     return _TEMPLATES.TemplateResponse(request, "mcp_setup.html")

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy Policy — lingua·ആലയം{% endblock title %}
+
+{% block content %}
+<style>
+  .privacy-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    max-width: 720px;
+    margin: 2rem auto;
+  }
+  .privacy-card h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem; }
+  .privacy-card .updated { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 2rem; }
+  .privacy-card h2 { font-size: 1rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
+  .privacy-card p, .privacy-card li { font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; }
+  .privacy-card ul { padding-left: 1.25rem; }
+  .privacy-card a { color: var(--accent); }
+</style>
+
+<div class="privacy-card">
+  <h1>Privacy Policy</h1>
+  <p class="updated">Last updated: June 2025</p>
+
+  <p>lingua·ആലayam ("we", "the app") is an open-source Malayalam lexical dictionary. This policy explains what data we collect, how we use it, and your rights.</p>
+
+  <h2>Data we collect</h2>
+  <p>We do not collect, store, or share any personal data. Specifically:</p>
+  <ul>
+    <li>No user accounts or registration</li>
+    <li>No cookies used for tracking or analytics</li>
+    <li>No search queries are logged or stored on our servers</li>
+    <li>No device identifiers collected</li>
+  </ul>
+
+  <h2>Data stored on your device</h2>
+  <p>If you choose to add an AI provider API key (Anthropic or OpenAI) via the Settings page, that key is stored solely in your browser's <code>localStorage</code>. It is never transmitted to our servers — it is sent directly to the AI provider of your choice when you request AI-synthesised answers. We have no access to your key.</p>
+
+  <h2>Third-party services</h2>
+  <p>The app is hosted on a server in Nuremberg, Germany (Hetzner). Standard web server access logs (IP address, request path, timestamp) may be retained briefly for operational purposes and are not shared with third parties.</p>
+  <p>If you use the AI synthesis feature with your own API key, your search query is sent directly from your device to the respective AI provider (Anthropic or OpenAI). Their privacy policies apply to that data.</p>
+
+  <h2>Children's privacy</h2>
+  <p>This app is not directed at children under 13. We do not knowingly collect data from children.</p>
+
+  <h2>Changes to this policy</h2>
+  <p>If we make material changes, we will update the "Last updated" date above. Continued use of the app constitutes acceptance of the updated policy.</p>
+
+  <h2>Contact</h2>
+  <p>Questions? Open an issue on <a href="https://github.com/sachn1/linguaalayam/issues" target="_blank">GitHub</a>.</p>
+</div>
+{% endblock content %}
