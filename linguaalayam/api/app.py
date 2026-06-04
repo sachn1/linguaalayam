@@ -29,6 +29,8 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 _EMBED_MODEL = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
 _CACHE_1D = "public, max-age=86400"
+_PLAY_CONSOLE_APP_CERT_FINGERPINT = "36:00:69:0E:1F:3B:32:5F:1E:F1:B4:55:EE:DD:67:AA:88:D6:D8:3A:27:6E:25:DB:F8:09:EF:DF:02:C0:CB:04"
+
 
 try:
     _VERSION = _pkg_version("linguaalayam")
@@ -235,6 +237,30 @@ async def oauth_revoke(request: Request) -> Response:
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+# TWA (Trusted Web Activity) domain verification for Android app.
+# The SHA256 fingerprint below is a placeholder — replace it with the actual
+# signing certificate fingerprint from Google Play Console after creating the
+# app (App signing → App signing key certificate → SHA-256 certificate fingerprint).
+_ASSETLINKS = json.dumps(
+    [
+        {
+            "relation": ["delegate_permission/common.handle_all_urls"],
+            "target": {
+                "namespace": "android_app",
+                "package_name": "org.linguaalayam.app",
+                "sha256_cert_fingerprints": [_PLAY_CONSOLE_APP_CERT_FINGERPINT],
+            },
+        }
+    ],
+    indent=2,
+)
+
+
+@app.get("/.well-known/assetlinks.json", include_in_schema=False)
+async def assetlinks() -> Response:
+    return Response(content=_ASSETLINKS, media_type="application/json")
 
 
 @app.get("/lookup/exact", response_model=list[LookupResult])
