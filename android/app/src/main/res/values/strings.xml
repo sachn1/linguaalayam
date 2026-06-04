@@ -15,13 +15,13 @@
      limitations under the License.
 -->
 <resources>
-  
+
 
   <!--
     The "fullscreen" and "fullscreen-sticky" TWA manifest values correspond to "immersive" and "sticky-immersive"
     AndroidManifest values.
   -->
-  
+
 
   <!--
     This variable below expresses the relationship between the app and the site,
@@ -37,6 +37,6 @@
             \"site\": \"https://linguaalayam.org\"
         }
     }]
-    
-  </string>  
+
+  </string>
 </resources>

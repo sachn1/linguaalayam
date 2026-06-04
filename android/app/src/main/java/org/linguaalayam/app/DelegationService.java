@@ -8,7 +8,6 @@ public class DelegationService extends
     public void onCreate() {
         super.onCreate();
 
-        
+
     }
 }
-
