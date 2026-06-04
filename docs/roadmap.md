@@ -51,16 +51,16 @@
 - [x] **One-click MCP setup page** — `/mcp/setup` with prominent URL copy box, per-client step-by-step guide, and developer configs collapsed; connection test button
 - [x] **OAuth 2.0 for Claude.ai browser connector** — passthrough `OAuthAuthorizationServerProvider` (RFC 7591 dynamic registration, PKCE/S256, token refresh, revocation); `MCP_ISSUER_URL` env var; FastMCP 2.x wires all endpoints automatically
 
-### v3.0 — i18n foundation and Android
-- [ ] **i18n foundation** — locale JSON bundles for UI strings; architecture supports adding community-translated locales beyond EN/ML
-- [ ] **Android TWA via PWABuilder** — wrap the existing PWA for Play Store; no separate codebase; requires icons, Play Developer account, and `assetlinks.json` on domain
+### v2.5 — i18n foundation and Android
+- [x] **i18n foundation** — EN/ML locale bundles complete; architecture is locale-file-based (drop a new JSON in `static/locales/` to add a language); additional UI languages tracked in backlog
+- [x] **Android TWA** — PWA icons generated (48–512px PNG + maskable); `manifest.json` updated for Android; `/.well-known/assetlinks.json` endpoint live; `android/twa-manifest.json` (Bubblewrap config) checked in; `android/README.md` documents full build + Play Store publish flow. **Pending:** Play Developer account ($25 one-time) + fill SHA-256 signing fingerprint in `app.py` + run `bubblewrap build` to produce the AAB
 
-### v3.1 — Word of the Day
+### v2.6 — Word of the Day
 - [ ] **Word of the Day** — daily featured word, filtered by frequency list to exclude common words (top 5k excluded); alternates EN/ML by default
 - [ ] **User preference** — app settings: EN only / ML only / alternate; stored in `localStorage`
 - [ ] **Push notifications** — service worker push for word-of-the-day on Android (requires v2.1 PWA baseline)
 
-### v3.2 — On-device AI synthesis (in-app purchase)
+### v2.7 — On-device AI synthesis (in-app purchase)
 - [ ] Generate synthetic (query → answer) training pairs from existing corpus (headword + POS + definition + synonyms)
 - [ ] Fine-tune a small multilingual model on Malayalam dictionary Q&A
 - [ ] Quality eval harness before shipping — answer quality metrics (BLEU + human eval on Malayalam output); do not ship without passing eval
@@ -72,7 +72,7 @@
 - [ ] **Production embedding upgrade** — eval confirms the current model underperforms on Malayalam semantic and cross-lingual queries; upgrade and re-ingest (~2h CPU); no schema change
 - [ ] **Phonetic romanisation index** — add `headword_roman` column (diacritic-stripped ISO romanisation) with pg_trgm index; enables reliable informal Manglish matching (e.g. "oduka" → "ഓടുക")
 - [ ] **Cross-lingual result bridging** — EN query surfaces Malayalam equivalents; ML query surfaces English equivalents
-- [ ] **Multilingual query input** — detect non-EN/ML query language, translate to EN via LLM adapter
+- [ ] **Multilingual query input** — detect non-EN/ML query language (German, French, etc.), translate to EN via LLM adapter, return EN/ML results as usual; no new locale files needed
 - [ ] `ml_from_ml_semantic` retrieval quality — definition → headword currently at 20% hit@1; revisit after embedding upgrade
 - [ ] Reranker for mixed-script result sets — deduplicate and rerank exact + fuzzy + semantic hits in a single pass
 - [ ] Explore English gloss of ML→ML definitions (requires hosted model or translation API budget)
