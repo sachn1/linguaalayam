@@ -18,6 +18,22 @@ All tools accept an optional `source` parameter to filter by corpus (`olam_enml`
 
 ---
 
+## Authentication
+
+The endpoint is protected by OAuth 2.0, but there is **nothing to configure** — LinguAalayam is a public dictionary, so the authorization server auto-approves every client. Your MCP client handles the whole handshake transparently:
+
+- **Dynamic client registration** (RFC 7591) — the client registers itself; no client ID to create.
+- **PKCE / S256** public-client flow — no secret, no login screen.
+- Discovery metadata is served at both the domain root and the path-aware
+  well-known locations, and the OAuth endpoints (`/authorize`, `/token`,
+  `/register`, `/revoke`) are reachable at both the root and under `/mcp` — so
+  origin-based clients (Claude, the MCP Inspector) and spec-strict path-aware
+  clients all connect from the URL alone.
+
+So a plain `{"url": "https://linguaalayam.org/mcp"}` is all any client needs. Opening the URL in a browser returns `401 invalid_token` — that is expected; only an MCP client carrying an OAuth token gets through.
+
+---
+
 ## Client setup
 
 Add this block to your MCP client config. No command, no package, no local database.
@@ -110,18 +126,51 @@ No separate MCP process needed — it runs inside the same FastAPI app.
 
 ### MCP Inspector (interactive web UI)
 
-Requires Node.js (install with [fnm](https://github.com/Schniz/fnm)):
+The server speaks **Streamable HTTP** and is OAuth-protected, so test it the way a real client does — over the URL, not by opening it in a browser (an unauthenticated request correctly returns `401`).
 
-```bash
-poetry run mcp dev linguaalayam/mcp/server.py
-```
+1. Start the app — the MCP server is mounted at `/mcp` inside the same FastAPI process:
 
-Opens `localhost:6274`. In the connection form, override the command:
+   ```bash
+   poetry run uvicorn linguaalayam.api.app:app --port 8000
+   ```
 
-| Field | Value |
-|---|---|
-| **Command** | `poetry` |
-| **Arguments** | `run mcp-server` |
+2. Launch the Inspector in a second terminal. It needs a **Linux** Node.js:
+
+   ```bash
+   npx @modelcontextprotocol/inspector
+   ```
+
+   It prints a `http://localhost:6274/?MCP_PROXY_AUTH_TOKEN=…` link and opens your browser.
+
+   **WSL gotcha:** if `npx` resolves to the Windows install you'll get
+   `zsh: .../nodejs/npx: bad interpreter: /bin/sh^M` (CRLF line endings). You need
+   a Linux Node. With [fnm](https://github.com/Schniz/fnm), either load it into the
+   shell (`eval "$(fnm env)"`) or call the Linux binary directly, e.g.:
+
+   ```bash
+   # one-off, no shell setup:
+   ~/.local/share/fnm/node-versions/<version>/installation/bin/npx @modelcontextprotocol/inspector
+   ```
+
+   To make it permanent, add to `~/.zshrc`:
+
+   ```bash
+   export PATH="$HOME/.local/share/fnm:$PATH"
+   eval "$(fnm env --use-on-cd)"
+   ```
+
+3. In the Inspector connection form:
+
+   | Field | Value |
+   |---|---|
+   | **Transport Type** | `Streamable HTTP` |
+   | **URL** | `http://localhost:8000/mcp` |
+
+   Click **Connect**. OAuth runs automatically (no login screen), then the three tools appear under the **Tools** tab and the `dictionary://{headword}` resource under **Resources**.
+
+> Point at `https://linguaalayam.org/mcp` to test the hosted server the same way.
+
+> Do **not** use `mcp dev` / the stdio "command" override — this server runs over HTTP inside the app, not as a stdio subprocess.
 
 ### Python notebook
 
