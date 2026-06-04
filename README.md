@@ -1,4 +1,6 @@
-# Linguആലയം (LinguAalayam)
+<p align="center">
+  <img src="linguaalayam/static/logo.svg" alt="lingua·ആലയം" width="440" />
+</p>
 
 > ഏതു വാക്കും അറിയൂ — Every word, explained.
 >
@@ -6,7 +8,7 @@
 
 **[linguaalayam.org](https://linguaalayam.org)** · [API docs](https://linguaalayam.org/docs) · [MCP endpoint](https://linguaalayam.org/mcp)
 
-LinguAalayam is an open-source Malayalam lexical knowledge base and AI integration layer. It ingests three corpora — **Olam** (English→Malayalam), **Datuk** (Malayalam→Malayalam), and **Ekkurup** (English→Malayalam thesaurus) — into a Postgres + pgvector database and enables hybrid retrieval: exact headword, trigram fuzzy, and HNSW semantic search. A LangGraph RAG pipeline synthesises natural-language answers through a configurable LLM adapter (Anthropic, OpenAI, or no LLM). The retrieval layer is exposed as a hosted MCP server — any MCP-compatible AI client can use it with just a URL.
+lingua·ആലയം is an open-source Malayalam lexical knowledge base and AI integration layer. It ingests three corpora — **Olam** (English→Malayalam), **Datuk** (Malayalam→Malayalam), and **Ekkurup** (English→Malayalam thesaurus) — into a Postgres + pgvector database and enables hybrid retrieval: exact headword, trigram fuzzy, and HNSW semantic search. A LangGraph RAG pipeline synthesises natural-language answers through a configurable LLM adapter (Anthropic, OpenAI, or no LLM). The retrieval layer is exposed as a hosted MCP server — any MCP-compatible AI client can use it with just a URL.
 
 The web UI at [linguaalayam.org](https://linguaalayam.org) supports English and Malayalam interface languages, ISO 15919 romanised output alongside Malayalam definitions (toggle with the **A ↔ അ** button), intent-based corpus selection, and Manglish (romanised Malayalam) input with automatic transliteration and semantic fallback.
 

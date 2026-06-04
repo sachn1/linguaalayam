@@ -33,7 +33,7 @@ def client(mock_tools):
 def test_index_returns_200(client):
     r = client.get("/")
     assert r.status_code == 200
-    assert "Lingu" in r.text
+    assert "lingu" in r.text
 
 
 def test_search_empty_query(client):
