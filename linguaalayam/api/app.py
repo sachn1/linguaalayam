@@ -16,6 +16,7 @@ from httpx import ASGITransport, AsyncClient
 from omegaconf import OmegaConf
 from pydantic import BaseModel
 from starlette.middleware.gzip import GZipMiddleware
+from starlette.requests import Request
 
 from linguaalayam.api.dependencies import get_tools, set_tools
 from linguaalayam.api.web import router as _web_router
@@ -80,9 +81,14 @@ def _init_tools() -> DictionaryTools:
 
 @asynccontextmanager
 async def _lifespan(_: FastAPI):
+    from linguaalayam.mcp.remote import mcp
+
     _ensure_docker_db()
     set_tools(_init_tools())
-    yield
+    # The MCP sub-app is mount()ed, so Starlette never runs its lifespan — start
+    # the streamable-HTTP session manager here or every MCP request 500s.
+    async with mcp.session_manager.run():
+        yield
 
 
 class LookupResult(BaseModel):
@@ -112,62 +118,118 @@ app.include_router(_web_router)
 app.mount("/mcp", _mcp_starlette)
 
 
-@app.get("/.well-known/oauth-protected-resource/mcp", include_in_schema=False)
-@app.get("/.well-known/oauth-protected-resource/mcp/", include_in_schema=False)
-async def oauth_protected_resource_metadata() -> Response:
-    """RFC 9728 protected resource metadata.
-
-    Claude.ai derives this URL from the MCP endpoint path and reads
-    `authorization_servers` from it to find the OAuth server.
-    """
+def _protected_resource_metadata() -> dict:
+    """RFC 9728 protected resource metadata body."""
     from linguaalayam.mcp.remote import _ISSUER_URL
 
     resource = _ISSUER_URL.rstrip("/")
-    meta = {
+    return {
         "resource": resource,
         "authorization_servers": [resource],
         "scopes_supported": ["dictionary"],
         "bearer_methods_supported": ["header"],
     }
-    return Response(content=json.dumps(meta), status_code=200, media_type="application/json")
 
 
-@app.get("/.well-known/oauth-authorization-server", include_in_schema=False)
-async def oauth_discovery_root() -> Response:
-    """RFC 8414 AS metadata at domain root.
+async def _authorization_server_metadata() -> tuple[int, Any]:
+    """RFC 8414 AS metadata, proxied from FastMCP's sub-app.
 
-    Claude.ai strips the path component from the issuer URL and looks for OAuth
-    metadata at the domain root.  Proxy to FastMCP's sub-app and patch the
-    token_endpoint_auth_methods to include "none" so public PKCE clients
-    (Claude.ai browser connector) don't abort on metadata inspection.
+    Patches token_endpoint_auth_methods to advertise "none" so public PKCE
+    clients (Claude desktop/web connectors) don't abort on metadata inspection.
+    Returns (status_code, body) where body is a dict on success.
     """
     async with AsyncClient(
         transport=ASGITransport(app=_mcp_starlette), base_url="http://localhost"
     ) as client:
         r = await client.get("/.well-known/oauth-authorization-server")
 
-    if r.status_code == 200:
-        try:
-            meta = r.json()
-            for field in (
-                "token_endpoint_auth_methods_supported",
-                "revocation_endpoint_auth_methods_supported",
-            ):
-                if field in meta and "none" not in meta[field]:
-                    meta[field] = ["none", *meta[field]]
-            return Response(
-                content=json.dumps(meta),
-                status_code=200,
-                media_type="application/json",
-            )
-        except Exception:
-            pass
+    if r.status_code != 200:
+        return r.status_code, None
+    meta = r.json()
+    for field in (
+        "token_endpoint_auth_methods_supported",
+        "revocation_endpoint_auth_methods_supported",
+    ):
+        if "none" not in (meta.get(field) or []):
+            meta[field] = ["none", *meta.get(field, [])]
+    return 200, meta
 
+
+# RFC 9728 — both the domain root and the path-aware variant. Clients differ on
+# which they probe; serve both so discovery never 404s.
+@app.get("/.well-known/oauth-protected-resource", include_in_schema=False)
+@app.get("/.well-known/oauth-protected-resource/", include_in_schema=False)
+@app.get("/.well-known/oauth-protected-resource/mcp", include_in_schema=False)
+@app.get("/.well-known/oauth-protected-resource/mcp/", include_in_schema=False)
+async def oauth_protected_resource_metadata() -> Response:
     return Response(
-        content=r.content,
-        status_code=r.status_code,
-        media_type=r.headers.get("content-type", "application/json"),
+        content=json.dumps(_protected_resource_metadata()),
+        media_type="application/json",
     )
+
+
+# RFC 8414 — the issuer URL carries a path ("/mcp"), so a compliant client inserts
+# the well-known segment BEFORE the path (".../.well-known/oauth-authorization-server/mcp").
+# Serve the root, the path-aware, and the path-appended variants — plus the OIDC
+# discovery alias some clients probe — all patched identically so every client's
+# discovery strategy lands on consistent metadata.
+@app.get("/.well-known/oauth-authorization-server", include_in_schema=False)
+@app.get("/.well-known/oauth-authorization-server/mcp", include_in_schema=False)
+@app.get("/.well-known/oauth-authorization-server/mcp/", include_in_schema=False)
+@app.get("/.well-known/openid-configuration", include_in_schema=False)
+@app.get("/.well-known/openid-configuration/mcp", include_in_schema=False)
+async def oauth_discovery() -> Response:
+    status, meta = await _authorization_server_metadata()
+    if status != 200:
+        return Response(status_code=status, media_type="application/json")
+    return Response(content=json.dumps(meta), media_type="application/json")
+
+
+# Root-level OAuth endpoints. The MCP TS SDK (Inspector, Claude desktop/web) treats
+# the authorization server as the ORIGIN root — it POSTs to /token, /authorize,
+# /register, /revoke at the domain root, ignoring the metadata's path-scoped
+# endpoints. FastMCP only mounts them under /mcp, so proxy the root paths into the
+# sub-app. This makes the server tolerant of both origin-based and path-aware clients.
+_PROXY_HOP_BY_HOP = {"host", "content-length", "transfer-encoding", "content-encoding"}
+
+
+async def _proxy_to_mcp(request: Request, subpath: str) -> Response:
+    body = await request.body()
+    headers = {k: v for k, v in request.headers.items() if k.lower() not in _PROXY_HOP_BY_HOP}
+    async with AsyncClient(
+        transport=ASGITransport(app=_mcp_starlette),
+        base_url="http://localhost",
+        follow_redirects=False,
+    ) as client:
+        r = await client.request(
+            request.method,
+            subpath,
+            params=request.query_params,
+            content=body,
+            headers=headers,
+        )
+    out = {k: v for k, v in r.headers.items() if k.lower() not in _PROXY_HOP_BY_HOP}
+    return Response(content=r.content, status_code=r.status_code, headers=out)
+
+
+@app.api_route("/authorize", methods=["GET", "POST"], include_in_schema=False)
+async def oauth_authorize(request: Request) -> Response:
+    return await _proxy_to_mcp(request, "/authorize")
+
+
+@app.post("/token", include_in_schema=False)
+async def oauth_token(request: Request) -> Response:
+    return await _proxy_to_mcp(request, "/token")
+
+
+@app.post("/register", include_in_schema=False)
+async def oauth_register(request: Request) -> Response:
+    return await _proxy_to_mcp(request, "/register")
+
+
+@app.post("/revoke", include_in_schema=False)
+async def oauth_revoke(request: Request) -> Response:
+    return await _proxy_to_mcp(request, "/revoke")
 
 
 @app.get("/health")

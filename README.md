@@ -44,7 +44,7 @@ The MCP server is hosted at `linguaalayam.org/mcp` — no local install, no Pyth
 }
 ```
 
-Three tools: `exact_lookup`, `fuzzy_lookup`, `semantic_lookup`. Works with any LLM backend.
+Three tools: `exact_lookup`, `fuzzy_lookup`, `semantic_lookup`. Works with any LLM backend. OAuth is automatic — the endpoint auto-registers any client (RFC 7591 + PKCE, no login, no API key), so the URL alone is enough.
 
 See [linguaalayam/mcp/README.md](linguaalayam/mcp/README.md) for client-specific config file paths (Claude Desktop, Cursor, Windsurf, Cline, Continue) and self-hosted setup.
 
