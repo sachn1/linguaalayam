@@ -1245,18 +1245,6 @@ files = [
 dev = ["mypy (>=1.15)"]
 
 [[package]]
-name = "einops"
-version = "0.8.2"
-description = "A new flavour of deep learning operations"
-optional = false
-python-versions = ">=3.9"
-groups = ["dev"]
-files = [
-    {file = "einops-0.8.2-py3-none-any.whl", hash = "sha256:54058201ac7087911181bfec4af6091bb59380360f069276601256a76af08193"},
-    {file = "einops-0.8.2.tar.gz", hash = "sha256:609da665570e5e265e27283aab09e7f279ade90c4f01bcfca111f3d3e13f2827"},
-]
-
-[[package]]
 name = "email-validator"
 version = "2.3.0"
 description = "A robust email address syntax and deliverability validation library."
@@ -2970,40 +2958,6 @@ files = [
 ]
 
 [[package]]
-name = "langchain"
-version = "1.0.2"
-description = "Building applications with LLMs through composability"
-optional = false
-python-versions = "<4.0.0,>=3.10.0"
-groups = ["main"]
-files = [
-    {file = "langchain-1.0.2-py3-none-any.whl", hash = "sha256:e0c5647ea47cde7feb9534f56f4496c7f86a45084ad9bd152e7b19739f210ead"},
-    {file = "langchain-1.0.2.tar.gz", hash = "sha256:22f814c7b4f5f76e945c35924ff288f6dfbe33747db2a029162ef1d4f8566493"},
-]
-
-[package.dependencies]
-langchain-core = ">=1.0.0,<2.0.0"
-langgraph = ">=1.0.0,<1.1.0"
-pydantic = ">=2.7.4,<3.0.0"
-
-[package.extras]
-anthropic = ["langchain-anthropic"]
-aws = ["langchain-aws"]
-community = ["langchain-community"]
-deepseek = ["langchain-deepseek"]
-fireworks = ["langchain-fireworks"]
-google-genai = ["langchain-google-genai"]
-google-vertexai = ["langchain-google-vertexai"]
-groq = ["langchain-groq"]
-huggingface = ["langchain-huggingface"]
-mistralai = ["langchain-mistralai"]
-ollama = ["langchain-ollama"]
-openai = ["langchain-openai"]
-perplexity = ["langchain-perplexity"]
-together = ["langchain-together"]
-xai = ["langchain-xai"]
-
-[[package]]
 name = "langchain-anthropic"
 version = "1.4.0"
 description = "Integration package connecting Claude (Anthropic) APIs and LangChain"
@@ -3484,6 +3438,17 @@ files = [
 ]
 
 [[package]]
+name = "ml2en"
+version = "1.0.0"
+description = "A transliteration algorithm to transliterate Malayalam unicode strings to 'Manglish'"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "ml2en-1.0.0.tar.gz", hash = "sha256:fe492193bdc72ef71b003bd38d220baa7dab226e1b0da3fddba46a74bf48bf8b"},
+]
+
+[[package]]
 name = "mlflow"
 version = "2.22.5"
 description = "MLflow is an open source platform for the complete machine learning lifecycle"
@@ -3572,6 +3537,25 @@ langchain = ["langchain (>=0.1.0,<=0.3.23)"]
 mlserver = ["mlserver (>=1.2.0,!=1.3.1)", "mlserver-mlflow (>=1.2.0,!=1.3.1)"]
 sqlserver = ["mlflow-dbstore"]
 xethub = ["mlflow-xethub"]
+
+[[package]]
+name = "mlmorph"
+version = "1.4.0"
+description = "Malayalam morphology analyser"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "mlmorph-1.4.0.tar.gz", hash = "sha256:672dd3c66af61d9ff4ed3ff238ad979e91ac83d78cb73c54adf07761948ecda6"},
+]
+
+[package.dependencies]
+regex = "*"
+sfst = ">=1.6.0"
+
+[package.extras]
+dev = ["build", "ruff (>=0.6.4)", "tox", "twine"]
+tests = ["pytest"]
 
 [[package]]
 name = "mpmath"
@@ -6113,6 +6097,57 @@ test = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "ini2toml[lite] (>=
 type = ["importlib_metadata (>=7.0.2) ; python_version < \"3.10\"", "jaraco.develop (>=7.21) ; sys_platform != \"cygwin\"", "mypy (==1.14.*)", "pytest-mypy"]
 
 [[package]]
+name = "sfst"
+version = "1.8.0"
+description = "Python binding for SFST"
+optional = false
+python-versions = ">3.8.0"
+groups = ["main"]
+files = [
+    {file = "sfst-1.8.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:37a3bfa63ad73ae6045da7d314a7b3ce08bbad559e10f9d5895bc7db172b79af"},
+    {file = "sfst-1.8.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:001bcc655f9612f4cc4bef7c9fc9f048c44ee69793b1d2b9906c085b09912d75"},
+    {file = "sfst-1.8.0-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:0f3aff11abfc4ff3b2bffccaccf3217c1e0cfffd799ccb4a0f93ed007fbbbe64"},
+    {file = "sfst-1.8.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d95d5280647938d568e3b15344aafff66c821145fe8589a95578c78d8e356eff"},
+    {file = "sfst-1.8.0-cp310-cp310-musllinux_1_1_i686.whl", hash = "sha256:88cfcea06f5cdbd5e9dc36ab6765229d017bc0c25ad0cf04a5ecafc9c44cd8c2"},
+    {file = "sfst-1.8.0-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:f63838f4f7893d95e8828b1437c0ddbfd1cf54fafbe7d201a690adfecbf9470e"},
+    {file = "sfst-1.8.0-cp310-cp310-win32.whl", hash = "sha256:8c4e38b6c99c28f36891a6b48d33cf20ee718e7d5d519b54351a146be232a8d9"},
+    {file = "sfst-1.8.0-cp310-cp310-win_amd64.whl", hash = "sha256:acbda14dca40ce7c21ba361e51c2be9b1691cba2c11c83b4e4e11e5b50589eaa"},
+    {file = "sfst-1.8.0-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:a564e57a018d6c66d2fae70514bec6beb1a32250d4ccd5bc786f8653fd60ee2e"},
+    {file = "sfst-1.8.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:5f2cf1b62648379d53aa5fe9f7a51574c25ff578880a6015e21f167f528aed74"},
+    {file = "sfst-1.8.0-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:3ef487bb406118c3c792330dcc5ca8ad5141ad53bf6e6096b1a5c6f3475880c0"},
+    {file = "sfst-1.8.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5c6aed771bba2aabf7edc65da21d547b3172afdd838a0e79fe38e00fa02a9fd9"},
+    {file = "sfst-1.8.0-cp311-cp311-musllinux_1_1_i686.whl", hash = "sha256:ec2d2b38311a6071ba83a3cf69c7b28d673aed47e5cde6454db1c15b22092046"},
+    {file = "sfst-1.8.0-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:737f93dc62fe9eadddb726bc0a05fe708578b411130de7cd9ca8f3ce4bbe8fa2"},
+    {file = "sfst-1.8.0-cp311-cp311-win32.whl", hash = "sha256:da240ddb9ab9a015346581a36adfa0b9da5eb26ff88f50fa5288df0e91c943f5"},
+    {file = "sfst-1.8.0-cp311-cp311-win_amd64.whl", hash = "sha256:d24b76fc341dfe71cc775a391ce5ac3a242e88e91d5687869bb046f4fd8a076c"},
+    {file = "sfst-1.8.0-cp312-cp312-macosx_10_9_universal2.whl", hash = "sha256:95ba6d42f31d53c023ecd207fc9eb96af5a49d6cbb7861d10fdd647a882cfa15"},
+    {file = "sfst-1.8.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:1dad72e0111484520fade08d19127ea4464384c5ddc14e0ef5c026dc063ec49d"},
+    {file = "sfst-1.8.0-cp312-cp312-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:a196e36836acd233f03c32a58b4481617e2bac675a54a7e44bae722b40dbb12b"},
+    {file = "sfst-1.8.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:24ca224a256e8e85f2ab4e50a9ad5e0d86aeab58432dd57b439fad6449ed2125"},
+    {file = "sfst-1.8.0-cp312-cp312-musllinux_1_1_i686.whl", hash = "sha256:97c1e6828b09a3c257ed6a6d70b5aba19df63720054e3cc68eb3b3a15303ba81"},
+    {file = "sfst-1.8.0-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:1f19a1c55dba4fdb7147247b1309427073dfca914275ac5d1a192d4ac46f5af8"},
+    {file = "sfst-1.8.0-cp312-cp312-win32.whl", hash = "sha256:ffd1f9cf6acf5d77779d12c01f5d5dad87b4e26dd41f8bd28540bf918fb7f587"},
+    {file = "sfst-1.8.0-cp312-cp312-win_amd64.whl", hash = "sha256:d8fb303f776c308b38bfb7aaa8ec3dc21ab26ac225fe402e86cca2febe3b8564"},
+    {file = "sfst-1.8.0-cp38-cp38-macosx_10_9_universal2.whl", hash = "sha256:7e0cc3bae5a61477cfd11dbbcb1d27810006516b27d9a06a27548341096e527c"},
+    {file = "sfst-1.8.0-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:4290223c394134533df750499be564f5149415087b77d750083bef05382470d6"},
+    {file = "sfst-1.8.0-cp38-cp38-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:2be48f3c1267f8743ac48ea415390418c506d9654bdb13571ef0d7cb178b8a09"},
+    {file = "sfst-1.8.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:78cb7abd8778ee33e8dcf34abac9575144617e34b8ef620c5c71a41f8c6127e4"},
+    {file = "sfst-1.8.0-cp38-cp38-musllinux_1_1_i686.whl", hash = "sha256:339f3decc93b8676fd6205e25957f0cccc19358a4e4353a75e8a8ff7b43661e4"},
+    {file = "sfst-1.8.0-cp38-cp38-musllinux_1_1_x86_64.whl", hash = "sha256:694d3640f7d16455685496d21c2141dfd897a10e6b0262ee3bfc1169b3759e27"},
+    {file = "sfst-1.8.0-cp38-cp38-win32.whl", hash = "sha256:af9aa6d25f411316560e29b67fad67e05e82134cf42a59b13d793103a66f5010"},
+    {file = "sfst-1.8.0-cp38-cp38-win_amd64.whl", hash = "sha256:3d088a32a33e9a4ab428c845b29163db046b0660c513e43b39276ac9bb2a8226"},
+    {file = "sfst-1.8.0-cp39-cp39-macosx_10_9_universal2.whl", hash = "sha256:d5dd7bed5bad6cdb567ed85e822340db39289368106a3b34ef7b04a1d67a0c42"},
+    {file = "sfst-1.8.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:bb6a0503f74fdc1dd81ae1673119a63e6508c73646b3de3db5c26332ba577116"},
+    {file = "sfst-1.8.0-cp39-cp39-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:bf8a208f479b3d6bc3d255a0afe311bd64dae242a46ef15057f4d0289f5b0226"},
+    {file = "sfst-1.8.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:fa74bf5304b60e62e0470ba38d0b1ed97fcb3246a0124a460a689f75a993bf05"},
+    {file = "sfst-1.8.0-cp39-cp39-musllinux_1_1_i686.whl", hash = "sha256:7371f03f1ffebc91ae66adb21e14b3bab85b9d8882cc10b3691b86b6e716f4a7"},
+    {file = "sfst-1.8.0-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:423c5a3ac20c2f212a60567a6efca9d476520c0338a2ab0c4ed062271eb93365"},
+    {file = "sfst-1.8.0-cp39-cp39-win32.whl", hash = "sha256:8d9cc2a8d6b77e4d206f696a654cec497898b9f9382f9bacf311407e18532174"},
+    {file = "sfst-1.8.0-cp39-cp39-win_amd64.whl", hash = "sha256:f3f7ba3b38a4562fa800a4753ee28d3287f5db9e1558a0e12b3d3420579d0195"},
+    {file = "sfst-1.8.0.tar.gz", hash = "sha256:e15f3335e1a717aeb573da0635f49e9646d4c0c6f6f4736a5d2f947498795244"},
+]
+
+[[package]]
 name = "shellingham"
 version = "1.5.4"
 description = "Tool to Detect Surrounding Shell"
@@ -7615,4 +7650,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "7c43bfd242c515b7bb91b05c396258783426926ad2da64a4202328ccecc8e860"
+content-hash = "f3c48173fddea0513860d8e031af51a8f439b82e174c47d227b61a6551d866c9"

@@ -17,10 +17,8 @@ omegaconf = "^2.3"
 numpy = "^1.26"
 python-dotenv = "^1.0"
 langgraph = ">=0.2"
-langchain = ">=0.3"
 langchain-core = ">=0.3"
 langchain-anthropic = ">=0.3"
-anthropic = ">=0.40"
 pydantic = ">=2.0"
 langchain-openai = ">=0.3"
 mcp = {version = ">=1.0", extras = ["cli"]}
@@ -30,6 +28,8 @@ uvicorn = {version = ">=0.29", extras = ["standard"]}
 jinja2 = ">=3.1,<4.0"
 httpx = ">=0.27"
 indic-transliteration = "^2.3.82"
+ml2en = "^1.0.0"
+mlmorph = "^1.4.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
@@ -45,7 +45,6 @@ tqdm = "^4.66"
 commitizen = "^4.0"
 djlint = "^1.36.4"
 mlflow = "^2.0"
-einops = ">=0.7"
 
 [tool.poetry.group.cpu]
 optional = false
