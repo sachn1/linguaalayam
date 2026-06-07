@@ -53,14 +53,28 @@
 
 ### v2.5 — i18n foundation and Android
 - [x] **i18n foundation** — EN/ML locale bundles complete; architecture is locale-file-based (drop a new JSON in `static/locales/` to add a language); additional UI languages tracked in backlog
-- [x] **Android TWA** — PWA icons generated (48–512px PNG + maskable); `manifest.json` updated for Android; `/.well-known/assetlinks.json` endpoint live; `android/twa-manifest.json` (Bubblewrap config) checked in; `android/README.md` documents full build + Play Store publish flow. **Pending:** Play Developer account ($25 one-time) + fill SHA-256 signing fingerprint in `app.py` + run `bubblewrap build` to produce the AAB
+- [x] **Android TWA** — PWA icons generated (48–512px PNG + maskable); `manifest.json` updated for Android; `/.well-known/assetlinks.json` endpoint live; `android/twa-manifest.json` (Bubblewrap config) checked in; `android/README.md` documents full build + Play Store publish flow
+- [x] **MCP OAuth** — passthrough OAuth 2.0 (RFC 7591 dynamic registration, PKCE/S256); root-level proxy so origin-based clients (Claude Desktop, Inspector) and path-aware clients both work from the URL alone
 
-### v2.6 — Word of the Day
+### v2.6 — Play Store compliance and Android production
+- [x] **Privacy policy** — `/privacy` page for Play Store listing compliance
+- [x] **Android build artifacts** — gitignore for APK/AAB/keystore; Play Store closed testing active (12 testers, 14-day window)
+
+### v2.7 — Search quality, voice input, and attribution
+- [x] **ml2en romanisation** — swapped ISO 15919 for informal ml2en; correct chillu handling (ൺ→n, ൽ→l, ർ→r); romanisation now covers Datuk definitions and Ekkurup Malayalam synonym groups
+- [x] **Morphological analysis** — `mlmorph` integration; human-readable labels per headword (e.g. *past verb of ഓടുക*); shown inline in results
+- [x] **Voice search** — Web Speech API mic button with EN/ML language toggle; hidden on unsupported browsers; `ml-IN` recognition returns Malayalam Unicode script
+- [x] **Mobile layout** — header stacks logo above tagline on ≤600px; fixes cramped Android TWA layout
+- [x] **Open data attribution** — `DATA_SOURCES.md` with per-dataset authors and licences (ODbL for Olam/Datuk, CC BY-SA 4.0 for Ekkurup by E.K. Kurup); footer and settings sidebar updated
+- [x] **Service worker v2** — static assets cached first, pages network-first with offline fallback
+
+### v2.8 — Word of the Day
+- [ ] **Phonetic Manglish index** — add `headword_roman` column storing ml2en output for each Malayalam headword; pg_trgm index enables reliable informal Manglish matching (e.g. "oduka" → "otuka" → "ഓടുക") without the ISO 15919 formalism gap; requires migration + re-ingest
 - [ ] **Word of the Day** — daily featured word, filtered by frequency list to exclude common words (top 5k excluded); alternates EN/ML by default
 - [ ] **User preference** — app settings: EN only / ML only / alternate; stored in `localStorage`
-- [ ] **Push notifications** — service worker push for word-of-the-day on Android (requires v2.1 PWA baseline)
+- [ ] **Push notifications** — service worker push for word-of-the-day on Android
 
-### v2.7 — On-device AI synthesis (in-app purchase)
+### v2.9 — On-device AI synthesis (in-app purchase)
 - [ ] Generate synthetic (query → answer) training pairs from existing corpus (headword + POS + definition + synonyms)
 - [ ] Fine-tune a small multilingual model on Malayalam dictionary Q&A
 - [ ] Quality eval harness before shipping — answer quality metrics (BLEU + human eval on Malayalam output); do not ship without passing eval
@@ -70,7 +84,6 @@
 
 ### Backlog
 - [ ] **Production embedding upgrade** — eval confirms the current model underperforms on Malayalam semantic and cross-lingual queries; upgrade and re-ingest (~2h CPU); no schema change
-- [ ] **Phonetic romanisation index** — add `headword_roman` column (diacritic-stripped ISO romanisation) with pg_trgm index; enables reliable informal Manglish matching (e.g. "oduka" → "ഓടുക")
 - [ ] **Cross-lingual result bridging** — EN query surfaces Malayalam equivalents; ML query surfaces English equivalents
 - [ ] **Multilingual query input** — detect non-EN/ML query language (German, French, etc.), translate to EN via LLM adapter, return EN/ML results as usual; no new locale files needed
 - [ ] `ml_from_ml_semantic` retrieval quality — definition → headword currently at 20% hit@1; revisit after embedding upgrade

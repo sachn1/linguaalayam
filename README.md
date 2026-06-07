@@ -10,7 +10,7 @@
 
 lingua·ആലയം is an open-source Malayalam lexical knowledge base and AI integration layer. It ingests three corpora — **Olam** (English→Malayalam), **Datuk** (Malayalam→Malayalam), and **Ekkurup** (English→Malayalam thesaurus) — into a Postgres + pgvector database and enables hybrid retrieval: exact headword, trigram fuzzy, and HNSW semantic search. A LangGraph RAG pipeline synthesises natural-language answers through a configurable LLM adapter (Anthropic, OpenAI, or no LLM). The retrieval layer is exposed as a hosted MCP server — any MCP-compatible AI client can use it with just a URL.
 
-The web UI at [linguaalayam.org](https://linguaalayam.org) supports English and Malayalam interface languages, ISO 15919 romanised output alongside Malayalam definitions (toggle with the **A ↔ അ** button), intent-based corpus selection, and Manglish (romanised Malayalam) input with automatic transliteration and semantic fallback.
+The web UI at [linguaalayam.org](https://linguaalayam.org) supports English and Malayalam interface languages, romanised output alongside Malayalam definitions (toggle with the **A ↔ അ** button), voice input via the mic button (Chrome, Edge, Android — follows the EN/ML locale toggle; hidden on Firefox which does not support the Web Speech API), intent-based corpus selection, and Manglish input with automatic transliteration and semantic fallback.
 
 > Built with the assistance of [Claude](https://claude.ai) (Anthropic).
 
@@ -32,21 +32,9 @@ Full OpenAPI docs: [linguaalayam.org/docs](https://linguaalayam.org/docs)
 
 ## MCP setup (Claude Code, Claude Desktop, Cursor, Windsurf, Cline, and more)
 
-The MCP server is hosted at `linguaalayam.org/mcp` — no local install, no Python, no database:
+The MCP server is hosted at `linguaalayam.org/mcp`. Three tools: `exact_lookup`, `fuzzy_lookup`, `semantic_lookup`. Works with any LLM backend. OAuth is automatic (RFC 7591 + PKCE, no login, no API key) — the URL alone is enough.
 
-```json
-{
-  "mcpServers": {
-    "linguaalayam": {
-      "url": "https://linguaalayam.org/mcp"
-    }
-  }
-}
-```
-
-Three tools: `exact_lookup`, `fuzzy_lookup`, `semantic_lookup`. Works with any LLM backend. OAuth is automatic — the endpoint auto-registers any client (RFC 7591 + PKCE, no login, no API key), so the URL alone is enough.
-
-See [linguaalayam/mcp/README.md](linguaalayam/mcp/README.md) for client-specific config file paths (Claude Desktop, Cursor, Windsurf, Cline, Continue) and self-hosted setup.
+See [linguaalayam/mcp/README.md](linguaalayam/mcp/README.md) for the JSON snippet, client-specific config file paths (Claude Desktop, Cursor, Windsurf, Cline, Continue), and self-hosted setup.
 
 ---
 
@@ -101,7 +89,7 @@ poetry run pytest tests/database    # DB layer (SQLite, no Postgres needed)
 
 ## Data sources
 
-All corpora are sourced from [olam.in/p/open](https://olam.in/p/open), which is the open-data initiative by the [Olam](https://olam.in) project — a free Malayalam dictionary. Dataset citations and licence information are available on that page.
+Three corpora, all under the Open Database License (ODbL). See [DATA_SOURCES.md](DATA_SOURCES.md) for full attribution and licence terms.
 
 | Corpus | Description | Source |
 |---|---|---|

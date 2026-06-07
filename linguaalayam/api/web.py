@@ -12,6 +12,7 @@ from omegaconf import OmegaConf
 
 from linguaalayam.api.dependencies import get_tools
 from linguaalayam.llm.adapters.nollm import NoLLMAdapter
+from linguaalayam.morphology import analyse_word
 from linguaalayam.rag.pipeline import _SYNTHESIS_SYSTEM, _SYNTHESIS_TEMPLATE, _format_entries
 from linguaalayam.rag.query_understanding import understand_query
 from linguaalayam.transliteration import (
@@ -129,6 +130,23 @@ def search(
             except Exception:
                 log.warning("LLM synthesis failed for %r", q, exc_info=True)
 
+    # Analyse the search query itself (shown above results as query context).
+    # Only meaningful for Malayalam script — Latin/Manglish queries won't have ML morphology.
+    query_morphology: str | None = None
+    if q and not is_latin_script(headword):
+        query_morphology = analyse_word(headword)
+
+    # Analyse Datuk result headwords for in-card display (ML→ML headwords are often inflected).
+    # Skipping olam_enml: English headwords produce no useful output from mlmorph.
+    morphology: dict[str, str] = {}
+    for r in results:
+        if r.get("source") == "datuk" and r.get("headword"):
+            hw = r["headword"]
+            if hw not in morphology:
+                label = analyse_word(hw)
+                if label:
+                    morphology[hw] = label
+
     return _TEMPLATES.TemplateResponse(
         request,
         "partials/results.html",
@@ -139,5 +157,7 @@ def search(
             "answer": answer,
             "source_filter": src,
             "romanise": romanise,
+            "morphology": morphology,
+            "query_morphology": query_morphology,
         },
     )

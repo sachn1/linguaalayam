@@ -15,6 +15,10 @@
   {% endif %}
 {% endfor %}
 
+{% if query_morphology %}
+<p class="query-morph-tag"><span class="ml">{{ headword }}</span> — {{ query_morphology }}</p>
+{% endif %}
+
 <div class="results-meta-row">
   <p class="results-meta">
     {{ results | length }} result{% if results | length != 1 %}s{% endif %}
@@ -25,7 +29,7 @@
   </p>
   {% set _rbtn_class = "romanise-btn active" if romanise else "romanise-btn" %}
   {% set _rbtn_arg = "true" if romanise else "false" %}
-  {% set _rbtn_tip = "Hide romanisation" if romanise else "Show ISO 15919 romanisation — Roman letters alongside Malayalam definitions" %}
+  {% set _rbtn_tip = "Hide romanisation" if romanise else "Show romanisation — Roman letters alongside Malayalam text" %}
   <button class="{{ _rbtn_class }}" onclick="toggleRomanise({{ _rbtn_arg }})" data-tooltip="{{ _rbtn_tip }}">
     A ↔ അ
   </button>
@@ -42,7 +46,7 @@
 {% elif r.source == 'datuk' %}
   {% set source_label = 'Datuk' %}
   {% set source_dir = 'ML → ML' %}
-  {% set def_is_ml = false %}
+  {% set def_is_ml = true %}
   {% set head_is_ml = true %}
 {% else %}
   {% set source_label = 'Ekkurup' %}
@@ -56,6 +60,9 @@
     <span class="headword {% if head_is_ml %}ml{% endif %}">{{ r.headword }}{% if romanise and head_is_ml %} <span class="romanised romanised-head">{{ r.headword | romanise_ml }}</span>{% endif %}</span>
     <span class="source-tag" title="{{ source_dir }}">{{ source_label }}</span>
   </div>
+  {% if morphology and r.headword in morphology %}
+  <p class="morph-tag">{{ morphology[r.headword] }}</p>
+  {% endif %}
 
   {# --- definitions (olam_enml, datuk) --- #}
   {% if r.data.definitions %}
@@ -92,6 +99,7 @@
           <span class="sense-arrow">→</span>
           {% for group in sense.ml %}
             <span class="ml">{{ group | join(', ') }}</span>
+            {% if romanise %}<span class="romanised">{{ group | join(', ') | romanise_ml }}</span>{% endif %}
           {% endfor %}
         {% endif %}
       </dd>
@@ -205,4 +213,6 @@
   .romanise-btn.active { border-color: var(--accent); color: var(--accent); background: #fff8f0; }
 
   .empty { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
+  .morph-tag { font-size: 0.68rem; color: var(--accent); font-style: italic; margin-bottom: 0.35rem; }
+  .query-morph-tag { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.6rem; font-style: italic; }
 </style>
