@@ -4,6 +4,7 @@ import unicodedata
 
 from indic_transliteration import sanscript
 from indic_transliteration.sanscript import transliterate as _t
+from ml2en.ml2en import ml2en as _ML2EN
 
 # Schemes tried in order when attempting to interpret Latin input as Malayalam.
 # None maps informal Manglish perfectly (no standard exists), but together they
@@ -14,10 +15,12 @@ _ROMAN_TO_ML_SCHEMES = [
     sanscript.ISO,
 ]
 
+_ml2en = _ML2EN()
+
 
 def malayalam_to_roman(text: str) -> str:
-    """Transliterate a Malayalam string to ISO 15919 Roman script."""
-    return _t(text, sanscript.MALAYALAM, sanscript.ISO)
+    """Transliterate a Malayalam string to informal Roman script (ml2en)."""
+    return _ml2en.transliterate(text).lower()
 
 
 def normalize_roman(text: str) -> str:
