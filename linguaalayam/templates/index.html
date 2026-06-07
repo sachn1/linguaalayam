@@ -17,6 +17,12 @@
       hx-include="#mode,#source"
       hx-indicator="#spinner"
     />
+    <div id="mic-group" style="display:none; flex-shrink:0; display:none; align-items:center;">
+      <button id="mic-btn" class="mic-btn" type="button" aria-label="Voice search">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm-2 13.9A6 6 0 0 0 18 9h2a8 8 0 0 1-7 7.93V21h-2v-4.07A8 8 0 0 1 4 9h2a6 6 0 0 0 6 5.9z"/></svg>
+      </button>
+      <button id="mic-lang-btn" class="mic-lang-btn" type="button" title="Toggle speech language">EN</button>
+    </div>
     <span id="spinner" class="htmx-indicator"><span class="spinner"></span></span>
   </div>
 
@@ -92,4 +98,59 @@
     color: var(--text);
   }
 </style>
+<script>
+(function () {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return; // Firefox / unsupported: group stays hidden
+
+  const group = document.getElementById('mic-group');
+  const btn = document.getElementById('mic-btn');
+  const langBtn = document.getElementById('mic-lang-btn');
+  if (!group || !btn || !langBtn) return;
+
+  group.style.display = 'flex';
+
+  // Speech language is independent of UI locale — user controls it explicitly.
+  // Default: follow UI locale on first visit, then remember the last choice.
+  const defaultLang = (localStorage.getItem('ui_locale') === 'ml') ? 'ml-IN' : 'en-US';
+  let speechLang = localStorage.getItem('speech_lang') || defaultLang;
+
+  function updateLangBtn() {
+    langBtn.textContent = speechLang === 'ml-IN' ? 'ML' : 'EN';
+    langBtn.title = speechLang === 'ml-IN'
+      ? 'Speaking Malayalam — tap to switch to English'
+      : 'Speaking English — tap to switch to Malayalam';
+  }
+  updateLangBtn();
+
+  langBtn.addEventListener('click', function () {
+    speechLang = (speechLang === 'ml-IN') ? 'en-US' : 'ml-IN';
+    localStorage.setItem('speech_lang', speechLang);
+    updateLangBtn();
+  });
+
+  let recognition = null;
+
+  btn.addEventListener('click', function () {
+    if (recognition) { recognition.abort(); return; }
+
+    recognition = new SR();
+    recognition.lang = speechLang;
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => btn.classList.add('mic-active');
+    recognition.onend = () => { btn.classList.remove('mic-active'); recognition = null; };
+    recognition.onerror = () => { btn.classList.remove('mic-active'); recognition = null; };
+    recognition.onresult = (e) => {
+      const transcript = e.results[0][0].transcript;
+      const input = document.getElementById('query');
+      input.value = transcript;
+      htmx.trigger(input, 'input');
+    };
+
+    recognition.start();
+  });
+})();
+</script>
 {% endblock content %}
