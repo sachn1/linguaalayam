@@ -16,7 +16,7 @@
 {% endfor %}
 
 {% if query_morphology %}
-<p class="query-morph-tag"><span class="ml">{{ headword }}</span> — {{ query_morphology }}</p>
+<p class="query-morph-tag"><span class="ml">{{ headword }}</span> — {{ query_morphology }} <a href="https://morph.smc.org.in/" target="_blank" class="morph-credit" title="Morphological analysis by mlmorph (SMC)">mlmorph ↗</a></p>
 {% endif %}
 
 <div class="results-meta-row">
@@ -215,4 +215,6 @@
   .empty { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
   .morph-tag { font-size: 0.68rem; color: var(--accent); font-style: italic; margin-bottom: 0.35rem; }
   .query-morph-tag { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.6rem; font-style: italic; }
+  .morph-credit { font-style: normal; font-size: 0.7rem; opacity: 0.6; color: inherit; margin-left: 0.4rem; text-decoration: none; }
+  .morph-credit:hover { opacity: 1; text-decoration: underline; }
 </style>
