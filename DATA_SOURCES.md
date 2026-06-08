@@ -6,24 +6,15 @@ LinguAalayam uses three open datasets distributed through [olam.in/p/open](https
 
 ## Olam EN→ML
 
-**Description:** Crowd-sourced English–Malayalam dictionary; ~200,000 entries.  
-**Author:** Olam community ([olam.in](https://olam.in))  
-**Source:** [olam.in/p/open/enml](https://olam.in/p/open/enml)  
-**Licence:** [Open Database License (ODbL) v1.0](https://opendatacommons.org/licenses/odbl/1-0/)
+**Description:** Crowd-sourced English–Malayalam dictionary; ~125K Malayalam definitions for ~58K English words.<br>
 
 ## Datuk
 
-**Description:** Malayalam–Malayalam dictionary; ~106,000 definitions for ~83,000 words.  
-**Author:** Sri. "Datuk" K.J. Joseph (1930–2019). Originally digitised by K.J. Joseph; the dataset is named in his honour. Semanticised and maintained by the Olam team, building on work from the Varamozhi project.  
-**Source:** [olam.in/p/open/datuk](https://olam.in/p/open/datuk)  
-**Licence:** [Open Database License (ODbL) v1.0](https://opendatacommons.org/licenses/odbl/1-0/)
+**Description:** Malayalam–Malayalam dictionary; ~106,000 definitions for ~83,000 words.<br>
 
 ## Ekkurup (E.K. Kurup Corpus)
 
-**Description:** English–Malayalam dictionary, thesaurus, and synset dataset; ~900,000 synonym entries across English and Malayalam synsets.  
-**Author:** E.K. Kurup, compiled over 20 years. Distributed by olam.in.  
-**Source:** [olam.in/p/open/ekkurup](https://olam.in/p/open/ekkurup)  
-**Licence:** [Creative Commons Attribution–ShareAlike 4.0 (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/)
+**Description:** English–Malayalam dictionary, thesaurus, and synset dataset; ~900,000 synonym entries across English and Malayalam synsets.<br>
 
 ---
 

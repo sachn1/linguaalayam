@@ -8,9 +8,31 @@
 
 **[linguaalayam.org](https://linguaalayam.org)** · [API docs](https://linguaalayam.org/docs) · [MCP endpoint](https://linguaalayam.org/mcp)
 
-lingua·ആലയം is an open-source Malayalam lexical knowledge base and AI integration layer. It ingests three corpora — **Olam** (English→Malayalam), **Datuk** (Malayalam→Malayalam), and **Ekkurup** (English→Malayalam thesaurus) — into a Postgres + pgvector database and enables hybrid retrieval: exact headword, trigram fuzzy, and HNSW semantic search. A LangGraph RAG pipeline synthesises natural-language answers through a configurable LLM adapter (Anthropic, OpenAI, or no LLM). The retrieval layer is exposed as a hosted MCP server — any MCP-compatible AI client can use it with just a URL.
+---
 
-The web UI at [linguaalayam.org](https://linguaalayam.org) supports English and Malayalam interface languages, romanised output alongside Malayalam definitions (toggle with the **A ↔ അ** button), voice input via the mic button (Chrome, Edge, Android — follows the EN/ML locale toggle; hidden on Firefox which does not support the Web Speech API), intent-based corpus selection, and Manglish input with automatic transliteration and semantic fallback.
+## What this is
+
+Malayalam has one of the richest literary and grammatical traditions in the world, yet for many Malayalis, especially those in the diaspora, the everyday digital experience offers little depth. Over years, a community of linguists, engineers, and volunteers has built open corpora, morphological analysers, transliteration libraries, wiktionary, and many more. **lingua·ആലയം** (read as linguaalayam) brings these resources together under one roof.
+
+Think of it as a [Leo.org](https://leo.org) for Malayalam, a lexicology companion rather than just a lookup tool. The goal is insight: how a word inflects, what grammatical forms it takes, how it relates to its synonyms, how it reads in Roman script alongside its Malayalam script. Whether you are a native speaker exploring the depth of the language, a diaspora Malayali reconnecting with it, or a student learning it for the first time, the aim is understanding over raw coverage.
+
+The retrieval layer is also exposed as a Model Context Protocol (MCP) server and REST API, making it accessible to AI assistants and developer tools. That is an add-on, a way to bring the lexical knowledge base into the current AI ecosystem, not the primary purpose.
+
+### With the diaspora in mind
+
+There's an old joke about Neil Armstrong stepping off the Apollo Lunar Module onto the moon and hearing a familiar Malayalam film song drifting through the silence. Following the melody, he found a makeshift tea stall hand-painted sign reading "മതം പറയരുത്" (Don't discuss religion). Behind the counter, a ചേട്ടൻ (a brother or a guy) in a lungi (traditional South Asian wrap-around cloth) looked up and asked: "എന്താ മോനെ? ചായ വേണോ?" (What's up son, do you want some tea?). [This video is more fun!](https://www.youtube.com/shorts/EGrQ05nRm14)
+
+The joke lands because it is barely a joke. A large share of Malayalam speakers live outside Kerala <sup>[[1](https://timesofindia.indiatimes.com/city/kochi/keralites-working-182-countries-worldwide/articleshow/105460653.cms)]</sup> and their everyday language is a mix: code-switching between Malayalam, English, and Manglish. Linguaalayam is built with them in mind::
+
+- **Romanisation toggle**: Malayalam definitions shown alongside Roman-script transliteration, so you can read while still learning the script.
+- **Voice input**: with an EN/ML locale toggle so you can speak in either language.
+- **Morphological context**: inflected forms like *കേരളത്തിൻറെ* are parsed to show the base word and grammatical role, powered by mlmorph.
+
+We are bringing in more features for you here!
+
+---
+
+linguaalayam is open-source, self-hostable, and built entirely on openly-licensed corpora and tools. There could be errors but we are here to fix them all and learn together :)
 
 > Built with the assistance of [Claude](https://claude.ai) (Anthropic).
 
@@ -32,7 +54,7 @@ Full OpenAPI docs: [linguaalayam.org/docs](https://linguaalayam.org/docs)
 
 ## MCP setup (Claude Code, Claude Desktop, Cursor, Windsurf, Cline, and more)
 
-The MCP server is hosted at `linguaalayam.org/mcp`. Three tools: `exact_lookup`, `fuzzy_lookup`, `semantic_lookup`. Works with any LLM backend. OAuth is automatic (RFC 7591 + PKCE, no login, no API key) — the URL alone is enough.
+The MCP server is hosted at `linguaalayam.org/mcp`. Three tools: `exact_lookup`, `fuzzy_lookup`, `semantic_lookup`. Works with any LLM backend. OAuth is automatic (RFC 7591 + PKCE, no login, no API key). The URL alone is enough.
 
 See [linguaalayam/mcp/README.md](linguaalayam/mcp/README.md) for the JSON snippet, client-specific config file paths (Claude Desktop, Cursor, Windsurf, Cline, Continue), and self-hosted setup.
 
@@ -66,14 +88,14 @@ See [docs/setup.md](docs/setup.md) for database setup, environment variables, an
 
 ## Docs
 
-- [User guide](docs/user-guide.md) — search modes, corpora, AI synthesis explained
-- [Architecture](docs/architecture.md) — system flow, module reference, tech stack
-- [Roadmap](docs/roadmap.md) — versioned goals
-- [Setup](docs/setup.md) — database, environment, migrations, corpora
-- [API docs](https://linguaalayam.org/docs) — live OpenAPI / Swagger UI
-- [MCP server](linguaalayam/mcp/README.md) — tools, resources, testing
-- [RAG pipeline](linguaalayam/rag/README.md) — nodes, config, debug tool
-- [Evaluation](linguaalayam/eval/README.md) — metrics, query categories
+- [User guide](docs/user-guide.md): search modes, corpora, AI synthesis explained
+- [Architecture](docs/architecture.md): system flow, module reference, tech stack
+- [Roadmap](docs/roadmap.md): versioned goals
+- [Setup](docs/setup.md): database, environment, migrations, corpora
+- [API docs](https://linguaalayam.org/docs): live OpenAPI / Swagger UI
+- [MCP server](linguaalayam/mcp/README.md): tools, resources, testing
+- [RAG pipeline](linguaalayam/rag/README.md): nodes, config, debug tool
+- [Evaluation](linguaalayam/eval/README.md): metrics, query categories
 
 ---
 
