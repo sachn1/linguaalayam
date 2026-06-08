@@ -133,8 +133,10 @@ def search(
     # Analyse the search query itself (shown above results as query context).
     # Only meaningful for Malayalam script — Latin/Manglish queries won't have ML morphology.
     query_morphology: str | None = None
-    if q and not is_latin_script(headword):
-        query_morphology = analyse_word(headword)
+    if q and not is_latin_script(q):
+        labels = analyse_word(q)
+        if labels:
+            query_morphology = " / ".join(labels)
 
     # Analyse Datuk result headwords for in-card display (ML→ML headwords are often inflected).
     # Skipping olam_enml: English headwords produce no useful output from mlmorph.
@@ -143,9 +145,9 @@ def search(
         if r.get("source") == "datuk" and r.get("headword"):
             hw = r["headword"]
             if hw not in morphology:
-                label = analyse_word(hw)
-                if label:
-                    morphology[hw] = label
+                hw_labels = analyse_word(hw)
+                if hw_labels:
+                    morphology[hw] = " / ".join(hw_labels)
 
     return _TEMPLATES.TemplateResponse(
         request,
