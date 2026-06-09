@@ -104,8 +104,8 @@ class LookupResult(BaseModel):
 
 
 app = FastAPI(
-    title="LinguAalayam",
-    description="Your companion for Malayalam and English words — ask a question, get an answer.",
+    title="linguaalayam",
+    description="Abode of words.",
     version=_VERSION,
     lifespan=_lifespan,
 )

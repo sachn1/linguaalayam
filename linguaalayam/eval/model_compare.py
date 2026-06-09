@@ -278,7 +278,7 @@ def _print_dataset_table(
     print("=" * w)
     print(f"Dataset: {dataset_label}")
     if not ranked:
-        print("  (no models completed — all skipped)")
+        print("  (no models completed: all skipped)")
         print("=" * w)
         return
     print(

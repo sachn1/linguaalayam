@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "linguaalayam"
 version = "2.7.1"
-description = "Your companion for Malayalam and English words — ask a question, get an answer."
+description = "Your companion for Malayalam and English words - abode of words."
 authors = ["Sachin Nandakumar"]
 readme = "README.md"
 packages = [{ include = "linguaalayam" }]

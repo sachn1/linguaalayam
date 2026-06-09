@@ -1,4 +1,4 @@
-const VERSION = "v2";
+const VERSION = "v3";
 const CACHE_STATIC = `linguaalayam-static-${VERSION}`;
 const CACHE_PAGES = `linguaalayam-pages-${VERSION}`;
 

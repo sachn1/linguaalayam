@@ -2,9 +2,9 @@
   <img src="linguaalayam/static/logo.svg" alt="lingua·ആലയം" width="440" />
 </p>
 
-> ഏതു വാക്കും അറിയൂ — Every word, explained.
+> Abode of words.
 >
-> *From Latin "lingua" (language) and Malayalam "ആലയം" (abode) — a home for words.*
+> *lingua (Latin: language) · ആലയം (Malayalam: abode)*
 
 **[linguaalayam.org](https://linguaalayam.org)** · [API docs](https://linguaalayam.org/docs) · [MCP endpoint](https://linguaalayam.org/mcp)
 
