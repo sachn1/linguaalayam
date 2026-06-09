@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{% block title %}lingua·ആലയം{% endblock title %} — Every word, explained.</title>
+  <title>{% block title %}lingua·ആലയം{% endblock title %} - Abode of words.</title>
   <meta name="description" content="Ask about any Malayalam or English word — meanings, translations, and usage, powered by multiple lexical sources." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Noto+Sans+Malayalam:wght@400;600&family=Noto+Serif+Malayalam:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Manjari:wght@100;400;700&display=swap" rel="stylesheet" />
   <link rel="manifest" href="/static/manifest.json" />
   <link rel="icon" href="/static/logo-mark.svg" type="image/svg+xml" />
   <meta name="theme-color" content="#af95db" />
@@ -45,13 +45,14 @@
     }
 
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: 'Manjari', sans-serif;
+      font-size: 1.05rem;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
     }
 
-    .ml { font-family: 'Noto Sans Malayalam', sans-serif; }
+    .ml { font-family: 'Manjari', sans-serif; }
 
     header {
       border-bottom: 1px solid var(--border);
@@ -62,9 +63,9 @@
       gap: 0.75rem;
     }
 
-    header a.brand { text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; }
-    header a.brand img.brand-logo { height: 30px; width: auto; flex-shrink: 0; }
-    header .tagline { font-size: 0.8rem; color: var(--text-muted); }
+    header a.brand { text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; }
+    header a.brand img.brand-logo { height: 30px; width: auto; }
+    header .tagline { font-size: 0.75rem; color: var(--text-muted); align-self: center; }
 
     @media (max-width: 600px) {
       header { padding: 0.75rem 1rem; }
@@ -168,13 +169,14 @@
     footer {
       text-align: center;
       padding: 2rem 1rem;
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       color: var(--text-muted);
       border-top: 1px solid var(--border);
       margin-top: 3rem;
     }
     footer a { color: var(--text-muted); display: inline-flex; align-items: center; gap: 0.3rem; }
-    footer svg { width: 14px; height: 14px; fill: currentColor; }
+    footer svg { width: 14px; height: 14px; fill: currentColor; vertical-align: middle; }
+    footer svg[fill="none"] { fill: none; }
 
     /* ── Settings sidebar ── */
     .sidebar-overlay {
@@ -329,7 +331,7 @@
   <header>
     <a href="/" class="brand">
       <img class="brand-logo" src="/static/logo.svg" alt="lingua·ആലയം" />
-      <span class="tagline"><span class="ml">ഏതു വാക്കും അറിയൂ</span> &nbsp;·&nbsp; Every word, explained.</span>
+      <span class="tagline">Abode of words.</span>
     </a>
     <button class="settings-btn" onclick="openSidebar()" title="Settings">
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -342,12 +344,22 @@
   </main>
 
   <footer>
+    <a href="https://github.com/sachn1/linguaalayam/blob/master/docs/user-guide.md" target="_blank">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span data-i18n="how_to_use">How to use</span>
+    </a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/sachn1/linguaalayam/blob/master/DATA_SOURCES.md" target="_blank" title="Olam EN→ML (ODbL) · Datuk by K.J. Joseph (ODbL) · Ekkurup by E.K. Kurup (CC BY-SA 4.0)">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="15" y2="18"/></svg>
+      Data sources
+    </a>
+    &nbsp;·&nbsp;
     <a href="/docs" target="_blank">
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/></svg>
       API docs
     </a>
     &nbsp;·&nbsp;
-    <a href="/mcp/setup" title="Connect this dictionary to Claude, Cursor, Windsurf, and more">
+    <a href="/mcp/setup" title="Connect lingua·ആലയം to Claude, Cursor, Windsurf, and more">
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
       MCP for AI assistants
     </a>
@@ -360,11 +372,6 @@
     <a href="https://github.com/sachn1/linguaalayam/issues/new" target="_blank" title="Report a bug or request a feature">
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       Open an issue
-    </a>
-    &nbsp;·&nbsp;
-    <a href="https://github.com/sachn1/linguaalayam/blob/master/DATA_SOURCES.md" target="_blank" title="Olam EN→ML (ODbL) · Datuk by K.J. Joseph (ODbL) · Ekkurup by E.K. Kurup (CC BY-SA 4.0)">
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="15" y2="18"/></svg>
-      Data sources
     </a>
   </footer>
 
@@ -381,7 +388,7 @@
         <h3 data-i18n="interface_language">Interface language</h3>
         <div class="lang-toggle">
           <button class="lang-btn" data-lang="en" onclick="loadLocale('en')">English</button>
-          <button class="lang-btn" data-lang="ml" onclick="loadLocale('ml')" style="font-family:'Noto Sans Malayalam',sans-serif">മലയാളം</button>
+          <button class="lang-btn" data-lang="ml" onclick="loadLocale('ml')" style="font-family:'Manjari',sans-serif">മലയാളം</button>
         </div>
       </div>
 

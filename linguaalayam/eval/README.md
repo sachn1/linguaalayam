@@ -1,6 +1,6 @@
 # Evaluation Harness
 
-Four eval commands — all LLM-free, deterministic, no API key needed.
+Four eval commands, all LLM-free, deterministic, no API key needed.
 
 | Command | What it tests | Needs DB? |
 |---|---|---|
@@ -71,7 +71,7 @@ poetry run eval-retrieval eval.datasets=null eval.dataset=data/eval/queries_ml.j
 |---|---|
 | **Hit@1** | Fraction of queries where the correct headword is ranked #1 |
 | **Hit@k** | Fraction where the correct headword appears anywhere in top-k results |
-| **MRR** | Mean Reciprocal Rank — average of 1/rank across all queries. 1.0 = always rank 1 |
+| **MRR** | Mean Reciprocal Rank: average of 1/rank across all queries. 1.0 = always rank 1 |
 | **Latency** | Average end-to-end retrieval time per query in ms |
 | **miss_count** | Queries where the correct headword was not found in top-k |
 
@@ -167,7 +167,7 @@ See `.github/workflows/eval.yml`.
 
 ## Local GPU setup
 
-Use `make install-local` — auto-detects `nvidia-smi` and installs CUDA torch if a GPU is present.
+Use `make install-local` - auto-detects `nvidia-smi` and installs CUDA torch if a GPU is present.
 Speeds up `eval-embedding` ~5–10x. CPU torch is used in CI and production.
 
 ```bash

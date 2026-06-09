@@ -1,6 +1,6 @@
 # Android TWA — Build & Publish Guide
 
-linguaalayam is published to the Play Store as a **Trusted Web Activity (TWA)** — a thin Android shell that loads the existing PWA at `linguaalayam.org`. No separate codebase; all features come from the web app.
+linguaalayam is published to the Play Store as a **Trusted Web Activity (TWA)**, a thin Android shell that loads the existing PWA at `linguaalayam.org`. No separate codebase; all features come from the web app.
 
 ---
 

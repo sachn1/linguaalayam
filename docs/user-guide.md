@@ -73,7 +73,7 @@ Both providers offer free-tier or pay-as-you-go access. For casual dictionary us
 
 ## Data sources
 
-All corpora are from the [Olam open-data initiative](https://olam.in/p/open) — a free Malayalam dictionary project. Dataset citations and licence information are available on that page.
+All corpora are from the [Olam open-data initiative](https://olam.in/p/open), a free Malayalam dictionary project. Dataset citations and licence information are available on that page.
 
 ---
 
