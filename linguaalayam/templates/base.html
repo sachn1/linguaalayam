@@ -50,6 +50,7 @@
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
+      overflow-x: hidden;
     }
 
     .ml { font-family: 'Manjari', sans-serif; }
@@ -73,6 +74,9 @@
       header a.brand img.brand-logo { height: 26px; }
       header .tagline { font-size: 0.68rem; }
       .settings-btn span { display: none; }
+      main { padding: 1.25rem 0.875rem; }
+      .search-box { padding: 0.875rem; }
+      .mic-lang-btn { font-size: 0.6rem; padding: 0.5rem 0.3rem; }
     }
 
     .settings-btn {
@@ -109,6 +113,7 @@
 
     input[type="text"] {
       flex: 1;
+      min-width: 0;
       padding: 0.6rem 0.875rem;
       border: 1px solid var(--border);
       border-radius: var(--radius);
