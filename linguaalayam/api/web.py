@@ -11,7 +11,9 @@ from fastapi.templating import Jinja2Templates
 from omegaconf import OmegaConf
 
 from linguaalayam.api.dependencies import get_tools
+from linguaalayam.llm.adapters.anthropic import AnthropicAdapter
 from linguaalayam.llm.adapters.nollm import NoLLMAdapter
+from linguaalayam.llm.adapters.openai import OpenAIAdapter
 from linguaalayam.morphology import analyse_word
 from linguaalayam.rag.pipeline import _SYNTHESIS_SYSTEM, _SYNTHESIS_TEMPLATE, _format_entries
 from linguaalayam.rag.query_understanding import understand_query
@@ -33,41 +35,98 @@ router = APIRouter(include_in_schema=False)
 
 def _make_llm(provider: str, key: str):
     """Instantiate an LLM adapter from a user-supplied key."""
+    # TODO: Understand how to use the best model given the api key. Should it be left to the user? Because the sdks retire models on a frequent basis.
     if provider == "openai":
-        from linguaalayam.llm.adapters.openai import OpenAIAdapter
-
         return OpenAIAdapter(
             OmegaConf.create({"api_key": key, "model": "gpt-4o-mini", "max_tokens": 512})
         )
-    from linguaalayam.llm.adapters.anthropic import AnthropicAdapter
-
     return AnthropicAdapter(
         OmegaConf.create({"api_key": key, "model": "claude-haiku-4-5-20251001", "max_tokens": 512})
     )
 
 
 @router.get("/", response_class=HTMLResponse)
-def index(request: Request):
+def index(request: Request) -> HTMLResponse:
+    """Serve the main search page.
+
+    Parameters
+    ----------
+    request : Request
+        The incoming HTTP request.
+
+    Returns
+    -------
+    HTMLResponse
+        The rendered main search page.
+    """
     return _TEMPLATES.TemplateResponse(request, "index.html")
 
 
 @router.get("/settings", response_class=HTMLResponse)
-def settings(request: Request):
+def settings(request: Request) -> HTMLResponse:
+    """Serve the settings page.
+
+    Parameters
+    ----------
+    request : Request
+        The incoming HTTP request.
+
+    Returns
+    -------
+    HTMLResponse
+        The rendered settings page.
+    """
     return _TEMPLATES.TemplateResponse(request, "settings.html")
 
 
 @router.get("/privacy", response_class=HTMLResponse)
-def privacy(request: Request):
+def privacy(request: Request) -> HTMLResponse:
+    """Serve the privacy page.
+
+    Parameters
+    ----------
+    request : Request
+        The incoming HTTP request.
+
+    Returns
+    -------
+    HTMLResponse
+        The rendered privacy page.
+    """
     return _TEMPLATES.TemplateResponse(request, "privacy.html")
 
 
 @router.get("/mcp/setup", response_class=HTMLResponse)
-def mcp_setup(request: Request):
+def mcp_setup(request: Request) -> HTMLResponse:
+    """Serve the MCP setup page.
+
+    Parameters
+    ----------
+    request : Request
+        The incoming HTTP request.
+
+    Returns
+    -------
+    HTMLResponse
+        The rendered MCP setup page.
+    """
     return _TEMPLATES.TemplateResponse(request, "mcp_setup.html")
 
 
 @router.get("/mcp/setup/ping", response_class=HTMLResponse)
-def mcp_ping(request: Request):
+def mcp_ping() -> HTMLResponse:
+    """Check the server's reachability.
+
+    Parameters
+    ----------
+    request : Request
+        The incoming HTTP request.
+
+    Returns
+    -------
+    HTMLResponse
+        The server's reachability status.
+    """
     try:
         get_tools()
         return HTMLResponse('<span class="ping-ok">✓ Server is reachable</span>')

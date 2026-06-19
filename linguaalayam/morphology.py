@@ -2,6 +2,7 @@
 
 import re
 from functools import lru_cache
+from mlmorph import Analyser
 
 _analyser = None
 
@@ -47,7 +48,6 @@ _CHILLU = str.maketrans({"ൺ": "ണ്", "ൻ": "ന്", "ർ": "ര്", "ൽ
 def _get_analyser():
     global _analyser
     if _analyser is None:
-        from mlmorph import Analyser
 
         _analyser = Analyser()
     return _analyser
