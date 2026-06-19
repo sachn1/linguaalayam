@@ -2,16 +2,15 @@ name: Deploy to VPS
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - master
+  workflow_run:
+    workflows: ["Bump Version"]
+    types: [completed]
 
 jobs:
   deploy:
     name: Deploy to Hetzner VPS
     runs-on: ubuntu-latest
-    # On push: only run on the bump commit. workflow_dispatch always runs.
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'bump:')
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
 
     steps:
       - name: Deploy via SSH

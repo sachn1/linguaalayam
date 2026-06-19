@@ -21,5 +21,13 @@ sources:
       _target_: linguaalayam.corpus.ekkurup.parse
       _partial_: true
 
+  sayahna:
+    enabled: true
+    path: sayahna
+    source_name: sayahna
+    parser:
+      _target_: linguaalayam.corpus.sayahna.parse
+      _partial_: true
+
 db_batch_size: 10
 limit: 50
