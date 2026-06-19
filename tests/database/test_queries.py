@@ -2,13 +2,13 @@
 
 from linguaalayam.database.queries import batch_insert, get_ingested_headwords
 from linguaalayam.database.session import get_session
-from linguaalayam.models.entries import EnMlEntry
+from linguaalayam.models.entries import OlamEntry
 from linguaalayam.models.orm import DictionaryEntry
 
 
-def _entry(headword: str = "run") -> EnMlEntry:
-    """Return a minimal EnMlEntry for the given headword."""
-    return EnMlEntry(headword=headword, definitions=[("v", "ഓടുക")])
+def _entry(headword: str = "run") -> OlamEntry:
+    """Return a minimal OlamEntry for the given headword."""
+    return OlamEntry(headword=headword, definitions=[("v", "ഓടുക")])
 
 
 def _vector() -> list[float]:
@@ -49,7 +49,7 @@ class TestBatchInsert:
             batch_insert(session, [_entry()], [_vector()])
 
         with get_session(session_factory) as session:
-            assert session.query(DictionaryEntry).first().entry_type == "EnMlEntry"
+            assert session.query(DictionaryEntry).first().entry_type == "OlamEntry"
 
     def test_idempotent_on_duplicate(self, session_factory):
         """Inserting the same entry twice should leave exactly one row."""
@@ -86,7 +86,7 @@ class TestGetIngestedHeadwords:
     def test_filters_by_source(self, session_factory):
         """Should exclude headwords from other sources."""
         enml_entry = _entry("run")
-        datuk_entry = EnMlEntry(headword="ഓടുക", definitions=[("v", "test")], source="datuk")
+        datuk_entry = OlamEntry(headword="ഓടുക", definitions=[("v", "test")], source="datuk")
 
         with get_session(session_factory) as session:
             batch_insert(session, [enml_entry, datuk_entry], [_vector(), _vector()])

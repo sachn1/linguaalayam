@@ -12,13 +12,13 @@ from linguaalayam.database.queries import (
     similarity_search,
 )
 from linguaalayam.database.session import get_session
-from linguaalayam.models.entries import EnMlEntry
+from linguaalayam.models.entries import OlamEntry
 from linguaalayam.models.orm import DictionaryEntry
 
 
-def _entry(headword: str = "run") -> EnMlEntry:
-    """Return a minimal EnMlEntry for the given headword."""
-    return EnMlEntry(headword=headword, definitions=[("v", "ഓടുക")])
+def _entry(headword: str = "run") -> OlamEntry:
+    """Return a minimal OlamEntry for the given headword."""
+    return OlamEntry(headword=headword, definitions=[("v", "ഓടുക")])
 
 
 def _vec() -> list[float]:
@@ -211,7 +211,7 @@ class TestSimilaritySearch:
         """entry_type filter should be included in the query."""
         mock_session = MagicMock()
         mock_session.execute.return_value = []
-        similarity_search(mock_session, [0.1, 0.2, 0.3, 0.4], entry_type="EnMlEntry")
+        similarity_search(mock_session, [0.1, 0.2, 0.3, 0.4], entry_type="OlamEntry")
         mock_session.execute.assert_called_once()
 
     def test_empty_results(self):

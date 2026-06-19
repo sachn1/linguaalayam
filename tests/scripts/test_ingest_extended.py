@@ -3,14 +3,14 @@
 from unittest.mock import MagicMock, patch
 
 
-from linguaalayam.models.entries import EnMlEntry
+from linguaalayam.models.entries import OlamEntry
 from linguaalayam.scripts.ingest import _batched, _ingest_corpus, _process_source
 from linguaalayam.scripts.vector_checkpoint import VectorCheckpoint
 
 
-def _entries(*headwords: str) -> list[EnMlEntry]:
-    """Build a list of stub EnMlEntry objects from headwords."""
-    return [EnMlEntry(headword=hw, definitions=[("v", "test")]) for hw in headwords]
+def _entries(*headwords: str) -> list[OlamEntry]:
+    """Build a list of stub OlamEntry objects from headwords."""
+    return [OlamEntry(headword=hw, definitions=[("v", "test")]) for hw in headwords]
 
 
 def _mock_session_ctx():

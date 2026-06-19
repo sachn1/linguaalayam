@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 
-from linguaalayam.models.entries import EnMlEntry
+from linguaalayam.models.entries import OlamEntry
 from linguaalayam.scripts.ingest import (
     _get_pending,
     _embed_with_checkpoint,
@@ -17,9 +17,9 @@ from linguaalayam.scripts.vector_checkpoint import VectorCheckpoint
 # ---------------------------------------------------------------------------
 
 
-def _make_entries(*headwords: str) -> list[EnMlEntry]:
-    """Build a list of stub EnMlEntry objects from headwords."""
-    return [EnMlEntry(headword=hw, definitions=[("v", "test")]) for hw in headwords]
+def _make_entries(*headwords: str) -> list[OlamEntry]:
+    """Build a list of stub OlamEntry objects from headwords."""
+    return [OlamEntry(headword=hw, definitions=[("v", "test")]) for hw in headwords]
 
 
 def test_get_pending_excludes_ingested():

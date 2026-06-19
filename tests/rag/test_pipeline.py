@@ -14,7 +14,7 @@ def _candidate(headword: str, match_type: str = "exact", score: float = 1.0) -> 
     return {
         "headword": headword,
         "source": "olam_enml",
-        "entry_type": "EnMlEntry",
+        "entry_type": "OlamEntry",
         "embed_text": f"word: {headword}\n  [v] ഓടുക",
         "data": {},
         "match_type": match_type,

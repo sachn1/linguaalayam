@@ -4,7 +4,7 @@ import textwrap
 from pathlib import Path
 
 from linguaalayam.corpus import enml
-from linguaalayam.models.entries import EnMlEntry
+from linguaalayam.models.entries import OlamEntry
 
 
 def _write(tmp_path: Path, name: str, content: str) -> Path:
@@ -53,9 +53,9 @@ def test_enml_source(tmp_path):
 
 
 def test_enml_returns_correct_type(tmp_path):
-    """Parser should return EnMlEntry instances."""
+    """Parser should return OlamEntry instances."""
     entries = enml.parse(_write(tmp_path, "enml", ENML))
-    assert all(isinstance(e, EnMlEntry) for e in entries)
+    assert all(isinstance(e, OlamEntry) for e in entries)
 
 
 def test_enml_embed_text_contains_headword_and_definitions(tmp_path):

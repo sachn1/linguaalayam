@@ -14,7 +14,7 @@ def _queries(*headwords: str) -> list[EvalQuery]:
 
 
 def test_build_entries_known_headword():
-    """Should produce one EnMlEntry for a headword in the curated definitions."""
+    """Should produce one OlamEntry for a headword in the curated definitions."""
     with patch("linguaalayam.eval.seed.load_dataset", return_value=_queries("run")):
         entries = _build_entries()
     assert len(entries) == 1

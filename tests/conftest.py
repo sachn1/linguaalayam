@@ -6,7 +6,7 @@ from omegaconf import OmegaConf
 
 from linguaalayam.embeddings import service as embedding_service
 from linguaalayam.embeddings.service import EmbeddingService
-from linguaalayam.models.entries import EnMlEntry
+from linguaalayam.models.entries import OlamEntry
 
 
 class DummyModel:
@@ -46,8 +46,8 @@ def dummy_service(monkeypatch, embedding_cfg):
 
 @pytest.fixture()
 def enml_entry():
-    """A minimal EnMlEntry for 'run' with two verb definitions."""
-    return EnMlEntry(
+    """A minimal OlamEntry for 'run' with two verb definitions."""
+    return OlamEntry(
         headword="run",
         definitions=[("v", "ഓടുക"), ("v", "പായുക")],
     )
