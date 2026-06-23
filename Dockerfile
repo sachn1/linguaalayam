@@ -11,8 +11,10 @@ COPY pyproject.toml poetry.lock README.md ./
 RUN poetry config virtualenvs.create false \
     && poetry install --without dev,huggingface --no-root --no-interaction
 
-# Copy application source
+# Copy application source and Alembic migrations
 COPY linguaalayam/ ./linguaalayam/
+COPY migrations/ ./migrations/
+COPY alembic.ini ./
 
 # Install the package itself
 RUN poetry install --without dev,huggingface --no-interaction

@@ -60,7 +60,7 @@ jobs:
           source: "docker-compose.yml"
           target: "/root/linguaalayam"
 
-      - name: Pull and restart
+      - name: Run migrations and restart app
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -69,6 +69,20 @@ jobs:
           script: |
             set -e
             cd /root/linguaalayam
+
+            # Ensure DB is up before touching the schema.
+            docker compose up -d db
+            docker compose exec db sh -c \
+              'until pg_isready -U postgres; do sleep 1; done'
+
+            # Pull the new image first so the alembic binary is up-to-date.
             docker compose pull app
+
+            # Apply any pending schema migrations before the new app starts.
+            # This is a no-op when the schema is already current.
+            docker compose run --rm app poetry run alembic upgrade head
+
+            # Restart the app with the new image.
             docker compose up -d app
+
             echo "Deployed ${{ needs.build.outputs.version }}"

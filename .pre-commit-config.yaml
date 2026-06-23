@@ -31,3 +31,13 @@ repos:
     rev: v3.1.0
     hooks:
       - id: readme-drift
+
+  - repo: local
+    hooks:
+      - id: interrogate
+        name: interrogate
+        entry: poetry run interrogate
+        language: system
+        types: [python]
+        args: [--config=pyproject.toml]
+        exclude: ^migrations/

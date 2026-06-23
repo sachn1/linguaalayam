@@ -48,6 +48,7 @@ djlint = "^1.36.4"
 mlflow = "^2.0"
 dvc = "^3.67.1"
 dvc-ssh = "^4.3.0"
+interrogate = "^1.7.0"
 
 [tool.poetry.group.cpu]
 optional = false
@@ -107,6 +108,18 @@ exclude = ["migrations/", "notebooks/"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
+
+[tool.interrogate]
+ignore-init-method = true
+ignore-magic = true
+ignore-semiprivate = false
+ignore-private = false
+ignore-module = false
+ignore-nested-functions = false
+fail-under = 80
+verbose = 0
+omit-covered-files = false
+exclude = ["migrations", "notebooks"]
 
 [tool.djlint]
 profile = "jinja"

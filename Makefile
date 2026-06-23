@@ -19,6 +19,7 @@ check:
 
 lint:
 	poetry run ruff check --fix .
+	poetry run interrogate --config=pyproject.toml .
 
 format:
 	poetry run ruff format .
