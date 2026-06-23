@@ -9,7 +9,7 @@ from importlib.metadata import version as _pkg_version
 from pathlib import Path
 from typing import Any, Literal
 
-from dotenv import load_dotenv
+import uvicorn
 from fastapi import FastAPI, Query, Response
 from fastapi.staticfiles import StaticFiles
 from httpx import ASGITransport, AsyncClient
@@ -18,30 +18,37 @@ from pydantic import BaseModel
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.requests import Request
 
-from linguaalayam.api.dependencies import get_tools, set_tools
+from linguaalayam.api.dependencies import get_tools, set_tools, set_translator
 from linguaalayam.api.web import router as _web_router
 from linguaalayam.database import build_engine, build_session_factory
 from linguaalayam.embeddings import EmbeddingService
-from linguaalayam.mcp.remote import get_mcp_app
+from linguaalayam.env import load_env
+from linguaalayam.mcp.remote import get_mcp_app, mcp
 from linguaalayam.rag.tools import DictionaryTools
+from linguaalayam.translation import build_translation_service
 
-load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+load_env()
 
+# TODO: Check if they need to go to the config and not here.
 _EMBED_MODEL = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
 _CACHE_1D = "public, max-age=86400"
-_PLAY_CONSOLE_APP_CERT_FINGERPINT = "36:00:69:0E:1F:3B:32:5F:1E:F1:B4:55:EE:DD:67:AA:88:D6:D8:3A:27:6E:25:DB:F8:09:EF:DF:02:C0:CB:04"
+_PLAY_CONSOLE_APP_CERT_FINGERPINT = (
+    "36:00:69:0E:1F:3B:32:5F:1E:F1:B4:55:EE:DD:67:AA:"
+    "88:D6:D8:3A:27:6E:25:DB:F8:09:EF:DF:02:C0:CB:04"
+)
 
 
+# TODO: Why do we even need this?
 try:
     _VERSION = _pkg_version("linguaalayam")
 except Exception:
     _VERSION = "dev"
 
-CorpusSource = Literal["olam_enml", "datuk", "ekkurup"]
+CorpusSource = Literal["olam_enml", "datuk", "ekkurup", "sayahna"]
 
-
+# TODO: Isn't this now only required when we run the app "only" locally? Via docker (locally and on prod) this is not required.
 def _ensure_docker_db() -> None:
-    container = os.getenv("DB_CONTAINER", "linguaalayam-pg")
+    container = os.getenv("DB_CONTAINER", "linguaalayam")
     try:
         result = subprocess.run(
             ["docker", "start", container],
@@ -83,10 +90,9 @@ def _init_tools() -> DictionaryTools:
 
 @asynccontextmanager
 async def _lifespan(_: FastAPI):
-    from linguaalayam.mcp.remote import mcp
-
     _ensure_docker_db()
     set_tools(_init_tools())
+    set_translator(build_translation_service(os.getenv("TRANSLATION_BACKEND", "marian")))
     # The MCP sub-app is mount()ed, so Starlette never runs its lifespan — start
     # the streamable-HTTP session manager here or every MCP request 500s.
     async with mcp.session_manager.run():
@@ -300,8 +306,6 @@ def semantic_lookup(
 
 
 def main() -> None:  # pragma: no cover
-    import uvicorn
-
     uvicorn.run(
         "linguaalayam.api.app:app",
         host="0.0.0.0",

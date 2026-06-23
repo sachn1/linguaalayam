@@ -9,15 +9,14 @@ representative — run against the real ingested corpus for meaningful numbers.
 import logging
 from pathlib import Path
 
-from dotenv import load_dotenv
-
-from linguaalayam.models.entries import OlamEntry
 from linguaalayam.database import batch_insert, build_engine, build_session_factory, get_session
 from linguaalayam.embeddings import EmbeddingService
+from linguaalayam.env import load_env
 from linguaalayam.eval.dataset import load_dataset
+from linguaalayam.models.entries import OlamEntry
 from linguaalayam.scripts.vector_checkpoint import VectorCheckpoint
 
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+load_env()
 
 log = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 """Abstract base class for LLM provider adapters."""
 
 from abc import ABC, abstractmethod
-from typing import TypeVar, Type
+from typing import Type, TypeVar
 
 T = TypeVar("T")
 

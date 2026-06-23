@@ -1,21 +1,20 @@
 """RAG query entrypoint for the LinguAalayam dictionary assistant."""
 
 import logging
-from pathlib import Path
 
 import hydra
-from dotenv import load_dotenv
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from linguaalayam.database import build_engine, build_session_factory
 from linguaalayam.embeddings import EmbeddingService
+from linguaalayam.env import load_env
 from linguaalayam.llm import LLMAdapter
 from linguaalayam.rag.pipeline import build_pipeline
 from linguaalayam.rag.reranker import CrossEncoderReranker
 from linguaalayam.rag.tools import DictionaryTools
 
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+load_env()
 
 log = logging.getLogger(__name__)
 
@@ -51,7 +50,8 @@ def main(cfg: DictConfig) -> None:  # pragma: no cover
     query: str = cfg.rag.query
     if not query:
         raise RuntimeError(
-            "No query provided. Use the env var for complex text, or a Hydra override for simple terms:\n"
+            "No query provided. Use the env var for complex text,"
+            " or a Hydra override for simple terms:\n"
             "  RAG_QUERY='your query' poetry run rag\n"
             "  poetry run rag 'rag.query=run'"
         )

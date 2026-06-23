@@ -40,9 +40,9 @@ import re
 from pathlib import Path
 from urllib.parse import quote_plus
 
-from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 
+from linguaalayam.env import load_env
 from linguaalayam.transliteration import malayalam_to_roman
 
 _DEFAULT_PER_INTENT = 10
@@ -304,7 +304,7 @@ def prepare_queries(
     per_intent: int,
     seed: int,
 ) -> None:
-    load_dotenv()
+    load_env()
     engine = create_engine(_build_url(), pool_pre_ping=True)
 
     print("Sampling entries from DB...")

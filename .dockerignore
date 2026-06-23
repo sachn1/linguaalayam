@@ -1,0 +1,9 @@
+.git
+tests/
+docs/
+notebooks/
+android/
+data/
+*.md
+!README.md
+linguaalayam.sql.gz

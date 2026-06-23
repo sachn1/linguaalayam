@@ -1,6 +1,6 @@
 """Tests for eval/metrics.py — pure metric functions."""
 
-from linguaalayam.eval import intent_breakdown, mrr, hit_rate, hit_rate_at_1, tool_breakdown
+from linguaalayam.eval import hit_rate, hit_rate_at_1, intent_breakdown, mrr, tool_breakdown
 from linguaalayam.eval.metrics import QueryResult
 
 

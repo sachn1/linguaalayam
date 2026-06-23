@@ -35,18 +35,18 @@ import hydra
 import mlflow
 import numpy as np
 import torch
-from dotenv import load_dotenv
 from omegaconf import DictConfig
 from sentence_transformers import SentenceTransformer
 
 from linguaalayam.database import build_engine, build_session_factory
 from linguaalayam.embeddings import EmbeddingService
+from linguaalayam.env import load_env
 from linguaalayam.eval.dataset import load_dataset
 from linguaalayam.eval.metrics import QueryResult, intent_breakdown, mrr, tool_breakdown
 from linguaalayam.eval.runner import SemanticFn, run_eval
 from linguaalayam.rag.tools import DictionaryTools
 
-load_dotenv()
+load_env()
 
 log = logging.getLogger(__name__)
 
@@ -180,7 +180,8 @@ def _print_summary(
     print("By intent:")
     for intent, m in intents.items():
         print(
-            f"  {intent:<22}  hit@1={m['hit@1']:.2f}  hit@k={m['hit@k']:.2f}  mrr={m['mrr']:.2f}  n={m['count']}"
+            f"  {intent:<22}  hit@1={m['hit@1']:.2f}  "
+            f"hit@k={m['hit@k']:.2f}  mrr={m['mrr']:.2f}  n={m['count']}"
         )
 
     misses = [r for r in results if not r.hit_at_k]

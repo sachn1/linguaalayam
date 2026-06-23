@@ -4,21 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-LinguAalayam is a Malayalam lexical knowledge base and MCP server. It ingests three corpora — Olam (EN→ML), Datuk (ML→ML), and Ekkurup (EN→ML thesaurus) — into a local Postgres + pgvector database and exposes hybrid retrieval (exact headword, trigram fuzzy, HNSW semantic) through both a LangGraph RAG pipeline and an MCP server for Claude.
+LinguAalayam is a Malayalam lexical knowledge base and MCP server. It ingests four corpora — Olam (EN→ML), Datuk (ML→ML), Shabdataaravali/Sayahna (ML→ML, classical 1917), and Ekkurup (EN→ML thesaurus) — into a local Postgres + pgvector database and exposes hybrid retrieval (exact headword, trigram fuzzy, HNSW semantic) through both a LangGraph RAG pipeline and an MCP server for Claude.
 
 ## Local database setup
 
-```bash
-docker run -d --name linguaalayam-pg \
-  -e POSTGRES_PASSWORD=yourpassword \
-  -p 5432:5432 \
-  ankane/pgvector
 
-# Create the database
-docker exec -it linguaalayam-pg psql -U postgres -c "CREATE DATABASE linguaalayam;"
+```bash
+docker compose up -d db
+docker compose exec db psql -U postgres -d linguaalayam -c "CREATE EXTENSION IF NOT EXISTS vector;"
 ```
 
-Copy `.env.example` to `.env` — DB values must match the Docker setup above. Then run migrations.
+Copy `.env.example` to `.env` — DB values must match `docker-compose.yml` (`DB_HOST=db` from inside containers, `localhost` from the host/your own machine). `POSTGRES_DB` creates the `linguaalayam` database automatically on a fresh volume; the `vector` extension still needs to be enabled explicitly before running migrations or ingest.
+
 
 ## GPU setup (local only)
 
@@ -60,6 +57,11 @@ poetry run pytest tests/database                # DB tests (SQLite in-memory, no
 # Lint / format
 poetry run ruff check .
 poetry run ruff format .
+
+# Database dump / restore (DVC-tracked, see scripts/db_dump.sh and scripts/db_restore.sh)
+scripts/db_dump.sh                              # dump live db, push to DVC remote
+scripts/db_restore.sh                           # pull dump from DVC, restore into running db
+dvc pull && scripts/db_restore.sh               # skip `poetry run ingest`, use a pre-built db instead
 ```
 
 ## Architecture
@@ -163,4 +165,4 @@ CrossEncoder('cross-encoder/mmarco-mMiniLMv2-L12-H384-v1')
 "
 ```
 
-Baking models into a Docker image layer is planned for v0.6 when the REST API is containerised.
+Models are baked into the linguaalayam-base image layer at build time (see Dockerfile.base) — Docker runs get this for free. The pre-warm step above is only needed for bare-metal/local Python runs outside Docker.

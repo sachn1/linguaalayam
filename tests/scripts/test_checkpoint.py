@@ -88,7 +88,9 @@ def test_remove_inserted_skips_malformed_lines(tmp_path):
     """remove_inserted should skip malformed lines without raising."""
     path = tmp_path / "mixed.jsonl"
     path.write_text(
-        '{"headword": "run", "vector": [1.0]}\nbad json line\n{"headword": "walk", "vector": [2.0]}\n',
+        '{"headword": "run", "vector": [1.0]}\n'
+        "bad json line\n"
+        '{"headword": "walk", "vector": [2.0]}\n',
         encoding="utf-8",
     )
     cp = VectorCheckpoint(path)

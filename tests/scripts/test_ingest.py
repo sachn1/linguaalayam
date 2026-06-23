@@ -2,15 +2,13 @@
 
 from unittest.mock import MagicMock, patch
 
-
 from linguaalayam.models.entries import OlamEntry
 from linguaalayam.scripts.ingest import (
-    _get_pending,
     _embed_with_checkpoint,
+    _get_pending,
     _insert_with_checkpoint,
 )
 from linguaalayam.scripts.vector_checkpoint import VectorCheckpoint
-
 
 # ---------------------------------------------------------------------------
 # _get_pending

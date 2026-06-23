@@ -44,6 +44,9 @@ def build_engine(db_cfg: DictConfig) -> Engine:
         max_overflow=db_cfg.max_overflow,
     )
 
+    # TODO: check why is this relevant?
+    # we deliberately connects to a pgvector supported docker image
+    # why shouldn't it have a pgvector extension?
     @event.listens_for(engine, "connect")
     def on_connect(dbapi_conn, _connection_record) -> None:  # pragma: no cover
         """Ensure the pgvector extension is available on every new connection."""

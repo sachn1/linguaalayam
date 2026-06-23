@@ -8,8 +8,15 @@ import pytest
 from fastapi.testclient import TestClient
 
 from linguaalayam.api.app import app
+from linguaalayam.translation.base import TranslationResult
 
 _LOCALES = Path(__file__).resolve().parents[2] / "linguaalayam/static/locales"
+
+
+def _passthrough_translation(text: str, source_lang: str = "en-US") -> TranslationResult:
+    """Stub translator that returns the input unchanged (no translation needed)."""
+    iso = source_lang.split("-")[0].lower()
+    return TranslationResult(text=text, source_lang=iso, was_translated=False)
 
 
 @pytest.fixture()
@@ -22,8 +29,18 @@ def mock_tools():
 
 
 @pytest.fixture()
-def client(mock_tools):
-    with patch("linguaalayam.api.web.get_tools", return_value=mock_tools):
+def mock_translator():
+    t = MagicMock()
+    t.translate.side_effect = _passthrough_translation
+    return t
+
+
+@pytest.fixture()
+def client(mock_tools, mock_translator):
+    with (
+        patch("linguaalayam.api.web.get_tools", return_value=mock_tools),
+        patch("linguaalayam.api.web.get_translator", return_value=mock_translator),
+    ):
         yield TestClient(app, raise_server_exceptions=True)
 
 
@@ -99,6 +116,54 @@ def test_search_exact_no_semantic_fallback(client, mock_tools):
     r = client.get("/search?query=xyzzy&mode=exact")
     assert r.status_code == 200
     mock_tools.semantic_lookup.assert_not_called()
+
+
+# ── source mapping ────────────────────────────────────────────────────────────
+
+
+def test_search_datuk_source_maps_to_list(client, mock_tools):
+    """source=datuk in the UI should query both datuk and sayahna corpora."""
+    mock_tools.fuzzy_lookup.return_value = [MagicMock()]
+    r = client.get("/search?query=run&mode=fuzzy&source=datuk")
+    assert r.status_code == 200
+    _, kwargs = mock_tools.fuzzy_lookup.call_args
+    assert kwargs.get("source") == ["datuk", "sayahna"]
+
+
+def test_search_olam_source_passes_string(client, mock_tools):
+    """Non-datuk source values should be forwarded as a plain string."""
+    mock_tools.fuzzy_lookup.return_value = [MagicMock()]
+    r = client.get("/search?query=run&mode=fuzzy&source=olam_enml")
+    assert r.status_code == 200
+    _, kwargs = mock_tools.fuzzy_lookup.call_args
+    assert kwargs.get("source") == "olam_enml"
+
+
+def test_search_empty_source_passes_none(client, mock_tools):
+    """An empty source param should forward None (search all corpora)."""
+    mock_tools.fuzzy_lookup.return_value = [MagicMock()]
+    r = client.get("/search?query=run&mode=fuzzy&source=")
+    assert r.status_code == 200
+    _, kwargs = mock_tools.fuzzy_lookup.call_args
+    assert kwargs.get("source") is None
+
+
+# ── language parameter ─────────────────────────────────────────────────────────
+
+
+def test_search_lang_param_accepted(client, mock_translator):
+    """lang parameter should be accepted and forwarded to the translator."""
+    r = client.get("/search?query=laufen&lang=de-DE")
+    assert r.status_code == 200
+    mock_translator.translate.assert_called_once_with("laufen", source_lang="de-DE")
+
+
+def test_search_default_lang_is_en(client, mock_translator):
+    """Omitting lang should default to en-US and pass it to the translator."""
+    r = client.get("/search?query=run")
+    assert r.status_code == 200
+    _, kwargs = mock_translator.translate.call_args
+    assert kwargs.get("source_lang") == "en-US"
 
 
 # ── locale bundle tests ────────────────────────────────────────────────────────

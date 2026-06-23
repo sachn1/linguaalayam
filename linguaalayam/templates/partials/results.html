@@ -15,6 +15,10 @@
   {% endif %}
 {% endfor %}
 
+{% if translation and translation.was_translated %}
+<p class="translation-note">Translated from {{ translation.source_lang_name }}</p>
+{% endif %}
+
 {% if query_morphology %}
 <p class="query-morph-tag"><span class="ml">{{ headword }}</span> — {{ query_morphology }} <a href="https://morph.smc.org.in/" target="_blank" class="morph-credit" title="Morphological analysis by mlmorph (SMC)">mlmorph ↗</a></p>
 {% endif %}
@@ -48,6 +52,11 @@
   {% set source_dir = 'ML → ML' %}
   {% set def_is_ml = true %}
   {% set head_is_ml = true %}
+{% elif r.source == 'sayahna' %}
+  {% set source_label = 'Sayahna' %}
+  {% set source_dir = 'ML → ML' %}
+  {% set def_is_ml = true %}
+  {% set head_is_ml = true %}
 {% else %}
   {% set source_label = 'Ekkurup' %}
   {% set source_dir = 'EN thesaurus' %}
@@ -63,16 +72,19 @@
   {% if morphology and r.headword in morphology %}
   <p class="morph-tag">{{ morphology[r.headword] }}</p>
   {% endif %}
+  {% if r.source == 'sayahna' and 'ു്' in r.headword %}
+  <p class="archaic-note" title="This dictionary was written in 1917 and uses an older Malayalam script convention. The ending 'ു്' is an archaic word-boundary marker — you may see it written without this suffix in modern texts.">Archaic spelling (1917 orthography)</p>
+  {% endif %}
 
   {# --- definitions (olam_enml, datuk) --- #}
   {% if r.data.definitions %}
     <dl class="defs">
-    {% set ns2 = namespace(last_pos=None) %}
+    {% set ns2 = namespace(last_pos=False) %}
     {% for pair in r.data.definitions %}
       {% set pos = pair[0] %}
       {% set text = pair[1] %}
       {% if pos != ns2.last_pos %}
-        {% if ns2.last_pos is not none %}</dd>{% endif %}
+        {% if ns2.last_pos is not sameas false %}</dd>{% endif %}
         <dt>{{ pos if pos else '—' }}</dt>
         <dd>
           <span class="{% if def_is_ml %}ml{% endif %}">{{ text }}</span>
@@ -85,6 +97,15 @@
     {% endfor %}
     {% if r.data.definitions %}</dd>{% endif %}
     </dl>
+
+  {# --- explanations (sayahna supplementary notes) --- #}
+  {% if r.data.explanations %}
+    <ul class="explanations">
+    {% for note in r.data.explanations %}
+      <li class="ml">{{ note }}{% if romanise %} <span class="romanised">{{ note | romanise_ml }}</span>{% endif %}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
 
   {# --- senses (ekkurup thesaurus) --- #}
   {% elif r.data.senses %}
@@ -214,7 +235,9 @@
 
   .empty { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
   .morph-tag { font-size: 0.68rem; color: var(--accent); font-style: italic; margin-bottom: 0.35rem; }
+  .archaic-note { font-size: 0.68rem; color: var(--text-muted); font-style: italic; margin-bottom: 0.35rem; cursor: help; border-bottom: 1px dashed var(--border); display: inline-block; }
   .query-morph-tag { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.6rem; font-style: italic; }
+  .translation-note { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.4rem; font-style: italic; }
   .morph-credit { font-style: normal; font-size: 0.7rem; opacity: 0.6; color: inherit; margin-left: 0.4rem; text-decoration: none; }
   .morph-credit:hover { opacity: 1; text-decoration: underline; }
 </style>

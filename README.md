@@ -84,6 +84,25 @@ poetry run ingest
 
 See [docs/setup.md](docs/setup.md) for database setup, environment variables, and data download.
 
+
+### Docker
+
+Prefer containers? This spins up the full stack (app + Postgres):
+
+```bash
+docker compose up --build
+```
+
+Just need the database running (e.g. for `psql`/DBeaver access)?
+
+```bash
+docker compose up -d db
+```
+
+### Data storage
+
+Corpus files (`data/`) and database snapshots (`linguaalayam.sql.gz`) are tracked with [DVC](https://dvc.org), backed by a private remote.
+
 ---
 
 ## Docs

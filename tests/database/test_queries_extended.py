@@ -1,4 +1,4 @@
-"""Extended query tests: exact_search, fuzzy_search (sqlite path), similarity_search, pg batch_insert."""
+"""Query tests: exact_search, fuzzy_search (sqlite path), similarity_search, pg batch_insert."""
 
 from unittest.mock import MagicMock, patch
 
@@ -219,4 +219,55 @@ class TestSimilaritySearch:
         mock_session = MagicMock()
         mock_session.execute.return_value = []
         results = similarity_search(mock_session, [0.0, 0.0, 0.0, 0.0])
+        assert results == []
+
+    def test_source_list_filter_applied(self):
+        """A list source should be forwarded to the query (in_ path)."""
+        mock_session = MagicMock()
+        mock_session.execute.return_value = []
+        similarity_search(mock_session, [0.1, 0.2, 0.3, 0.4], source=["datuk", "sayahna"])
+        mock_session.execute.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# List-source filtering — SQLite integration (exact and fuzzy)
+# ---------------------------------------------------------------------------
+
+
+class TestListSourceFiltering:
+    """Query functions accept source as a list and filter with SQL IN."""
+
+    def test_exact_search_list_includes(self, session_factory):
+        """exact_search with a list source should return entries in any listed source."""
+        olam = OlamEntry(headword="run", definitions=[("v", "ഓടുക")])
+        datuk = OlamEntry(headword="run", definitions=[("v", "ഓടുക")], source="datuk")
+        with get_session(session_factory) as session:
+            batch_insert(session, [olam], [_vec()])
+            batch_insert(session, [datuk], [_vec()])
+        with get_session(session_factory) as session:
+            results = exact_search(session, "run", source=["olam_enml", "datuk"])
+        assert len(results) == 2
+
+    def test_exact_search_list_excludes(self, session_factory):
+        """exact_search with a list that doesn't match the entry's source returns nothing."""
+        with get_session(session_factory) as session:
+            batch_insert(session, [_entry("run")], [_vec()])
+        with get_session(session_factory) as session:
+            results = exact_search(session, "run", source=["datuk", "sayahna"])
+        assert results == []
+
+    def test_fuzzy_search_list_includes(self, session_factory):
+        """fuzzy_search with a list source should include matching entries."""
+        with get_session(session_factory) as session:
+            batch_insert(session, [_entry("run")], [_vec()])
+        with get_session(session_factory) as session:
+            results = fuzzy_search(session, "run", source=["olam_enml", "datuk"])
+        assert len(results) >= 1
+
+    def test_fuzzy_search_list_excludes(self, session_factory):
+        """fuzzy_search with a non-matching list source returns nothing."""
+        with get_session(session_factory) as session:
+            batch_insert(session, [_entry("run")], [_vec()])
+        with get_session(session_factory) as session:
+            results = fuzzy_search(session, "run", source=["datuk", "sayahna"])
         assert results == []

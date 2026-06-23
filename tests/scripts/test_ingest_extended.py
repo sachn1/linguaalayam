@@ -2,7 +2,6 @@
 
 from unittest.mock import MagicMock, patch
 
-
 from linguaalayam.models.entries import OlamEntry
 from linguaalayam.scripts.ingest import _batched, _ingest_corpus, _process_source
 from linguaalayam.scripts.vector_checkpoint import VectorCheckpoint

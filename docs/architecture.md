@@ -3,7 +3,7 @@
 Four independent subsystems share the same Postgres + pgvector database:
 the **ingestion pipeline**, the **RAG pipeline**, the **REST API / web UI**, and the **MCP server**.
 
-Three corpora are active: **Olam** (EN→ML), **Datuk** (ML→ML), and **Ekkurup** (EN→ML thesaurus). Each corpus is wired via a `parser._target_` entry in `config/corpus/all.yaml`; no Python code change is needed to add a new corpus.
+Four corpora are active: **Olam** (EN→ML), **Datuk** (ML→ML), **Shabdataaravali / Sayahna** (ML→ML, classical 1917 dictionary), and **Ekkurup** (EN→ML thesaurus). Each corpus is wired via a `parser._target_` entry in `config/corpus/all.yaml`; no Python code change is needed to add a new corpus.
 
 ---
 
@@ -11,10 +11,10 @@ Three corpora are active: **Olam** (EN→ML), **Datuk** (ML→ML), and **Ekkurup
 
 ```mermaid
 flowchart LR
-    A[corpus files\nTSV · YAML] --> B[corpus parsers\nenml · datuk · ekkurup]
-    B --> C[EmbeddingService\nsentence-transformers]
-    C --> D[VectorCheckpoint\nJSONL fault-tolerance]
-    D --> E[(PostgreSQL\npgvector)]
+    A[corpus files: TSV · YAML · XML] --> B[corpus parsers: enml · datuk · sayahna · ekkurup]
+    B --> C[EmbeddingService: sentence-transformers]
+    C --> D[VectorCheckpoint: JSONL fault-tolerance]
+    D --> E[(PostgreSQL: pgvector)]
 ```
 
 Checkpoint-based — restarts safely after a crash without re-embedding already-vectorised entries.
@@ -25,12 +25,12 @@ Checkpoint-based — restarts safely after a crash without re-embedding already-
 
 ```mermaid
 flowchart LR
-    Q[user query] --> U[understand_query\nregex → LLMAdapter]
-    U --> DT[DictionaryTools\nexact · fuzzy · semantic]
+    Q[user query] --> U[understand_query: regex → LLMAdapter]
+    U --> DT[DictionaryTools: exact · fuzzy · semantic]
     DT --> R{rerank?}
     R -- yes --> RR[CrossEncoderReranker]
     R -- no --> S
-    RR --> S[synthesize\nLLMAdapter.complete\nor formatted candidates]
+    RR --> S[synthesize: LLMAdapter.complete or formatted candidates]
     DB[(PostgreSQL)] --> DT
     S --> A[answer]
 ```
@@ -44,12 +44,12 @@ When `llm=nollm`, synthesis skips the LLM and returns formatted top-k candidates
 
 ```mermaid
 flowchart LR
-    B[browser / API client] --> F[FastAPI\n/lookup/exact\n/lookup/fuzzy\n/lookup/semantic]
-    B --> W[Web UI\nHTMX + Jinja2]
+    B[browser / API client] --> F[FastAPI: /lookup/exact, /lookup/fuzzy, /lookup/semantic]
+    B --> W[Web UI: HTMX + Jinja2]
     F --> DT[DictionaryTools]
     W --> F
-    DT --> DB[(PostgreSQL\npgvector)]
-    F --> L[LLMAdapter\nBYOK via X-LLM-Key header]
+    DT --> DB[(PostgreSQL: pgvector)]
+    F --> L[LLMAdapter: BYOK via X-LLM-Key header]
 ```
 
 Deployed at [linguaalayam.org](https://linguaalayam.org) — Hetzner CX33, Docker Compose, nginx reverse proxy, Let's Encrypt HTTPS.
@@ -61,10 +61,10 @@ LLM synthesis is opt-in: the user supplies their own API key in the browser sett
 
 ```mermaid
 flowchart LR
-    C[Claude / MCP client] --> T[tools\nexact_lookup\nfuzzy_lookup\nsemantic_lookup]
-    C --> R[resource\ndictionary://headword]
+    C[MCP client] --> T[tools: exact_lookup, fuzzy_lookup, semantic_lookup]
+    C --> R[resource: dictionary://headword]
     T & R --> DT[DictionaryTools]
-    DT --> DB[(PostgreSQL\npgvector)]
+    DT --> DB[(PostgreSQL: pgvector)]
 ```
 
 No LLM involvement — pure retrieval. The embedding model loads once at startup.
@@ -75,17 +75,20 @@ No LLM involvement — pure retrieval. The embedding model loads once at startup
 
 | Module | Purpose |
 |---|---|
-| `linguaalayam/models/entries.py` | Entry types (`EnMlEntry`, `MlMlEntry`, `EkkurupEntry`), each with `to_embed_text()` |
+| `linguaalayam/models/entries.py` | Entry types (`OlamEntry`, `DatukEntry`, `SayahnaEntry`, `EkkurupEntry`), each with `to_embed_text()` |
 | `linguaalayam/models/orm.py` | SQLAlchemy `DictionaryEntry` ORM — headword, embed_text, JSONB data, Vector(768) |
 | `linguaalayam/corpus/base.py` | `parse_definition_tsv()` — shared 3-column TSV helper used by `enml.py` and `datuk.py` |
-| `linguaalayam/corpus/` | One parser per corpus (`enml.py`, `datuk.py`, `ekkurup.py`), each exposes `parse()` |
+| `linguaalayam/corpus/` | One parser per corpus (`enml.py`, `datuk.py`, `sayahna.py`, `ekkurup.py`), each exposes `parse()` |
 | `linguaalayam/embeddings/service.py` | `EmbeddingService` — wraps sentence-transformers, exposes `batch_size` and `vector_size` |
-| `linguaalayam/database/queries.py` | `batch_insert()`, `similarity_search()` (HNSW cosine), `get_ingested_headwords()` |
+| `linguaalayam/database/queries.py` | `batch_insert()`, `similarity_search()` (HNSW cosine), `get_ingested_headwords()`; all search functions accept `source: str \| list[str] \| None` |
 | `linguaalayam/llm/adapters/` | `LLMAdapter` ABC + `AnthropicAdapter`, `OpenAIAdapter`, `NoLLMAdapter` |
 | `linguaalayam/rag/pipeline.py` | LangGraph graph: understand → retrieve → rerank? → synthesize |
 | `linguaalayam/rag/tools.py` | `DictionaryTools` — exact, fuzzy, semantic lookup over a live DB session |
 | `linguaalayam/mcp/server.py` | FastMCP server — three tools + `dictionary://{headword}` resource |
 | `linguaalayam/scripts/ingest.py` | Ingestion entry point; corpus parsers injected via Hydra `_target_` — no hardcoded parser map |
+| `linguaalayam/translation/` | `TranslationService` ABC + `MarianTranslationService` (Helsinki-NLP/opus-mt-mul-en); lazy-loaded, translates non-EN/ML input to English before search |
+| `linguaalayam/morphology.py` | `analyse_word()` — mlmorph-based Malayalam morphological analyser; LRU-cached, handles archaic chillu normalisation |
+| `linguaalayam/env.py` | Centralised env loader; reads secrets from Windows Credential Manager on WSL, falls back to `.env` |
 | `config/` | Hydra config groups: `corpus` (with per-source `parser._target_`), `embedding`, `database`, `llm`, `rag` |
 | `migrations/` | Alembic schema migrations |
 
@@ -136,16 +139,21 @@ assert not adapter.has_llm
 Entry text representations:
 
 ```python
-from linguaalayam.models.entries import EnMlEntry, EkkurupEntry, EkkurupSense, MlMlEntry
+from linguaalayam.models.entries import OlamEntry, DatukEntry, SayahnaEntry, EkkurupEntry, EkkurupSense
 
-entry = EnMlEntry(headword="run", definitions=[("v", "ഓടുക")])
+entry = OlamEntry(headword="run", definitions=[("v", "ഓടുക")])
 text = entry.to_embed_text()
 assert text.startswith("word: run")
 assert "ഓടുക" in text
 
-ml_entry = MlMlEntry(headword="ഓടുക", definitions=[("v", "to run fast")])
+ml_entry = DatukEntry(headword="ഓടുക", definitions=[("v", "വേഗത്തിൽ ചലിക്കുക")])
 ml_text = ml_entry.to_embed_text()
 assert "ഓടുക" in ml_text
+
+say_entry = SayahnaEntry(headword="അംശം", definitions=[(None, "ഭാഗം")], explanations=["സ്ത്രീ: അംശിനി."])
+say_text = say_entry.to_embed_text()
+assert "അംശം" in say_text
+assert "notes:" in say_text
 
 ek_entry = EkkurupEntry(
     headword="run",

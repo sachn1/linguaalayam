@@ -18,7 +18,7 @@ check:
 	poetry run pytest --cov=linguaalayam --cov-fail-under=80
 
 lint:
-	poetry run ruff check .
+	poetry run ruff check --fix .
 
 format:
 	poetry run ruff format .

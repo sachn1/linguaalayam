@@ -5,6 +5,7 @@ __pycache__
 *.log
 
 data/**
+!data/**/*.dvc
 !data/eval/
 !data/eval/*.jsonl
 data/eval/corpus_sample.jsonl
@@ -47,3 +48,4 @@ mlruns/
 build/
 .gradle/
 store_icon.png
+/linguaalayam.sql.gz
