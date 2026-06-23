@@ -19,6 +19,7 @@ _WCM_SECRETS = ("DB_PASSWORD", "ANTHROPIC_API_KEY", "OPENAI_API_KEY")
 
 
 def _is_wsl() -> bool:
+    """Return True when running inside Windows Subsystem for Linux."""
     try:
         return "microsoft" in Path("/proc/version").read_text().lower()
     except OSError:
@@ -26,6 +27,7 @@ def _is_wsl() -> bool:
 
 
 def _wcm_batch(names: tuple[str, ...]) -> dict[str, str]:
+    """Fetch multiple secrets from Windows Credential Manager in a single PowerShell call."""
     targets = ", ".join(f"'{n}'" for n in names)
     ps = (
         f"@({targets}) | ForEach-Object {{"

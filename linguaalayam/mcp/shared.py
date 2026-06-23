@@ -2,6 +2,7 @@
 
 
 def format_results(results: list[dict], query: str, method: str) -> str:
+    """Format a list of lookup result dicts as a human-readable string for MCP responses."""
     if not results:
         return f"No {method} results found for {query!r}."
     lines = [f"{len(results)} {method} result(s) for {query!r}:\n"]

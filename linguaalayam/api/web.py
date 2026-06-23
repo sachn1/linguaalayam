@@ -144,6 +144,30 @@ def search(
     top_k: Annotated[int, Query()] = 10,
     lang: Annotated[str, Query()] = "en-US",
 ):
+    """Handle a dictionary search request and return an HTMX partial or full results page.
+
+    Parameters
+    ----------
+    request : Request
+        The incoming HTTP request; headers ``X-Romanise``, ``X-LLM-Key``, and
+        ``X-LLM-Provider`` are read for optional features.
+    query : str, optional
+        Search term (English or Malayalam).
+    mode : str, optional
+        Lookup strategy: ``"exact"``, ``"fuzzy"`` (default), or ``"semantic"``.
+    source : str, optional
+        Corpus filter; ``"datuk"`` expands to both ``datuk`` and ``sayahna``.
+    top_k : int, optional
+        Maximum number of results to return; default ``10``.
+    lang : str, optional
+        BCP-47 language code for the query (used for translation pre-processing);
+        default ``"en-US"``.
+
+    Returns
+    -------
+    HTMLResponse
+        HTMX partial ``results.html`` fragment or the full results page.
+    """
     results = []
     answer: str | None = None
     q = query.strip()

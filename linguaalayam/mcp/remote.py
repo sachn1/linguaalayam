@@ -114,6 +114,7 @@ _mcp_app: Starlette | None = None
 
 
 def get_mcp_app() -> Starlette:
+    """Return the MCP Starlette sub-app singleton, creating it on first call."""
     global _mcp_app
     if _mcp_app is None:
         _mcp_app = mcp.streamable_http_app()

@@ -15,6 +15,7 @@ _VISARGA_RE = re.compile(r"(?<=[ഀ-ൿ]):(?=[ഀ-ൿ]|\s|$)")
 
 
 def _normalise(text: str) -> str:
+    """Replace ASCII colon visarga with the proper Malayalam visarga character (ഃ)."""
     return _VISARGA_RE.sub("ഃ", text)
 
 

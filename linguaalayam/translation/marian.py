@@ -53,6 +53,8 @@ SPEECH_LANGS: list[dict[str, str]] = [
 
 
 class MarianTranslationService(TranslationService):
+    """TranslationService backed by Helsinki-NLP/opus-mt-mul-en via HuggingFace."""
+
     MODEL_NAME = "Helsinki-NLP/opus-mt-mul-en"
 
     def __init__(self) -> None:
@@ -60,6 +62,7 @@ class MarianTranslationService(TranslationService):
         self._model: MarianMTModel | None = None
 
     def _load(self) -> None:
+        """Lazily load the tokenizer and model on first non-EN/ML request."""
         if self._model is None:
             log.info("Loading translation model %s (first non-EN/ML query)", self.MODEL_NAME)
             self._tokenizer = MarianTokenizer.from_pretrained(self.MODEL_NAME)
@@ -67,6 +70,23 @@ class MarianTranslationService(TranslationService):
             log.info("Translation model ready")
 
     def translate(self, text: str, source_lang: str = "") -> TranslationResult:
+        """Translate ``text`` into English using the Marian MT model.
+
+        Parameters
+        ----------
+        text : str
+            Input text to translate.
+        source_lang : str, optional
+            BCP-47 or ISO 639-1 source language code (e.g. ``"fr-FR"`` or
+            ``"fr"``).  English (``"en-*"``) and Malayalam (``"ml-*"``) are
+            returned unchanged without loading the model.
+
+        Returns
+        -------
+        TranslationResult
+            Translated text with ``was_translated=True``, or the original text
+            with ``was_translated=False`` when no translation is needed.
+        """
         # Normalise BCP-47 (e.g. "fr-FR") to ISO 639-1 prefix (e.g. "fr")
         iso = source_lang.split("-")[0].lower() if source_lang else "en"
 

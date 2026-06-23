@@ -29,7 +29,8 @@ from linguaalayam.translation import build_translation_service
 
 load_env()
 
-# TODO: Check if they need to go to the config and not here.
+# _CACHE_1D is a one-day HTTP cache directive
+# reused by multiple routes.
 _EMBED_MODEL = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
 _CACHE_1D = "public, max-age=86400"
 _PLAY_CONSOLE_APP_CERT_FINGERPINT = (
@@ -38,7 +39,6 @@ _PLAY_CONSOLE_APP_CERT_FINGERPINT = (
 )
 
 
-# TODO: Why do we even need this?
 try:
     _VERSION = _pkg_version("linguaalayam")
 except Exception:
@@ -46,8 +46,9 @@ except Exception:
 
 CorpusSource = Literal["olam_enml", "datuk", "ekkurup", "sayahna"]
 
-# TODO: Isn't this now only required when we run the app "only" locally? Via docker (locally and on prod) this is not required.
+
 def _ensure_docker_db() -> None:
+    """Start the DB container if it exists but is not running (bare local dev only)."""
     container = os.getenv("DB_CONTAINER", "linguaalayam")
     try:
         result = subprocess.run(
@@ -63,6 +64,7 @@ def _ensure_docker_db() -> None:
 
 
 def _init_tools() -> DictionaryTools:
+    """Build DictionaryTools from environment variables."""
     db_cfg = OmegaConf.create(
         {
             "user": os.getenv("DB_USER", "postgres"),
@@ -90,6 +92,7 @@ def _init_tools() -> DictionaryTools:
 
 @asynccontextmanager
 async def _lifespan(_: FastAPI):
+    """Initialise tools, translator, and MCP session manager at application startup."""
     _ensure_docker_db()
     set_tools(_init_tools())
     set_translator(build_translation_service(os.getenv("TRANSLATION_BACKEND", "marian")))
@@ -100,6 +103,8 @@ async def _lifespan(_: FastAPI):
 
 
 class LookupResult(BaseModel):
+    """Pydantic response model for a single dictionary lookup result."""
+
     headword: str
     source: str
     entry_type: str
@@ -170,6 +175,7 @@ async def _authorization_server_metadata() -> tuple[int, Any]:
 @app.get("/.well-known/oauth-protected-resource/mcp", include_in_schema=False)
 @app.get("/.well-known/oauth-protected-resource/mcp/", include_in_schema=False)
 async def oauth_protected_resource_metadata() -> Response:
+    """Serve RFC 9728 protected resource metadata for MCP OAuth discovery."""
     return Response(
         content=json.dumps(_protected_resource_metadata()),
         media_type="application/json",
@@ -187,6 +193,7 @@ async def oauth_protected_resource_metadata() -> Response:
 @app.get("/.well-known/openid-configuration", include_in_schema=False)
 @app.get("/.well-known/openid-configuration/mcp", include_in_schema=False)
 async def oauth_discovery() -> Response:
+    """Serve RFC 8414 authorization server metadata for OAuth discovery."""
     status, meta = await _authorization_server_metadata()
     if status != 200:
         return Response(status_code=status, media_type="application/json")
@@ -202,6 +209,7 @@ _PROXY_HOP_BY_HOP = {"host", "content-length", "transfer-encoding", "content-enc
 
 
 async def _proxy_to_mcp(request: Request, subpath: str) -> Response:
+    """Forward a root-level OAuth request to the MCP sub-app at ``subpath``."""
     body = await request.body()
     headers = {k: v for k, v in request.headers.items() if k.lower() not in _PROXY_HOP_BY_HOP}
     async with AsyncClient(
@@ -222,26 +230,31 @@ async def _proxy_to_mcp(request: Request, subpath: str) -> Response:
 
 @app.api_route("/authorize", methods=["GET", "POST"], include_in_schema=False)
 async def oauth_authorize(request: Request) -> Response:
+    """Proxy root /authorize to the MCP sub-app."""
     return await _proxy_to_mcp(request, "/authorize")
 
 
 @app.post("/token", include_in_schema=False)
 async def oauth_token(request: Request) -> Response:
+    """Proxy root /token to the MCP sub-app."""
     return await _proxy_to_mcp(request, "/token")
 
 
 @app.post("/register", include_in_schema=False)
 async def oauth_register(request: Request) -> Response:
+    """Proxy root /register to the MCP sub-app."""
     return await _proxy_to_mcp(request, "/register")
 
 
 @app.post("/revoke", include_in_schema=False)
 async def oauth_revoke(request: Request) -> Response:
+    """Proxy root /revoke to the MCP sub-app."""
     return await _proxy_to_mcp(request, "/revoke")
 
 
 @app.get("/health")
 def health() -> dict[str, str]:
+    """Liveness probe — returns HTTP 200 when the server is running."""
     return {"status": "ok"}
 
 
@@ -266,6 +279,7 @@ _ASSETLINKS = json.dumps(
 
 @app.get("/.well-known/assetlinks.json", include_in_schema=False)
 async def assetlinks() -> Response:
+    """Serve TWA digital asset links for Android app domain verification."""
     return Response(content=_ASSETLINKS, media_type="application/json")
 
 
@@ -306,6 +320,7 @@ def semantic_lookup(
 
 
 def main() -> None:  # pragma: no cover
+    """Entry point for the API server (``poetry run api-server``)."""
     uvicorn.run(
         "linguaalayam.api.app:app",
         host="0.0.0.0",
