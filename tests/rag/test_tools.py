@@ -10,7 +10,7 @@ def _candidate(headword: str, source: str = "olam_enml", match_type: str = "exac
     return {
         "headword": headword,
         "source": source,
-        "entry_type": "EnMlEntry",
+        "entry_type": "OlamEntry",
         "embed_text": f"word: {headword}",
         "data": {},
         "match_type": match_type,
@@ -83,7 +83,7 @@ class TestDictionaryTools:
         mock_entry = MagicMock()
         mock_entry.headword = "run"
         mock_entry.source = "olam_enml"
-        mock_entry.entry_type = "EnMlEntry"
+        mock_entry.entry_type = "OlamEntry"
         mock_entry.embed_text = "word: run"
         mock_entry.data = {}
 
@@ -114,7 +114,7 @@ class TestDictionaryTools:
         mock_entry = MagicMock()
         mock_entry.headword = "run"
         mock_entry.source = "olam_enml"
-        mock_entry.entry_type = "EnMlEntry"
+        mock_entry.entry_type = "OlamEntry"
         mock_entry.embed_text = "word: run"
         mock_entry.data = {}
 
@@ -134,7 +134,7 @@ class TestDictionaryTools:
         mock_entry = MagicMock()
         mock_entry.headword = "run"
         mock_entry.source = "olam_enml"
-        mock_entry.entry_type = "EnMlEntry"
+        mock_entry.entry_type = "OlamEntry"
         mock_entry.embed_text = "word: run"
         mock_entry.data = {}
 

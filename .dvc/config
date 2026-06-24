@@ -1,0 +1,4 @@
+[core]
+    remote = linguaalayam_vps_remote
+['remote "linguaalayam_vps_remote"']
+    url = ssh://dvc@178.105.165.149/home/dvc/storage/linguaalayam

@@ -1,6 +1,6 @@
 """Tests for EmbeddingService encode and encode_query methods."""
 
-from linguaalayam.models.entries import EnMlEntry
+from linguaalayam.models.entries import OlamEntry
 
 
 class TestEmbeddingService:
@@ -13,19 +13,19 @@ class TestEmbeddingService:
     def test_encode_returns_correct_count(self, dummy_service):
         """encode should return one vector per input entry."""
         entries = [
-            EnMlEntry(headword="run", definitions=[("v", "ഓടുക")]),
-            EnMlEntry(headword="walk", definitions=[("v", "നടക്കുക")]),
+            OlamEntry(headword="run", definitions=[("v", "ഓടുക")]),
+            OlamEntry(headword="walk", definitions=[("v", "നടക്കുക")]),
         ]
         assert len(dummy_service.encode(entries)) == 2
 
     def test_encode_returns_correct_dimension(self, dummy_service):
         """Each encoded vector should have the model's embedding dimension."""
-        entries = [EnMlEntry(headword="run", definitions=[("v", "ഓടുക")])]
+        entries = [OlamEntry(headword="run", definitions=[("v", "ഓടുക")])]
         assert len(dummy_service.encode(entries)[0]) == 4
 
     def test_encode_returns_list_of_lists(self, dummy_service):
         """encode should return a list of float lists, not numpy arrays."""
-        entries = [EnMlEntry(headword="run", definitions=[("v", "ഓടുക")])]
+        entries = [OlamEntry(headword="run", definitions=[("v", "ഓടുക")])]
         vectors = dummy_service.encode(entries)
         assert isinstance(vectors, list)
         assert isinstance(vectors[0], list)

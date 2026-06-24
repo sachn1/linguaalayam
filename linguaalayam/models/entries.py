@@ -35,7 +35,7 @@ class Embeddable(Protocol):
 
 
 def _definition_embed_text(headword: str, definitions: list[tuple[str | None, str]]) -> str:
-    """Shared embed-text format for definition-based entry types (EnMlEntry, MlMlEntry)."""
+    """Shared embed-text format for definition-based entry types (OlamEntry, DatukEntry)."""
     by_pos: dict[str, list[str]] = {}
     for pos, defn in definitions:
         by_pos.setdefault(pos or "general", []).append(defn)
@@ -46,7 +46,7 @@ def _definition_embed_text(headword: str, definitions: list[tuple[str | None, st
 
 
 @dataclass
-class EnMlEntry:
+class OlamEntry:
     """English–Malayalam dictionary entry from the Olam corpus.
 
     Attributes
@@ -70,7 +70,7 @@ class EnMlEntry:
 
 
 @dataclass
-class MlMlEntry:
+class DatukEntry:
     """Malayalam–Malayalam dictionary entry from the Datuk corpus.
 
     Attributes
@@ -91,6 +91,36 @@ class MlMlEntry:
     def to_embed_text(self) -> str:
         """Convert to embed-text format grouping definitions by part of speech."""
         return _definition_embed_text(self.headword, self.definitions)
+
+
+@dataclass
+class SayahnaEntry:
+    """Malayalam–Malayalam dictionary entry from the Sayahna Shabdataaravali corpus.
+
+    Attributes
+    ----------
+    headword : str
+        The Malayalam word being defined.
+    definitions : list[tuple[str | None, str]]
+        Ordered list of ``(part-of-speech, definition)`` pairs from ``<deftext>`` elements.
+        POS is ``None`` when no ``<gr>`` tag is present.
+    explanations : list[str]
+        Supplementary notes from ``<expl>`` elements.
+    source : str
+        Corpus identifier; defaults to ``"sayahna"``.
+    """
+
+    headword: str
+    definitions: list[tuple[str | None, str]]
+    explanations: list[str] = field(default_factory=list)
+    source: str = "sayahna"
+
+    def to_embed_text(self) -> str:
+        """Convert to embed-text format with definitions grouped by POS and appended notes."""
+        text = _definition_embed_text(self.headword, self.definitions)
+        if self.explanations:
+            text += "\n  notes: " + "; ".join(self.explanations)
+        return text
 
 
 @dataclass

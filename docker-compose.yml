@@ -14,7 +14,7 @@ services:
       retries: 5
 
   app:
-    build: .
+    image: ghcr.io/sachn1/linguaalayam-app:latest
     restart: unless-stopped
     ports:
       - "${API_PORT:-8000}:8000"

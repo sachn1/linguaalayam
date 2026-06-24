@@ -3,7 +3,7 @@
 import unicodedata
 
 from indic_transliteration import sanscript
-from indic_transliteration.sanscript import transliterate as _t
+from indic_transliteration.sanscript import transliterate
 from ml2en.ml2en import ml2en as _ML2EN
 
 # Schemes tried in order when attempting to interpret Latin input as Malayalam.
@@ -57,7 +57,7 @@ def roman_to_malayalam_candidates(text: str) -> list[str]:
     candidates: list[str] = []
     for scheme in _ROMAN_TO_ML_SCHEMES:
         try:
-            result = _t(text, scheme, sanscript.MALAYALAM)
+            result = transliterate(text, scheme, sanscript.MALAYALAM)
         except Exception:
             continue
         if result and result != text and result not in seen:

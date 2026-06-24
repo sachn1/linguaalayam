@@ -1,7 +1,7 @@
 """Evaluation package — dataset loading, retrieval metrics, and eval runner."""
 
 from .dataset import EvalQuery, load_dataset
-from .metrics import intent_breakdown, mrr, hit_rate, hit_rate_at_1, tool_breakdown
+from .metrics import hit_rate, hit_rate_at_1, intent_breakdown, mrr, tool_breakdown
 from .runner import QueryResult, run_eval
 
 __all__ = [

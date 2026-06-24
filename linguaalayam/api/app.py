@@ -9,7 +9,7 @@ from importlib.metadata import version as _pkg_version
 from pathlib import Path
 from typing import Any, Literal
 
-from dotenv import load_dotenv
+import uvicorn
 from fastapi import FastAPI, Query, Response
 from fastapi.staticfiles import StaticFiles
 from httpx import ASGITransport, AsyncClient
@@ -18,18 +18,25 @@ from pydantic import BaseModel
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.requests import Request
 
-from linguaalayam.api.dependencies import get_tools, set_tools
+from linguaalayam.api.dependencies import get_tools, set_tools, set_translator
 from linguaalayam.api.web import router as _web_router
 from linguaalayam.database import build_engine, build_session_factory
 from linguaalayam.embeddings import EmbeddingService
-from linguaalayam.mcp.remote import get_mcp_app
+from linguaalayam.env import load_env
+from linguaalayam.mcp.remote import get_mcp_app, mcp
 from linguaalayam.rag.tools import DictionaryTools
+from linguaalayam.translation import build_translation_service
 
-load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+load_env()
 
+# _CACHE_1D is a one-day HTTP cache directive
+# reused by multiple routes.
 _EMBED_MODEL = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
 _CACHE_1D = "public, max-age=86400"
-_PLAY_CONSOLE_APP_CERT_FINGERPINT = "36:00:69:0E:1F:3B:32:5F:1E:F1:B4:55:EE:DD:67:AA:88:D6:D8:3A:27:6E:25:DB:F8:09:EF:DF:02:C0:CB:04"
+_PLAY_CONSOLE_APP_CERT_FINGERPINT = (
+    "36:00:69:0E:1F:3B:32:5F:1E:F1:B4:55:EE:DD:67:AA:"
+    "88:D6:D8:3A:27:6E:25:DB:F8:09:EF:DF:02:C0:CB:04"
+)
 
 
 try:
@@ -37,11 +44,12 @@ try:
 except Exception:
     _VERSION = "dev"
 
-CorpusSource = Literal["olam_enml", "datuk", "ekkurup"]
+CorpusSource = Literal["olam_enml", "datuk", "ekkurup", "sayahna"]
 
 
 def _ensure_docker_db() -> None:
-    container = os.getenv("DB_CONTAINER", "linguaalayam-pg")
+    """Start the DB container if it exists but is not running (bare local dev only)."""
+    container = os.getenv("DB_CONTAINER", "linguaalayam")
     try:
         result = subprocess.run(
             ["docker", "start", container],
@@ -56,6 +64,7 @@ def _ensure_docker_db() -> None:
 
 
 def _init_tools() -> DictionaryTools:
+    """Build DictionaryTools from environment variables."""
     db_cfg = OmegaConf.create(
         {
             "user": os.getenv("DB_USER", "postgres"),
@@ -83,10 +92,10 @@ def _init_tools() -> DictionaryTools:
 
 @asynccontextmanager
 async def _lifespan(_: FastAPI):
-    from linguaalayam.mcp.remote import mcp
-
+    """Initialise tools, translator, and MCP session manager at application startup."""
     _ensure_docker_db()
     set_tools(_init_tools())
+    set_translator(build_translation_service(os.getenv("TRANSLATION_BACKEND", "marian")))
     # The MCP sub-app is mount()ed, so Starlette never runs its lifespan — start
     # the streamable-HTTP session manager here or every MCP request 500s.
     async with mcp.session_manager.run():
@@ -94,6 +103,8 @@ async def _lifespan(_: FastAPI):
 
 
 class LookupResult(BaseModel):
+    """Pydantic response model for a single dictionary lookup result."""
+
     headword: str
     source: str
     entry_type: str
@@ -164,6 +175,7 @@ async def _authorization_server_metadata() -> tuple[int, Any]:
 @app.get("/.well-known/oauth-protected-resource/mcp", include_in_schema=False)
 @app.get("/.well-known/oauth-protected-resource/mcp/", include_in_schema=False)
 async def oauth_protected_resource_metadata() -> Response:
+    """Serve RFC 9728 protected resource metadata for MCP OAuth discovery."""
     return Response(
         content=json.dumps(_protected_resource_metadata()),
         media_type="application/json",
@@ -181,6 +193,7 @@ async def oauth_protected_resource_metadata() -> Response:
 @app.get("/.well-known/openid-configuration", include_in_schema=False)
 @app.get("/.well-known/openid-configuration/mcp", include_in_schema=False)
 async def oauth_discovery() -> Response:
+    """Serve RFC 8414 authorization server metadata for OAuth discovery."""
     status, meta = await _authorization_server_metadata()
     if status != 200:
         return Response(status_code=status, media_type="application/json")
@@ -196,6 +209,7 @@ _PROXY_HOP_BY_HOP = {"host", "content-length", "transfer-encoding", "content-enc
 
 
 async def _proxy_to_mcp(request: Request, subpath: str) -> Response:
+    """Forward a root-level OAuth request to the MCP sub-app at ``subpath``."""
     body = await request.body()
     headers = {k: v for k, v in request.headers.items() if k.lower() not in _PROXY_HOP_BY_HOP}
     async with AsyncClient(
@@ -216,26 +230,31 @@ async def _proxy_to_mcp(request: Request, subpath: str) -> Response:
 
 @app.api_route("/authorize", methods=["GET", "POST"], include_in_schema=False)
 async def oauth_authorize(request: Request) -> Response:
+    """Proxy root /authorize to the MCP sub-app."""
     return await _proxy_to_mcp(request, "/authorize")
 
 
 @app.post("/token", include_in_schema=False)
 async def oauth_token(request: Request) -> Response:
+    """Proxy root /token to the MCP sub-app."""
     return await _proxy_to_mcp(request, "/token")
 
 
 @app.post("/register", include_in_schema=False)
 async def oauth_register(request: Request) -> Response:
+    """Proxy root /register to the MCP sub-app."""
     return await _proxy_to_mcp(request, "/register")
 
 
 @app.post("/revoke", include_in_schema=False)
 async def oauth_revoke(request: Request) -> Response:
+    """Proxy root /revoke to the MCP sub-app."""
     return await _proxy_to_mcp(request, "/revoke")
 
 
 @app.get("/health")
 def health() -> dict[str, str]:
+    """Liveness probe — returns HTTP 200 when the server is running."""
     return {"status": "ok"}
 
 
@@ -260,6 +279,7 @@ _ASSETLINKS = json.dumps(
 
 @app.get("/.well-known/assetlinks.json", include_in_schema=False)
 async def assetlinks() -> Response:
+    """Serve TWA digital asset links for Android app domain verification."""
     return Response(content=_ASSETLINKS, media_type="application/json")
 
 
@@ -300,8 +320,7 @@ def semantic_lookup(
 
 
 def main() -> None:  # pragma: no cover
-    import uvicorn
-
+    """Entry point for the API server (``poetry run api-server``)."""
     uvicorn.run(
         "linguaalayam.api.app:app",
         host="0.0.0.0",

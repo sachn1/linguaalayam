@@ -84,6 +84,25 @@ poetry run ingest
 
 See [docs/setup.md](docs/setup.md) for database setup, environment variables, and data download.
 
+
+### Docker
+
+Prefer containers? This spins up the full stack (app + Postgres):
+
+```bash
+docker compose up --build
+```
+
+Just need the database running (e.g. for `psql`/DBeaver access)?
+
+```bash
+docker compose up -d db
+```
+
+### Data storage
+
+Corpus files (`data/`) and database snapshots (`linguaalayam.sql.gz`) are tracked with [DVC](https://dvc.org), backed by a private remote.
+
 ---
 
 ## Docs
@@ -111,10 +130,11 @@ poetry run pytest tests/database    # DB layer (SQLite, no Postgres needed)
 
 ## Data sources
 
-Three corpora, all under the Open Database License (ODbL). See [DATA_SOURCES.md](DATA_SOURCES.md) for full attribution and licence terms.
+Four corpora, all openly licensed. See [DATA_SOURCES.md](DATA_SOURCES.md) for full attribution and licence terms.
 
 | Corpus | Description | Source |
 |---|---|---|
 | Olam EN→ML | English–Malayalam dictionary | [olam.in/p/open](https://olam.in/p/open) |
 | Datuk | Malayalam–Malayalam dictionary | [olam.in/p/open/datuk](https://olam.in/p/open/datuk) |
 | Ekkurup | English–Malayalam thesaurus | [olam.in/p/open/ekkurup](https://olam.in/p/open/ekkurup) |
+| Shabdataaravali | Malayalam–Malayalam dictionary (classical) | [dict.sayahna.org](https://dict.sayahna.org) |

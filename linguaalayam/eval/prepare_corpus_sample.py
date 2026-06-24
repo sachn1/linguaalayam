@@ -18,8 +18,9 @@ import os
 from pathlib import Path
 from urllib.parse import quote_plus
 
-from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
+
+from linguaalayam.env import load_env
 
 _SOURCES = ["olam_enml", "datuk", "ekkurup"]
 _QUERY_FILES = [
@@ -54,7 +55,7 @@ def _load_expected_headwords() -> set[str]:
 
 
 def prepare_sample(output: Path, sample_size: int) -> None:
-    load_dotenv()
+    load_env()
 
     expected_headwords = _load_expected_headwords()
     per_source = sample_size // len(_SOURCES)

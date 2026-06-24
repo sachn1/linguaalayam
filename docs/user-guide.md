@@ -33,13 +33,16 @@ Smart mode works regardless of whether you have an API key. The LLM key only cha
 
 ## Corpora (source filter)
 
-LinguAalayam searches three open corpora from [olam.in/p/open](https://olam.in/p/open). Leave the filter on **All corpora** to search all three at once.
+LinguAalayam searches four open Malayalam corpora. Leave the filter on **All corpora** to search all at once.
 
-| Corpus | Direction | Best for |
-|---|---|---|
-| **Olam** | English → Malayalam | Translating an English word to Malayalam |
-| **Datuk** | Malayalam → Malayalam | Understanding a Malayalam word in depth |
-| **Ekkurup** | English thesaurus | Finding synonyms and Malayalam equivalents for an English concept |
+| Corpus | Filter label | Direction | Best for |
+|---|---|---|---|
+| **Olam** | English → Malayalam | EN → ML | Translating an English word to Malayalam |
+| **Datuk** | Malayalam dictionary | ML → ML | Understanding a Malayalam word in depth |
+| **Shabdataaravali** | Malayalam dictionary | ML → ML | Classical definitions from the 1917 authoritative dictionary |
+| **Ekkurup** | Thesaurus | EN thesaurus | Finding synonyms and Malayalam equivalents for an English concept |
+
+Datuk and Shabdataaravali are searched together under the **Malayalam dictionary** filter — selecting it queries both corpora at once. Shabdataaravali uses 1917 Malayalam orthography; headwords ending in `ு்` are archaic word-boundary markers, not errors.
 
 ---
 
@@ -73,7 +76,7 @@ Both providers offer free-tier or pay-as-you-go access. For casual dictionary us
 
 ## Data sources
 
-All corpora are from the [Olam open-data initiative](https://olam.in/p/open), a free Malayalam dictionary project. Dataset citations and licence information are available on that page.
+Three corpora (Olam, Datuk, Ekkurup) are from the [Olam open-data initiative](https://olam.in/p/open). Shabdataaravali is from the [Sayahna Foundation](https://dict.sayahna.org). Full attribution and licence information: [DATA_SOURCES.md](../DATA_SOURCES.md).
 
 ---
 

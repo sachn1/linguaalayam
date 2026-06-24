@@ -64,7 +64,7 @@ def similarity_search(
     session: Session,
     query_vector: list[float],
     top_k: int = 5,
-    source: str | None = None,
+    source: str | list[str] | None = None,
     entry_type: str | None = None,
 ) -> list[tuple[DictionaryEntry, float]]:
     """Return top_k entries ranked by cosine similarity to query_vector.
@@ -92,7 +92,9 @@ def similarity_search(
     cos_dist = DictionaryEntry.__table__.c.embedding.cosine_distance(query_vector)
     stmt = select(DictionaryEntry, cos_dist.label("dist")).order_by(cos_dist).limit(top_k)
 
-    if source:
+    if isinstance(source, list):
+        stmt = stmt.where(DictionaryEntry.source.in_(source))
+    elif source:
         stmt = stmt.where(DictionaryEntry.source == source)
     if entry_type:
         stmt = stmt.where(DictionaryEntry.entry_type == entry_type)
@@ -103,7 +105,7 @@ def similarity_search(
 def exact_search(
     session: Session,
     headword: str,
-    source: str | None = None,
+    source: str | list[str] | None = None,
 ) -> list[DictionaryEntry]:
     """Return entries whose headword is a case-insensitive exact match.
 
@@ -113,11 +115,13 @@ def exact_search(
         SQLAlchemy session to use for the query.
     headword : str
         The exact headword to look up (case-insensitive).
-    source : str | None, optional
-        Source identifier to filter by, by default None
+    source : str | list[str] | None, optional
+        Source identifier(s) to filter by, by default None
     """
     stmt = select(DictionaryEntry).where(func.lower(DictionaryEntry.headword) == headword.lower())
-    if source:
+    if isinstance(source, list):
+        stmt = stmt.where(DictionaryEntry.source.in_(source))
+    elif source:
         stmt = stmt.where(DictionaryEntry.source == source)
     return list(session.scalars(stmt))
 
@@ -125,7 +129,7 @@ def exact_search(
 def fuzzy_search(
     session: Session,
     query: str,
-    source: str | None = None,
+    source: str | list[str] | None = None,
     threshold: float = 0.3,
     limit: int = 10,
 ) -> list[tuple[DictionaryEntry, float]]:
@@ -143,8 +147,8 @@ def fuzzy_search(
         SQLAlchemy session to use for the query.
     query : str
         The query string to match against headwords.
-    source : str | None, optional
-        Source identifier to filter by, by default None
+    source : str | list[str] | None, optional
+        Source identifier(s) to filter by, by default None
     threshold : float, optional
         Minimum trigram similarity score (0–1), by default 0.3
     limit : int, optional
@@ -158,12 +162,16 @@ def fuzzy_search(
             .order_by(similarity.desc())
             .limit(limit)
         )
-        if source:
+        if isinstance(source, list):
+            stmt = stmt.where(DictionaryEntry.source.in_(source))
+        elif source:
             stmt = stmt.where(DictionaryEntry.source == source)
         return [(row[0], round(float(row[1]), 4)) for row in session.execute(stmt)]
 
     stmt = select(DictionaryEntry).where(DictionaryEntry.headword.ilike(f"%{query}%")).limit(limit)
-    if source:
+    if isinstance(source, list):
+        stmt = stmt.where(DictionaryEntry.source.in_(source))
+    elif source:
         stmt = stmt.where(DictionaryEntry.source == source)
     return [(entry, 1.0) for entry in session.scalars(stmt)]
 

@@ -6,12 +6,15 @@ FROM python:3.11-slim
 
 RUN pip install --no-cache-dir \
     --extra-index-url https://download.pytorch.org/whl/cpu \
-    torch sentence-transformers
+    torch sentence-transformers transformers sentencepiece
 
 ENV HF_HOME=/app/.cache/huggingface
 
 RUN python - <<'EOF'
 from sentence_transformers import SentenceTransformer, CrossEncoder
+from transformers import MarianMTModel, MarianTokenizer
 SentenceTransformer("sentence-transformers/paraphrase-multilingual-mpnet-base-v2")
 CrossEncoder("cross-encoder/mmarco-mMiniLMv2-L12-H384-v1")
+MarianTokenizer.from_pretrained("Helsinki-NLP/opus-mt-mul-en")
+MarianMTModel.from_pretrained("Helsinki-NLP/opus-mt-mul-en")
 EOF

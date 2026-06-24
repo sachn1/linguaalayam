@@ -12,15 +12,15 @@ re-authorize automatically.
 
 import os
 
-from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions, RevocationOptions
-from mcp.server.fastmcp import FastMCP
-from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import AnyHttpUrl
 from starlette.applications import Starlette
 
 from linguaalayam.api.dependencies import get_tools
 from linguaalayam.api.oauth import PassthroughOAuthProvider
 from linguaalayam.mcp.shared import format_results as _format
+from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions, RevocationOptions
+from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 
 _ISSUER_URL = os.environ.get("MCP_ISSUER_URL", "http://localhost:8000/mcp")
 
@@ -114,6 +114,7 @@ _mcp_app: Starlette | None = None
 
 
 def get_mcp_app() -> Starlette:
+    """Return the MCP Starlette sub-app singleton, creating it on first call."""
     global _mcp_app
     if _mcp_app is None:
         _mcp_app = mcp.streamable_http_app()

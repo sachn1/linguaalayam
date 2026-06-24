@@ -4,7 +4,7 @@ import textwrap
 from pathlib import Path
 
 from linguaalayam.corpus import datuk
-from linguaalayam.models.entries import MlMlEntry
+from linguaalayam.models.entries import DatukEntry
 
 _DATUK = """\
 ഓടുക\t{v}\tto run fast
@@ -61,9 +61,9 @@ def test_source(tmp_path):
 
 
 def test_returns_correct_type(tmp_path):
-    """Parser should return MlMlEntry instances."""
+    """Parser should return DatukEntry instances."""
     entries = datuk.parse(_write(tmp_path, _DATUK))
-    assert all(isinstance(e, MlMlEntry) for e in entries)
+    assert all(isinstance(e, DatukEntry) for e in entries)
 
 
 def test_skips_malformed_lines(tmp_path):

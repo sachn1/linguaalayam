@@ -4,7 +4,6 @@ import logging
 from pathlib import Path
 
 import hydra
-from dotenv import load_dotenv
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 from sqlalchemy.orm import sessionmaker
@@ -18,10 +17,11 @@ from linguaalayam.database import (
     get_session,
 )
 from linguaalayam.embeddings import EmbeddingService
+from linguaalayam.env import load_env
 from linguaalayam.models import Embeddable
 from linguaalayam.scripts import VectorCheckpoint
 
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+load_env()
 
 log = logging.getLogger(__name__)
 
@@ -136,7 +136,7 @@ def _process_source(
     if not filepath.exists():
         log.error(
             "%s: file not found at %s — skipping. "
-            "Download from https://olam.in/p/open and place at the expected path.",
+            "Download datasets and place at the expected path.",
             source,
             filepath,
         )

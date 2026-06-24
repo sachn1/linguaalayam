@@ -25,13 +25,13 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import hydra
 import mlflow
 import numpy as np
 import torch
 from omegaconf import DictConfig
 from sentence_transformers import SentenceTransformer
 
-import hydra
 from linguaalayam.eval.dataset import EvalQuery, load_dataset
 
 _EXPERIMENT = "embedding_model_comparison"
@@ -282,12 +282,14 @@ def _print_dataset_table(
         print("=" * w)
         return
     print(
-        f"{'Model':<35} {'Dim':>5} {'Hit@1':>7} {f'Hit@{top_k}':>7} {'MRR':>7} {'ms/q':>8} {'Misses':>7}"
+        f"{'Model':<35} {'Dim':>5} {'Hit@1':>7} {f'Hit@{top_k}':>7} "
+        f"{'MRR':>7} {'ms/q':>8} {'Misses':>7}"
     )
     print("-" * w)
     for r in ranked:
         print(
-            f"{r.model_label:<35} {r.model_dim:>5} {r.hit_at_1:>7.3f} {r.hit_at_k:>7.3f} {r.mrr:>7.3f} {r.latency_ms:>7.1f}  {len(r.misses):>6}"
+            f"{r.model_label:<35} {r.model_dim:>5} {r.hit_at_1:>7.3f} "
+            f"{r.hit_at_k:>7.3f} {r.mrr:>7.3f} {r.latency_ms:>7.1f}  {len(r.misses):>6}"
         )
     print()
     for intent in sorted({i for r in ranked for i in r.per_intent}):
@@ -296,7 +298,8 @@ def _print_dataset_table(
             m = r.per_intent.get(intent, {})
             if m:
                 print(
-                    f"    {r.model_label:<33}  hit@1={m['hit_at_1']:.3f}  hit@k={m['hit_at_k']:.3f}  mrr={m['mrr']:.3f}  n={m['n']}"
+                    f"    {r.model_label:<33}  hit@1={m['hit_at_1']:.3f}  "
+                    f"hit@k={m['hit_at_k']:.3f}  mrr={m['mrr']:.3f}  n={m['n']}"
                 )
     print()
     best = ranked[0]
@@ -305,7 +308,9 @@ def _print_dataset_table(
         for miss in best.misses[:5]:
             got = ", ".join(str(g) for g in miss.get("got", [])[:3]) or "—"
             print(
-                f"    [{miss.get('intent', '?'):20}] {miss['query']!r:35} expected={miss['expected']!r}  got=[{got}]"
+                f"    [{miss.get('intent', '?'):20}] "
+                f"{miss['query']!r:35} expected={miss['expected']!r}  "
+                f"got=[{got}]"
             )
         if len(best.misses) > 5:
             print(f"    ... and {len(best.misses) - 5} more")

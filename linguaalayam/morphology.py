@@ -3,6 +3,8 @@
 import re
 from functools import lru_cache
 
+from mlmorph import Analyser
+
 _analyser = None
 
 _POS = {
@@ -45,10 +47,9 @@ _CHILLU = str.maketrans({"ൺ": "ണ്", "ൻ": "ന്", "ർ": "ര്", "ൽ
 
 
 def _get_analyser():
+    """Return the module-level mlmorph Analyser singleton, creating it on first call."""
     global _analyser
     if _analyser is None:
-        from mlmorph import Analyser
-
         _analyser = Analyser()
     return _analyser
 

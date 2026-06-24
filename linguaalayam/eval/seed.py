@@ -9,15 +9,14 @@ representative — run against the real ingested corpus for meaningful numbers.
 import logging
 from pathlib import Path
 
-from dotenv import load_dotenv
-
-from linguaalayam.models.entries import EnMlEntry
 from linguaalayam.database import batch_insert, build_engine, build_session_factory, get_session
 from linguaalayam.embeddings import EmbeddingService
+from linguaalayam.env import load_env
 from linguaalayam.eval.dataset import load_dataset
+from linguaalayam.models.entries import OlamEntry
 from linguaalayam.scripts.vector_checkpoint import VectorCheckpoint
 
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+load_env()
 
 log = logging.getLogger(__name__)
 
@@ -48,8 +47,8 @@ _DEFINITIONS: dict[str, list[tuple[str, str]]] = {
 }
 
 
-def _build_entries() -> list[EnMlEntry]:
-    """Build EnMlEntry stubs for all headwords in the eval dataset."""
+def _build_entries() -> list[OlamEntry]:
+    """Build OlamEntry stubs for all headwords in the eval dataset."""
     dataset = load_dataset(
         Path(__file__).resolve().parent.parent.parent / "data/eval/queries.jsonl"
     )
@@ -62,7 +61,7 @@ def _build_entries() -> list[EnMlEntry]:
             # Fallback: minimal stub so exact/fuzzy lookups still hit
             defs = [("n", f"{headword}: (stub definition for eval)")]
             log.warning("No curated definition for %r — using stub", headword)
-        entries.append(EnMlEntry(headword=headword, definitions=defs))
+        entries.append(OlamEntry(headword=headword, definitions=defs))
 
     return entries
 

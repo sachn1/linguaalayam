@@ -76,7 +76,7 @@ class DictionaryTools:
     def exact_lookup(
         self,
         query: str,
-        source: str | None = None,
+        source: str | list[str] | None = None,
     ) -> list[dict]:
         """Return entries whose headword is a case-insensitive exact match for query.
 
@@ -84,7 +84,7 @@ class DictionaryTools:
         ----------
         query : str
             Headword to look up (case-insensitive).
-        source : str or None, optional
+        source : str | list[str] | None, optional
             Corpus filter; searches all corpora when ``None``.
 
         Returns
@@ -99,7 +99,7 @@ class DictionaryTools:
     def fuzzy_lookup(
         self,
         query: str,
-        source: str | None = None,
+        source: str | list[str] | None = None,
         threshold: float = 0.3,
         top_k: int = 10,
     ) -> list[dict]:
@@ -111,7 +111,7 @@ class DictionaryTools:
         ----------
         query : str
             Word or partial word to match against headwords.
-        source : str or None, optional
+        source : str | list[str] | None, optional
             Corpus filter; searches all corpora when ``None``.
         threshold : float, optional
             Minimum pg_trgm similarity score (0–1); default ``0.3``.
@@ -131,7 +131,7 @@ class DictionaryTools:
         self,
         query: str,
         top_k: int = 5,
-        source: str | None = None,
+        source: str | list[str] | None = None,
     ) -> list[dict]:
         """Return entries ranked by cosine similarity of their embed_text to query.
 
@@ -141,7 +141,7 @@ class DictionaryTools:
             Natural-language query; embedded before the vector search.
         top_k : int, optional
             Number of top results to return; default ``5``.
-        source : str or None, optional
+        source : str | list[str] | None, optional
             Corpus filter; searches all corpora when ``None``.
 
         Returns

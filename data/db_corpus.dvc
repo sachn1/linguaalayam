@@ -1,0 +1,6 @@
+outs:
+- md5: 99f50a6919b3942947d33e1f86ed2c01.dir
+  size: 89858942
+  nfiles: 10
+  hash: md5
+  path: db_corpus

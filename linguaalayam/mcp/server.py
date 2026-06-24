@@ -4,19 +4,17 @@ import os
 import subprocess
 import time
 from contextlib import asynccontextmanager
-from pathlib import Path
 
-from dotenv import load_dotenv
-from mcp.server.fastmcp import FastMCP
 from omegaconf import OmegaConf
 
-
-from linguaalayam.mcp.shared import format_results as _format
 from linguaalayam.database import build_engine, build_session_factory
 from linguaalayam.embeddings import EmbeddingService
+from linguaalayam.env import load_env
+from linguaalayam.mcp.shared import format_results as _format
 from linguaalayam.rag.tools import DictionaryTools
+from mcp.server.fastmcp import FastMCP
 
-load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+load_env()
 
 _EMBED_MODEL = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
 
@@ -25,7 +23,7 @@ _tools: DictionaryTools | None = None
 
 def _ensure_docker_db() -> None:
     """Start the Postgres container if it exists but is not running."""
-    container = os.getenv("DB_CONTAINER", "linguaalayam-pg")
+    container = os.getenv("DB_CONTAINER", "linguaalayam")
     try:
         result = subprocess.run(
             ["docker", "start", container],
@@ -81,7 +79,8 @@ mcp = FastMCP(
         "Malayalam lexical knowledge base built on the Olam English–Malayalam corpus. "
         "Use exact_lookup first for a known word spelling. "
         "Use fuzzy_lookup for approximate matches, typos, or near-spellings. "
-        "Use semantic_lookup for meaning-based queries, paraphrases, or when the exact word is unknown."
+        "Use semantic_lookup for meaning-based queries, paraphrases, "
+        "or when the exact word is unknown."
     ),
     lifespan=_lifespan,
 )

@@ -16,12 +16,12 @@
 LinguAalayam runs against a **local Postgres + pgvector** instance. You create and own the database — there are no external credentials to obtain.
 
 ```bash
-docker run -d --name linguaalayam-pg \
+docker run -d --name linguaalayam \
   -e POSTGRES_PASSWORD=yourpassword \
   -p 5432:5432 \
   ankane/pgvector
 
-docker exec -it linguaalayam-pg psql -U postgres -c "CREATE DATABASE linguaalayam;"
+docker exec -it linguaalayam psql -U postgres -c "CREATE DATABASE linguaalayam;"
 ```
 
 ---

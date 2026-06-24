@@ -11,10 +11,12 @@ from linguaalayam.rag.reranker import CrossEncoderReranker
 from linguaalayam.rag.tools import DictionaryTools, merge_candidates
 
 _SYNTHESIS_SYSTEM = (
-    "Answer questions about Malayalam and English words directly and concisely using only "
-    "the dictionary entries provided. Respond in one to three plain sentences as if speaking "
-    "aloud — no markdown, no bullet points, no preamble, no meta-commentary. State the meaning, "
-    "translation, or usage directly. If the entries do not contain the answer, say so in one sentence."
+    "Answer questions about Malayalam and English words directly and"
+    " concisely using only the dictionary entries provided. Respond "
+    "in one to three plain sentences as if speaking aloud — no markdown, "
+    "no bullet points, no preamble, no meta-commentary. State the"
+    " meaning, translation, or usage directly. If the entries do not "
+    "contain the answer, say so in one sentence."
 )
 
 _SYNTHESIS_TEMPLATE = "Question: {query}\n\nDictionary entries:\n{entries}"

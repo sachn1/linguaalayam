@@ -1,0 +1,89 @@
+name: Restore Database from DVC
+
+# Manual-only — triggered by an operator when the corpus data needs to be
+# bootstrapped or refreshed on the VPS. This is intentionally separate from
+# the main CD pipeline because:
+#   - The dump can be several GBs; pulling it on every code deploy would waste
+#     bandwidth and time for an asset that rarely changes.
+#   - Decoupling data ops from code deploys makes both auditable independently.
+#
+# Required secrets: VPS_HOST, VPS_USER, VPS_SSH_KEY, DVC_SSH_KEY, DB_PASSWORD
+#
+# After a restore the sentinel file (.db_dump_md5) on the VPS is written with
+# the MD5 of the restored dump so future runs can skip if already up-to-date
+# (unless force=true).
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Restore even if the VPS dump is already up-to-date"
+        type: boolean
+        default: false
+
+jobs:
+  restore:
+    name: Pull DVC dump and restore Postgres
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy DVC pointer and restore script to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "linguaalayam.sql.gz.dvc,scripts/db_restore.sh"
+          target: "/root/linguaalayam"
+          strip_components: 1
+
+      - name: Extract expected dump MD5 from DVC pointer
+        id: dump_md5
+        run: |
+          echo "md5=$(grep 'md5:' linguaalayam.sql.gz.dvc | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Restore DB on VPS
+        env:
+          EXPECTED_MD5: ${{ steps.dump_md5.outputs.md5 }}
+          FORCE: ${{ github.event.inputs.force }}
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: EXPECTED_MD5,FORCE
+          script: |
+            set -e
+            cd /root/linguaalayam
+
+            SENTINEL=".db_dump_md5"
+            CURRENT_MD5="$(cat "${SENTINEL}" 2>/dev/null || echo '')"
+
+            if [ "${FORCE}" != "true" ] && [ "${CURRENT_MD5}" = "${EXPECTED_MD5}" ]; then
+              echo "DB is already at md5=${CURRENT_MD5} — nothing to do. Use force=true to override."
+              exit 0
+            fi
+
+            echo "Restoring DB (current=${CURRENT_MD5:-none}, expected=${EXPECTED_MD5}, force=${FORCE})…"
+
+            # Set up SSH key for the DVC remote (ssh://dvc@<vps>/…).
+            mkdir -p ~/.ssh
+            echo "${{ secrets.DVC_SSH_KEY }}" > ~/.ssh/dvc_key
+            chmod 600 ~/.ssh/dvc_key
+            export GIT_SSH_COMMAND="ssh -i ~/.ssh/dvc_key -o StrictHostKeyChecking=no"
+
+            pip install --quiet dvc dvc-ssh
+            dvc pull linguaalayam.sql.gz.dvc
+
+            # Ensure DB container is running before restore.
+            docker compose up -d db
+            docker compose exec db sh -c \
+              'until pg_isready -U postgres; do sleep 1; done'
+
+            DB_PASSWORD="${{ secrets.DB_PASSWORD }}" bash db_restore.sh
+
+            # Write sentinel so the next restore run (and cd.yml) can skip if unchanged.
+            echo "${EXPECTED_MD5}" > "${SENTINEL}"
+
+            rm -f linguaalayam.sql.gz ~/.ssh/dvc_key
+            echo "Restore complete (md5=${EXPECTED_MD5})."

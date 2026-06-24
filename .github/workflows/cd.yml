@@ -1,0 +1,88 @@
+name: Deploy to VPS
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Bump Version"]
+    types: [completed]
+
+env:
+  IMAGE: ghcr.io/sachn1/linguaalayam-app
+
+jobs:
+  build:
+    name: Build and push image
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+
+      - id: version
+        run: echo "version=$(git describe --tags --abbrev=0)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ steps.version.outputs.version }}
+            ${{ env.IMAGE }}:latest
+
+  deploy:
+    name: Deploy to Hetzner VPS
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Copy docker-compose.yml to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "docker-compose.yml"
+          target: "/root/linguaalayam"
+
+      - name: Run migrations and restart app
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            cd /root/linguaalayam
+
+            # Ensure DB is up before touching the schema.
+            docker compose up -d db
+            docker compose exec db sh -c \
+              'until pg_isready -U postgres; do sleep 1; done'
+
+            # Pull the new image first so the alembic binary is up-to-date.
+            docker compose pull app
+
+            # Apply any pending schema migrations before the new app starts.
+            # This is a no-op when the schema is already current.
+            docker compose run --rm app poetry run alembic upgrade head
+
+            # Restart the app with the new image.
+            docker compose up -d app
+
+            echo "Deployed ${{ needs.build.outputs.version }}"

@@ -1,16 +1,14 @@
 """Interactive debug script for testing all three dictionary retrieval tools."""
 
-from pathlib import Path
-
 import hydra
-from dotenv import load_dotenv
 from omegaconf import DictConfig
 
 from linguaalayam.database import build_engine, build_session_factory
 from linguaalayam.embeddings import EmbeddingService
+from linguaalayam.env import load_env
 from linguaalayam.rag.tools import DictionaryTools
 
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+load_env()
 
 
 @hydra.main(config_path="../../config", config_name="config", version_base=None)
