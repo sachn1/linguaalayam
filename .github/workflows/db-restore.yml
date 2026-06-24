@@ -44,6 +44,8 @@ jobs:
             MD5="$(grep 'md5:' linguaalayam.sql.gz.dvc | head -1 | awk '{print $3}')"
             cp "/home/dvc/storage/linguaalayam/files/md5/${MD5:0:2}/${MD5:2}" linguaalayam.sql.gz
 
+            export DB_PASSWORD="${DB_PASSWORD}"
+            docker compose stop app
             docker compose up -d db
             docker compose exec db sh -c \
               'until pg_isready -U postgres; do sleep 1; done'
@@ -51,4 +53,5 @@ jobs:
             DB_PASSWORD="${DB_PASSWORD}" bash db_restore.sh
 
             rm -f linguaalayam.sql.gz
+            docker compose up -d app
             echo "Restore complete."
