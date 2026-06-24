@@ -77,7 +77,7 @@ jobs:
               'until pg_isready -U postgres; do sleep 1; done'
 
             docker compose pull app
-            docker compose run --rm app poetry run alembic upgrade head
+            docker compose run --rm app python -m alembic upgrade head
             docker compose up -d app
 
             echo "Deployed ${VERSION}"
