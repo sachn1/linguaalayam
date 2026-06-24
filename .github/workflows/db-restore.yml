@@ -42,7 +42,7 @@ jobs:
               -o db_restore.sh
 
             MD5="$(grep '^ *md5:' linguaalayam.sql.gz.dvc | head -1 | awk '{print $2}')"
-            cp "/home/dvc/storage/linguaalayam/${MD5:0:2}/${MD5:2}" linguaalayam.sql.gz
+            cp "/home/dvc/storage/linguaalayam/files/md5/${MD5:0:2}/${MD5:2}" linguaalayam.sql.gz
 
             docker compose up -d db
             docker compose exec db sh -c \
