@@ -1,5 +1,4 @@
 name: Restore Database from DVC
-
 # Manual-only — triggered by an operator when the corpus data needs to be
 # bootstrapped or refreshed on the VPS. This is intentionally separate from
 # the main CD pipeline because:
@@ -7,20 +6,17 @@ name: Restore Database from DVC
 #     bandwidth and time for an asset that rarely changes.
 #   - Decoupling data ops from code deploys makes both auditable independently.
 #
-# Required secrets: VPS_HOST, VPS_USER, VPS_SSH_KEY, DVC_SSH_KEY, DB_PASSWORD, GITHUB_TOKEN
+# Required secrets: VPS_HOST, VPS_USER, VPS_SSH_KEY, DB_PASSWORD
 on:
   workflow_dispatch:
-
 jobs:
   restore:
     name: Pull DVC dump and restore Postgres
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Restore DB on VPS
         env:
-          DVC_SSH_KEY: ${{ secrets.DVC_SSH_KEY }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         uses: appleboy/ssh-action@v1
@@ -28,7 +24,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: DVC_SSH_KEY,DB_PASSWORD,GH_TOKEN
+          envs: DB_PASSWORD,GH_TOKEN
           script: |
             set -e
             cd /root/linguaalayam
@@ -45,12 +41,8 @@ jobs:
               "https://api.github.com/repos/sachn1/linguaalayam/contents/scripts/db_restore.sh" \
               -o db_restore.sh
 
-            mkdir -p ~/.ssh
-            echo "${DVC_SSH_KEY}" > ~/.ssh/dvc_key
-            chmod 600 ~/.ssh/dvc_key
-            export GIT_SSH_COMMAND="ssh -i ~/.ssh/dvc_key -o StrictHostKeyChecking=no"
-
-            dvc pull linguaalayam.sql.gz.dvc
+            MD5="$(grep '^ *md5:' linguaalayam.sql.gz.dvc | head -1 | awk '{print $2}')"
+            cp "/home/dvc/storage/linguaalayam/${MD5:0:2}/${MD5:2}" linguaalayam.sql.gz
 
             docker compose up -d db
             docker compose exec db sh -c \
@@ -58,5 +50,5 @@ jobs:
 
             DB_PASSWORD="${DB_PASSWORD}" bash db_restore.sh
 
-            rm -f linguaalayam.sql.gz ~/.ssh/dvc_key
+            rm -f linguaalayam.sql.gz
             echo "Restore complete."
