@@ -39,6 +39,7 @@ def _eval_query(
     fuzzy_limit: int,
     semantic_fn: SemanticFn | None = None,
     reranker: "CrossEncoderReranker | None" = None,
+    rerank_candidate_k: int = 25,
 ) -> QueryResult:
     """Run all three retrieval tools against a single query and score the result.
 
@@ -52,6 +53,11 @@ def _eval_query(
         When provided, re-scores the merged exact+fuzzy+semantic candidates
         before truncating to ``top_k`` — mirrors the production rerank step
         in ``rag/pipeline.py`` so eval can measure its effect on Hit@k/MRR.
+    rerank_candidate_k : int, optional
+        Pool size to fetch (instead of ``top_k``) before reranking, so the
+        cross-encoder can promote a correct-but-lower-ranked candidate
+        rather than only reshuffling a pool already truncated to ``top_k``.
+        Ignored unless ``reranker`` is provided.
     """
     t0 = time.perf_counter()
 
@@ -59,15 +65,17 @@ def _eval_query(
     qu = understand_query(q.query, llm=None)
     headword = qu.headword
 
+    fetch_k = max(top_k, rerank_candidate_k) if reranker is not None else top_k
+
     exact = tools.exact_lookup(headword, source=q.source)
     fuzzy = tools.fuzzy_lookup(
-        headword, source=q.source, threshold=fuzzy_threshold, top_k=fuzzy_limit
+        headword, source=q.source, threshold=fuzzy_threshold, top_k=max(fuzzy_limit, fetch_k)
     )
 
     if semantic_fn is not None:
-        semantic = semantic_fn(q.query, q.source, top_k)
+        semantic = semantic_fn(q.query, q.source, fetch_k)
     else:
-        semantic = tools.semantic_lookup(q.query, top_k=top_k, source=q.source)
+        semantic = tools.semantic_lookup(q.query, top_k=fetch_k, source=q.source)
 
     merged = merge_candidates([exact, fuzzy, semantic])
     if reranker is not None and merged:
@@ -132,6 +140,7 @@ def run_eval(
     top_k: int = cfg.get("top_k", 5)
     fuzzy_threshold: float = cfg.get("fuzzy_threshold", 0.3)
     fuzzy_limit: int = cfg.get("fuzzy_limit", 10)
+    rerank_candidate_k: int = cfg.get("rerank_candidate_k", 25)
 
     return [
         _eval_query(
@@ -142,6 +151,7 @@ def run_eval(
             fuzzy_limit=fuzzy_limit,
             semantic_fn=semantic_fn,
             reranker=reranker,
+            rerank_candidate_k=rerank_candidate_k,
         )
         for q in dataset
     ]

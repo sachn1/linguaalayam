@@ -81,6 +81,7 @@ poetry run eval-retrieval eval.compare=null
 # with cross-encoder reranking (single-model mode only — ignored by multi-model compare)
 poetry run eval-retrieval eval.compare=null eval.rerank=true
 poetry run eval-retrieval eval.compare=null eval.rerank=true eval.reranker_model=cross-encoder/some-other-model
+poetry run eval-retrieval eval.compare=null eval.rerank=true eval.rerank_candidate_k=50
 
 # stdout only, skip MLflow
 poetry run eval-retrieval eval.compare=null eval.mlflow=false
@@ -93,6 +94,21 @@ Run once with `eval.rerank=false` (the default) and once with `eval.rerank=true`
 MLflow with a `reranked` tag/param so you can pull up both runs side by side — and compare
 Hit@1/Hit@k/MRR against the added latency to decide whether reranking earns its cost before
 turning it on by default in `config/rag/default.yaml`.
+
+When `eval.rerank=true`, retrieval fetches `eval.rerank_candidate_k` (default 25, shared with
+`rag.rerank_candidate_k`) candidates instead of `top_k` before the cross-encoder reorders and cuts
+down to `top_k` — otherwise the reranker only reshuffles a pool already truncated to `top_k` and
+can never promote a candidate that was retrieved but ranked below it.
+
+**Finding (2026-09-06, `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1`):** reranking did not help on
+this dataset even after widening the candidate pool to 25. EN-input got slightly worse (Hit@1
+0.20→0.18, MRR 0.20→0.19) with roughly 2x latency; ML-input's Hit@1 improved marginally
+(0.217→0.239) but Hit@5 got *worse* (0.283→0.261) — the reranker demoted a correct candidate out of
+the top-5 that was already there. Two likely causes, still open: (1) miss rates are 67-87% before
+reranking even starts, so ranking order isn't the bottleneck — retrieval recall is; (2) this
+cross-encoder is trained on MS MARCO-style web queries, not short bilingual dictionary
+definitions, so it may not be well suited to scoring EN/ML lexicographic entries. Do not flip
+`rerank: true` in `config/rag/default.yaml` on this evidence alone.
 
 ### Metrics
 

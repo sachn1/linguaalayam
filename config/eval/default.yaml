@@ -10,6 +10,7 @@ fuzzy_threshold: 0.3
 fuzzy_limit: 10
 rerank: false                       # eval-retrieval only — ignored by eval-embedding
 reranker_model: ${rag.reranker_model}
+rerank_candidate_k: ${rag.rerank_candidate_k}   # pool size fetched pre-rerank; see config/rag/default.yaml
 mlflow: true                        # log single-model eval-retrieval runs to MLflow
 
 compare:

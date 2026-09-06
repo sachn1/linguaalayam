@@ -15,8 +15,14 @@ _SYNTHESIS_SYSTEM = (
     " concisely using only the dictionary entries provided. Respond "
     "in one to three plain sentences as if speaking aloud — no markdown, "
     "no bullet points, no preamble, no meta-commentary. State the"
-    " meaning, translation, or usage directly. If the entries do not "
-    "contain the answer, say so in one sentence."
+    " meaning, translation, or usage directly from the entries. Never use "
+    "your own general knowledge to supply something the entries do not "
+    "contain — this dictionary does not cover grammatical analysis such as "
+    "sandhi/samasa decomposition (vigraham), etymology, or word derivation. "
+    "If the question asks for that, or anything else the entries do not "
+    "contain, say plainly that this dictionary does not have that "
+    "information, while still sharing whatever relevant meaning the "
+    "entries do provide."
 )
 
 _SYNTHESIS_TEMPLATE = "Question: {query}\n\nDictionary entries:\n{entries}"
@@ -65,6 +71,8 @@ def build_pipeline(
     cfg : DictConfig
         Pipeline configuration; recognised keys: ``top_k`` (int, default 5),
         ``source`` (str, default None), ``rerank`` (bool, default False),
+        ``rerank_candidate_k`` (int, default 25) — candidates fetched before
+        reranking cuts down to ``top_k``, ignored when ``rerank`` is False,
         ``fuzzy_threshold`` (float, default 0.3), ``fuzzy_limit`` (int, default 10).
     reranker : CrossEncoderReranker or None, optional
         Cross-encoder reranker; only used when ``cfg.rerank`` is ``True``.
@@ -77,8 +85,14 @@ def build_pipeline(
     top_k: int = cfg.get("top_k", 5)
     source: str | None = cfg.get("source", None)
     use_rerank: bool = cfg.get("rerank", False)
+    rerank_candidate_k: int = cfg.get("rerank_candidate_k", 25)
     fuzzy_threshold: float = cfg.get("fuzzy_threshold", 0.3)
     fuzzy_limit: int = cfg.get("fuzzy_limit", 10)
+
+    # Retrieve a wider pool ahead of reranking so the cross-encoder can promote
+    # a correct-but-lower-ranked candidate rather than only reshuffling a pool
+    # already truncated to top_k.
+    fetch_k = max(top_k, rerank_candidate_k) if use_rerank else top_k
 
     def understand_node(state: RAGState) -> dict:
         """Extract headword and intent from the query."""
@@ -92,9 +106,9 @@ def build_pipeline(
 
         exact = tools.exact_lookup(headword, source=source)
         fuzzy = tools.fuzzy_lookup(
-            headword, source=source, threshold=fuzzy_threshold, top_k=fuzzy_limit
+            headword, source=source, threshold=fuzzy_threshold, top_k=max(fuzzy_limit, fetch_k)
         )
-        semantic = tools.semantic_lookup(query, top_k=top_k, source=source)
+        semantic = tools.semantic_lookup(query, top_k=fetch_k, source=source)
 
         return {"candidates": merge_candidates([exact, fuzzy, semantic])}
 

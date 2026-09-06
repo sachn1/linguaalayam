@@ -44,13 +44,16 @@ Each candidate in the output shows its source tool and similarity score:
 
 ## LLM adapters
 
-Provider is selected via Hydra override (`llm=anthropic` / `llm=openai` / `llm=nollm`). Default: `anthropic`.
+Provider is selected via Hydra override (`llm=anthropic` / `llm=openai` / `llm=togetherai` / `llm=nollm`). Default: `nollm` — no API key required for local CLI use.
 
 | Provider | Config | Requires |
 |---|---|---|
+| `nollm` (CLI default) | `config/llm/nollm.yaml` | No API key — synthesis returns formatted reranker output |
+| `togetherai` | `config/llm/togetherai.yaml` | `TOGETHER_API_KEY` in `.env` |
 | `anthropic` | `config/llm/anthropic.yaml` | `ANTHROPIC_API_KEY` in `.env` |
 | `openai` | `config/llm/openai.yaml` | `OPENAI_API_KEY` in `.env` |
-| `nollm` | `config/llm/nollm.yaml` | No API key — synthesis returns formatted reranker output |
+
+This Hydra `llm=` selection only affects the `poetry run rag` CLI tool — the deployed web app (`api/web.py`) has its own separate LLM wiring: AI synthesis uses the server-side TogetherAI model (Qwen 3.5 9B) by default when a user toggles it on, or the user's own key for Anthropic, OpenAI, or TogetherAI via the settings page.
 
 To add a new provider: subclass `LLMAdapter` in `linguaalayam/llm/adapters/` and add a YAML config with `_target_` pointing to your class.
 
@@ -62,6 +65,8 @@ To add a new provider: subclass `LLMAdapter` in `linguaalayam/llm/adapters/` and
 | `rag.source` | `null` | Corpus filter (e.g. `olam_enml`) |
 | `rag.top_k` | `5` | Candidates passed to the synthesizer |
 | `rag.rerank` | `false` | Enable cross-encoder reranking |
+| `rag.reranker_model` | `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` | HuggingFace cross-encoder ID, used when `rerank` is true |
+| `rag.rerank_candidate_k` | `25` | Candidates fetched (instead of `top_k`) before reranking cuts down to `top_k`; ignored unless `rerank` is true |
 | `rag.fuzzy_threshold` | `0.3` | pg_trgm similarity threshold (0–1) |
 | `rag.fuzzy_limit` | `10` | Max fuzzy candidates before merge |
 

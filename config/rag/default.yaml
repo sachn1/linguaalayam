@@ -2,5 +2,11 @@ query: ${oc.env:RAG_QUERY,"Mendel's pea plant experiments showed that this trait
 source: null
 top_k: 5
 rerank: false
+reranker_model: cross-encoder/mmarco-mMiniLMv2-L12-H384-v1
+# When rerank is true, retrieval fetches this many candidates (instead of top_k)
+# before the cross-encoder reorders and cuts down to top_k. Without this, the
+# reranker only ever reshuffles a pool already truncated to top_k and can never
+# promote a correct-but-lower-ranked candidate into view.
+rerank_candidate_k: 25
 fuzzy_threshold: 0.3
 fuzzy_limit: 10
