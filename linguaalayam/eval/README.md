@@ -236,6 +236,15 @@ Re-run it whenever query files change or the DB is re-ingested.
   retrieval quality. Fixing this means deciding whether Varnam belongs in the shared query
   understanding path (`rag/query_understanding.py`) rather than only in the web layer — out of
   scope for an eval-only fix.
+- **Still open — `merge_candidates` lets any fuzzy match outrank every semantic match, regardless
+  of quality.** After the collision fix above, `en_from_en_semantic` is still 0% Hit@1, but now for
+  a real reason: e.g. `'demode'` (expects `'obsolete'`) returns `Demo`/`Demon`/`Demos` — weak
+  trigram spelling coincidences — ahead of whatever semantic search found, because
+  `merge_candidates` (`rag/tools.py`) orders strictly by tool priority (exact, then fuzzy, then
+  semantic) rather than by match quality. A strong semantic match can never outrank a weak fuzzy
+  one. This is now the clearest lead on where real retrieval quality is being lost — worth
+  investigating before revisiting reranking again, since reranking only reorders within whatever
+  `merge_candidates` already assembled.
 
 ## Future work (low priority)
 
