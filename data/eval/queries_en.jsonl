@@ -1,50 +1,50 @@
-{"query": "Days are numbered", "expected_headword": "Days are numbered", "intent": "en_from_en_exact", "source": null}
-{"query": "Wheedle out", "expected_headword": "Wheedle out", "intent": "en_from_en_exact", "source": null}
-{"query": "Painting brush", "expected_headword": "Painting brush", "intent": "en_from_en_exact", "source": null}
-{"query": "Yowl", "expected_headword": "Yowl", "intent": "en_from_en_exact", "source": null}
-{"query": "Painless", "expected_headword": "Painless", "intent": "en_from_en_exact", "source": null}
-{"query": "Parrot fashion", "expected_headword": "Parrot fashion", "intent": "en_from_en_exact", "source": null}
-{"query": "Let slide", "expected_headword": "Let slide", "intent": "en_from_en_exact", "source": null}
-{"query": "Causationist", "expected_headword": "Causationist", "intent": "en_from_en_exact", "source": null}
-{"query": "Morbid", "expected_headword": "Morbid", "intent": "en_from_en_exact", "source": null}
-{"query": "Clutch", "expected_headword": "Clutch", "intent": "en_from_en_exact", "source": null}
-{"query": "cowardly", "expected_headword": "pusillanimous", "intent": "en_from_en_semantic", "source": null}
-{"query": "safe", "expected_headword": "locker", "intent": "en_from_en_semantic", "source": null}
-{"query": "unexpected", "expected_headword": "uninvited", "intent": "en_from_en_semantic", "source": null}
-{"query": "reduce", "expected_headword": "boil something down", "intent": "en_from_en_semantic", "source": null}
-{"query": "discernment", "expected_headword": "cognition", "intent": "en_from_en_semantic", "source": null}
-{"query": "seat of state", "expected_headword": "throne", "intent": "en_from_en_semantic", "source": null}
-{"query": "inconvenience", "expected_headword": "nuisance", "intent": "en_from_en_semantic", "source": null}
-{"query": "fooling around", "expected_headword": "tomfoolery", "intent": "en_from_en_semantic", "source": null}
-{"query": "confront", "expected_headword": "stand up to someone", "intent": "en_from_en_semantic", "source": null}
-{"query": "adjoining", "expected_headword": "neighbouring", "intent": "en_from_en_semantic", "source": null}
-{"query": "pusillanimous", "expected_headword": "നിഷ്പൗരുഷ", "intent": "ml_from_en_exact", "source": null}
-{"query": "locker", "expected_headword": "അലമാര", "intent": "ml_from_en_exact", "source": null}
-{"query": "uninvited", "expected_headword": "അനാഹൂത", "intent": "ml_from_en_exact", "source": null}
-{"query": "boil something down", "expected_headword": "ഘനീകരിക്കുക", "intent": "ml_from_en_exact", "source": null}
-{"query": "cognition", "expected_headword": "അറിവ്", "intent": "ml_from_en_exact", "source": null}
-{"query": "throne", "expected_headword": "സിംഹാസനം", "intent": "ml_from_en_exact", "source": null}
-{"query": "nuisance", "expected_headword": "ഉപദ്രവം", "intent": "ml_from_en_exact", "source": null}
-{"query": "tomfoolery", "expected_headword": "വിഡ്ഢിത്തം", "intent": "ml_from_en_exact", "source": null}
-{"query": "stand up to someone", "expected_headword": "ധിക്കരിക്കുക", "intent": "ml_from_en_exact", "source": null}
-{"query": "neighbouring", "expected_headword": "സാമന്ത", "intent": "ml_from_en_exact", "source": null}
-{"query": "cowardly", "expected_headword": "നിഷ്പൗരുഷ", "intent": "ml_from_en_semantic", "source": null}
-{"query": "safe", "expected_headword": "അലമാര", "intent": "ml_from_en_semantic", "source": null}
-{"query": "unexpected", "expected_headword": "അനാഹൂത", "intent": "ml_from_en_semantic", "source": null}
-{"query": "reduce", "expected_headword": "ഘനീകരിക്കുക", "intent": "ml_from_en_semantic", "source": null}
-{"query": "discernment", "expected_headword": "അറിവ്", "intent": "ml_from_en_semantic", "source": null}
-{"query": "seat of state", "expected_headword": "സിംഹാസനം", "intent": "ml_from_en_semantic", "source": null}
-{"query": "inconvenience", "expected_headword": "ഉപദ്രവം", "intent": "ml_from_en_semantic", "source": null}
-{"query": "fooling around", "expected_headword": "വിഡ്ഢിത്തം", "intent": "ml_from_en_semantic", "source": null}
-{"query": "confront", "expected_headword": "ധിക്കരിക്കുക", "intent": "ml_from_en_semantic", "source": null}
-{"query": "adjoining", "expected_headword": "സാമന്ത", "intent": "ml_from_en_semantic", "source": null}
-{"query": "niṣpaൗruṣa", "expected_headword": "pusillanimous", "intent": "en_from_manglish", "source": null}
-{"query": "alamāra", "expected_headword": "locker", "intent": "en_from_manglish", "source": null}
-{"query": "anāhūta", "expected_headword": "uninvited", "intent": "en_from_manglish", "source": null}
-{"query": "ghanīkarikkuka", "expected_headword": "boil something down", "intent": "en_from_manglish", "source": null}
-{"query": "aṟiv", "expected_headword": "cognition", "intent": "en_from_manglish", "source": null}
-{"query": "siṁhāsanaṁ", "expected_headword": "throne", "intent": "en_from_manglish", "source": null}
-{"query": "upadravaṁ", "expected_headword": "nuisance", "intent": "en_from_manglish", "source": null}
-{"query": "viḍḍhittaṁ", "expected_headword": "tomfoolery", "intent": "en_from_manglish", "source": null}
-{"query": "dhikkarikkuka", "expected_headword": "stand up to someone", "intent": "en_from_manglish", "source": null}
-{"query": "sāmanta", "expected_headword": "neighbouring", "intent": "en_from_manglish", "source": null}
+{"query": "Niceness", "expected_headword": "Niceness", "intent": "en_from_en_exact", "source": null}
+{"query": "Cutlass", "expected_headword": "Cutlass", "intent": "en_from_en_exact", "source": null}
+{"query": "Pass rate", "expected_headword": "Pass rate", "intent": "en_from_en_exact", "source": null}
+{"query": "Charity", "expected_headword": "Charity", "intent": "en_from_en_exact", "source": null}
+{"query": "Unbearbleness", "expected_headword": "Unbearbleness", "intent": "en_from_en_exact", "source": null}
+{"query": "Rig the market", "expected_headword": "Rig the market", "intent": "en_from_en_exact", "source": null}
+{"query": "Hostile witness", "expected_headword": "Hostile witness", "intent": "en_from_en_exact", "source": null}
+{"query": "Chemical warfare", "expected_headword": "Chemical warfare", "intent": "en_from_en_exact", "source": null}
+{"query": "Dig a pit for", "expected_headword": "Dig a pit for", "intent": "en_from_en_exact", "source": null}
+{"query": "Traducement", "expected_headword": "Traducement", "intent": "en_from_en_exact", "source": null}
+{"query": "unfitting", "expected_headword": "unbecoming", "intent": "en_from_en_semantic", "source": null}
+{"query": "(on the) loose", "expected_headword": "at liberty", "intent": "en_from_en_semantic", "source": null}
+{"query": "demode", "expected_headword": "obsolete", "intent": "en_from_en_semantic", "source": null}
+{"query": "weak point", "expected_headword": "shortcoming", "intent": "en_from_en_semantic", "source": null}
+{"query": "(luck) charm", "expected_headword": "talisman", "intent": "en_from_en_semantic", "source": null}
+{"query": "(kitchen) stove", "expected_headword": "oven", "intent": "en_from_en_semantic", "source": null}
+{"query": "non-literal", "expected_headword": "figurative", "intent": "en_from_en_semantic", "source": null}
+{"query": "exact revenge for", "expected_headword": "requite", "intent": "en_from_en_semantic", "source": null}
+{"query": "connate", "expected_headword": "inbred", "intent": "en_from_en_semantic", "source": null}
+{"query": "not many", "expected_headword": "few", "intent": "en_from_en_semantic", "source": null}
+{"query": "likeable", "expected_headword": "അഭിരുച്യ", "intent": "ml_from_en_exact", "source": null}
+{"query": "unbecoming", "expected_headword": "അപരൂപ", "intent": "ml_from_en_exact", "source": null}
+{"query": "at liberty", "expected_headword": "നഷ്ട", "intent": "ml_from_en_exact", "source": null}
+{"query": "obsolete", "expected_headword": "ലുപ്ത", "intent": "ml_from_en_exact", "source": null}
+{"query": "revoke", "expected_headword": "റദ്ദാക്കുക", "intent": "ml_from_en_exact", "source": null}
+{"query": "shortcoming", "expected_headword": "വൃജിനം", "intent": "ml_from_en_exact", "source": null}
+{"query": "talisman", "expected_headword": "രക്ഷ", "intent": "ml_from_en_exact", "source": null}
+{"query": "engine", "expected_headword": "യന്ത്രം", "intent": "ml_from_en_exact", "source": null}
+{"query": "oven", "expected_headword": "അടുപ്പ്", "intent": "ml_from_en_exact", "source": null}
+{"query": "figurative", "expected_headword": "രൂപക", "intent": "ml_from_en_exact", "source": null}
+{"query": "agreeable", "expected_headword": "അഭിരുച്യ", "intent": "ml_from_en_semantic", "source": null}
+{"query": "unattractive", "expected_headword": "അപരൂപ", "intent": "ml_from_en_semantic", "source": null}
+{"query": "free", "expected_headword": "നഷ്ട", "intent": "ml_from_en_semantic", "source": null}
+{"query": "outmoded", "expected_headword": "ലുപ്ത", "intent": "ml_from_en_semantic", "source": null}
+{"query": "repeal", "expected_headword": "റദ്ദാക്കുക", "intent": "ml_from_en_semantic", "source": null}
+{"query": "fault", "expected_headword": "വൃജിനം", "intent": "ml_from_en_semantic", "source": null}
+{"query": "fetish", "expected_headword": "രക്ഷ", "intent": "ml_from_en_semantic", "source": null}
+{"query": "motor", "expected_headword": "യന്ത്രം", "intent": "ml_from_en_semantic", "source": null}
+{"query": "(kitchen) stove", "expected_headword": "അടുപ്പ്", "intent": "ml_from_en_semantic", "source": null}
+{"query": "metaphorical", "expected_headword": "രൂപക", "intent": "ml_from_en_semantic", "source": null}
+{"query": "abhiruchya", "expected_headword": "likeable", "intent": "en_from_manglish", "source": null}
+{"query": "aparoopa", "expected_headword": "unbecoming", "intent": "en_from_manglish", "source": null}
+{"query": "nashta", "expected_headword": "at liberty", "intent": "en_from_manglish", "source": null}
+{"query": "luptha", "expected_headword": "obsolete", "intent": "en_from_manglish", "source": null}
+{"query": "raddhaakkuka", "expected_headword": "revoke", "intent": "en_from_manglish", "source": null}
+{"query": "vrujinam", "expected_headword": "shortcoming", "intent": "en_from_manglish", "source": null}
+{"query": "raksha", "expected_headword": "talisman", "intent": "en_from_manglish", "source": null}
+{"query": "yanth\u0001m", "expected_headword": "engine", "intent": "en_from_manglish", "source": null}
+{"query": "atuppu", "expected_headword": "oven", "intent": "en_from_manglish", "source": null}
+{"query": "roopaka", "expected_headword": "figurative", "intent": "en_from_manglish", "source": null}

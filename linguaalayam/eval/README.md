@@ -100,15 +100,15 @@ When `eval.rerank=true`, retrieval fetches `eval.rerank_candidate_k` (default 25
 down to `top_k` — otherwise the reranker only reshuffles a pool already truncated to `top_k` and
 can never promote a candidate that was retrieved but ranked below it.
 
-**Finding (2026-09-06, `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1`):** reranking did not help on
-this dataset even after widening the candidate pool to 25. EN-input got slightly worse (Hit@1
-0.20→0.18, MRR 0.20→0.19) with roughly 2x latency; ML-input's Hit@1 improved marginally
+**Finding (2026-09-06, `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1`, pre-collision-fix dataset):**
+reranking did not help even after widening the candidate pool to 25. EN-input got slightly worse
+(Hit@1 0.20→0.18, MRR 0.20→0.19) with roughly 2x latency; ML-input's Hit@1 improved marginally
 (0.217→0.239) but Hit@5 got *worse* (0.283→0.261) — the reranker demoted a correct candidate out of
-the top-5 that was already there. Two likely causes, still open: (1) miss rates are 67-87% before
-reranking even starts, so ranking order isn't the bottleneck — retrieval recall is; (2) this
-cross-encoder is trained on MS MARCO-style web queries, not short bilingual dictionary
-definitions, so it may not be well suited to scoring EN/ML lexicographic entries. Do not flip
-`rerank: true` in `config/rag/default.yaml` on this evidence alone.
+the top-5 that was already there. Do not flip `rerank: true` in `config/rag/default.yaml` on this
+evidence alone. Investigating *why* led to the [Known limitations](#known-limitations-found-while-investigating-why-reranking-showed-no-lift-2026-09-06)
+below: most of the miss rate driving this result was eval-dataset/architecture artifacts, not
+genuine retrieval failures reranking could fix. Re-run this comparison against the current
+(collision-filtered) query files before drawing further conclusions about reranking itself.
 
 ### Metrics
 
@@ -204,6 +204,38 @@ All `*_semantic` and `*_manglish` intents are scored in **both** commands.
 Re-run it whenever query files change or the DB is re-ingested.
 
 ---
+
+## Known limitations (found while investigating why reranking showed no lift, 2026-09-06)
+
+- **Fixed — exact-match collisions in `*_semantic` intents.** `prepare_eval_queries.py` used to
+  pick a synonym/gloss word for `en_from_en_semantic` and `ml_from_ml_semantic` without checking
+  whether that word was *also* a real headword elsewhere in the corpus (e.g. "cowardly" as a
+  synonym of "pusillanimous", when "cowardly" is itself an Olam headword; or "സുഗന്ധം" as the
+  one-word Datuk gloss for "ഘ്രാണതർപ്പണം", when "സുഗന്ധം" is itself a Datuk headword).
+  `merge_candidates` always ranks exact > fuzzy > semantic, so the exact tool correctly returned
+  the colliding word's own entry — not a retrieval failure, but it scored as one. Both generators
+  now take an `exclude_headwords` set and filter these out. This inflated `ml_from_ml_semantic`'s
+  apparent Hit@1 before the fix (collisions look like "free" exact-match wins); after the fix the
+  intent measures genuine semantic recall and both the number and the *reason* for a miss are
+  meaningful.
+- **Still open — cross-lingual "exact" intents can't be satisfied by the exact tool.**
+  `ml_from_en_exact`, `en_from_ml_exact`, `ml_from_en_semantic`, and `en_from_ml_semantic` bridge
+  English and Malayalam via Ekkurup, but Ekkurup stores exactly one headword string per row (the
+  English side) — the Malayalam translation only ever lives inside the row's body text, never as
+  an indexed headword. `exact_lookup` is a literal string match on the `headword` column, so it
+  structurally cannot resolve an EN query to an ML headword or vice versa; these intents sit at
+  0% regardless of retrieval or reranking quality. Not yet decided whether to rescope them
+  (semantic-only scoring), require LLM-based query understanding (which production uses but this
+  LLM-free harness deliberately doesn't), or drop them.
+- **Still open — Manglish intents test a feature this pipeline doesn't have.**
+  `en_from_manglish` and `ml_from_manglish` feed raw ISO-romanised Malayalam directly into
+  exact/fuzzy/semantic lookup with no conversion step, so they sit at 0% by construction.
+  Manglish→Malayalam conversion (Varnam) is only wired into `linguaalayam/api/web.py`'s request
+  handler — `rag/pipeline.py`, `rag/tools.py`, and this eval harness never call it. These intents
+  are measuring an integration gap between the web app and the shared RAG/eval/MCP pipeline, not
+  retrieval quality. Fixing this means deciding whether Varnam belongs in the shared query
+  understanding path (`rag/query_understanding.py`) rather than only in the web layer — out of
+  scope for an eval-only fix.
 
 ## Future work (low priority)
 

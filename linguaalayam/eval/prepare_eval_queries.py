@@ -153,15 +153,29 @@ def gen_en_from_en_exact(entries: list[dict], n: int) -> list[dict]:
     return [_make_record(e["headword"], e["headword"], "en_from_en_exact") for e in entries[:n]]
 
 
-def gen_en_from_en_semantic(entries: list[dict], n: int) -> list[dict]:
-    """Ekkurup EN synonym → EN headword."""
+def gen_en_from_en_semantic(
+    entries: list[dict], n: int, exclude_headwords: set[str]
+) -> list[dict]:
+    """Ekkurup EN synonym → EN headword.
+
+    ``exclude_headwords`` filters out synonym candidates that are themselves a
+    real headword elsewhere in the corpus (e.g. "cowardly" as a synonym of
+    "pusillanimous", when "cowardly" is also its own Olam headword) — those
+    make ``exact_lookup`` correctly return the synonym's own entry, which
+    isn't a semantic-retrieval failure but scores as one.
+    """
     records: list[dict] = []
     for e in entries:
         if len(records) >= n:
             break
         syns = _parse_ekkurup_en_synonyms(e["embed_text"])
-        # Use a synonym that is NOT the headword itself
-        candidates = [s for s in syns if s.lower() != e["headword"].lower()]
+        # Use a synonym that is NOT the headword itself and doesn't collide
+        # with some other real headword (which would win via exact match).
+        candidates = [
+            s
+            for s in syns
+            if s.lower() != e["headword"].lower() and s.lower() not in exclude_headwords
+        ]
         if not candidates:
             continue
         records.append(_make_record(candidates[0], e["headword"], "en_from_en_semantic"))
@@ -173,13 +187,23 @@ def gen_ml_from_ml_exact(entries: list[dict], n: int) -> list[dict]:
     return [_make_record(e["headword"], e["headword"], "ml_from_ml_exact") for e in entries[:n]]
 
 
-def gen_ml_from_ml_semantic(entries: list[dict], n: int) -> list[dict]:
-    """Datuk ML definition → ML headword."""
+def gen_ml_from_ml_semantic(
+    entries: list[dict], n: int, exclude_headwords: set[str]
+) -> list[dict]:
+    """Datuk ML definition → ML headword.
+
+    Many Datuk/Sayahna glosses are a single synonym word rather than a
+    descriptive phrase (e.g. "ഘ്രാണതർപ്പണം" glossed as just "സുഗന്ധം"). When
+    that gloss word is itself a real headword elsewhere in the corpus,
+    ``exact_lookup`` correctly returns its own entry — not a semantic
+    failure, so ``exclude_headwords`` filters those out.
+    """
     records: list[dict] = []
     for e in entries:
         if len(records) >= n:
             break
         defns = [d for d in _parse_definitions(e["embed_text"]) if _MALAYALAM_RE.search(d)]
+        defns = [d for d in defns if d.lower() not in exclude_headwords]
         if not defns:
             continue
         records.append(_make_record(defns[0], e["headword"], "ml_from_ml_semantic"))
@@ -319,13 +343,28 @@ def prepare_queries(
         ).fetchall()
         datuk_hw_set = {r[0] for r in rows}
 
+        # Full EN / ML headword sets so semantic-intent candidates that collide
+        # with a real headword elsewhere (and would win via exact_lookup) can
+        # be filtered out — see gen_en_from_en_semantic / gen_ml_from_ml_semantic.
+        en_hw_rows = conn.execute(
+            text(
+                "SELECT headword FROM dictionary_entries WHERE source IN ('olam_enml', 'ekkurup')"
+            )
+        ).fetchall()
+        en_headwords_lower = {r[0].lower() for r in en_hw_rows}
+
+        ml_hw_rows = conn.execute(
+            text("SELECT headword FROM dictionary_entries WHERE source IN ('datuk', 'sayahna')")
+        ).fetchall()
+        ml_headwords_lower = {r[0].lower() for r in ml_hw_rows}
+
     datuk_entries_by_hw = {e["headword"]: e for e in datuk_entries}
 
     print("Generating intents...")
 
     # EN-input intents
     en_from_en_exact = gen_en_from_en_exact(olam_entries, per_intent)
-    en_from_en_semantic = gen_en_from_en_semantic(ekkurup_entries, per_intent)
+    en_from_en_semantic = gen_en_from_en_semantic(ekkurup_entries, per_intent, en_headwords_lower)
 
     (
         en_from_ml_exact,
@@ -340,7 +379,7 @@ def prepare_queries(
 
     # ML-input intents
     ml_from_ml_exact = gen_ml_from_ml_exact(datuk_entries, per_intent)
-    ml_from_ml_semantic = gen_ml_from_ml_semantic(datuk_entries, per_intent)
+    ml_from_ml_semantic = gen_ml_from_ml_semantic(datuk_entries, per_intent, ml_headwords_lower)
 
     # EN queries file: queries where input is Latin/English/Manglish
     en_records = (
