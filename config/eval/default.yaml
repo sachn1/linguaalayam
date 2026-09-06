@@ -8,6 +8,9 @@ output: null
 top_k: 5
 fuzzy_threshold: 0.3
 fuzzy_limit: 10
+rerank: false                       # eval-retrieval only — ignored by eval-embedding
+reranker_model: ${rag.reranker_model}
+mlflow: true                        # log single-model eval-retrieval runs to MLflow
 
 compare:
   corpus_sample: data/eval/corpus_sample.jsonl

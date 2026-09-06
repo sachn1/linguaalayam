@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from omegaconf import DictConfig
 
@@ -15,6 +16,9 @@ from linguaalayam.eval.dataset import EvalQuery, load_dataset
 from linguaalayam.eval.metrics import QueryResult
 from linguaalayam.rag.query_understanding import understand_query
 from linguaalayam.rag.tools import DictionaryTools, merge_candidates
+
+if TYPE_CHECKING:
+    from linguaalayam.rag.reranker import CrossEncoderReranker
 
 SemanticFn = Callable[[str, str | None, int], list[dict]]
 
@@ -34,6 +38,7 @@ def _eval_query(
     fuzzy_threshold: float,
     fuzzy_limit: int,
     semantic_fn: SemanticFn | None = None,
+    reranker: "CrossEncoderReranker | None" = None,
 ) -> QueryResult:
     """Run all three retrieval tools against a single query and score the result.
 
@@ -43,6 +48,10 @@ def _eval_query(
         If provided, replaces ``tools.semantic_lookup`` for this query.
         Signature: ``(query_text, source, top_k) -> list[dict]``.
         Used to test candidate embedding models without re-ingesting the DB.
+    reranker : CrossEncoderReranker or None, optional
+        When provided, re-scores the merged exact+fuzzy+semantic candidates
+        before truncating to ``top_k`` — mirrors the production rerank step
+        in ``rag/pipeline.py`` so eval can measure its effect on Hit@k/MRR.
     """
     t0 = time.perf_counter()
 
@@ -61,6 +70,8 @@ def _eval_query(
         semantic = tools.semantic_lookup(q.query, top_k=top_k, source=q.source)
 
     merged = merge_candidates([exact, fuzzy, semantic])
+    if reranker is not None and merged:
+        merged = reranker.rerank(q.query, merged, top_n=top_k)
     top = merged[:top_k]
 
     latency_ms = (time.perf_counter() - t0) * 1000
@@ -91,6 +102,7 @@ def run_eval(
     cfg: DictConfig,
     queries: list[EvalQuery] | None = None,
     semantic_fn: SemanticFn | None = None,
+    reranker: "CrossEncoderReranker | None" = None,
 ) -> list[QueryResult]:
     """Run retrieval evaluation against a labeled query dataset.
 
@@ -107,6 +119,9 @@ def run_eval(
         If provided, replaces DB-backed semantic search. Use to test
         candidate embedding models without re-ingesting the corpus.
         Signature: ``(query_text, source, top_k) -> list[dict]``.
+    reranker : CrossEncoderReranker or None, optional
+        When provided, applied to every query's merged candidates before
+        scoring — see :func:`_eval_query`.
 
     Returns
     -------
@@ -126,6 +141,7 @@ def run_eval(
             fuzzy_threshold=fuzzy_threshold,
             fuzzy_limit=fuzzy_limit,
             semantic_fn=semantic_fn,
+            reranker=reranker,
         )
         for q in dataset
     ]

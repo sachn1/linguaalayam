@@ -55,6 +55,17 @@ Re-run whenever query files change or the DB is re-ingested.
 Tests the full retrieval pipeline (exact + fuzzy + semantic) against the live DB.
 Runs against both EN and ML query sets and reports metrics broken down by tool and by intent.
 
+`eval-retrieval` has two modes, chosen automatically:
+- **Multi-model compare** — runs whenever `data/eval/corpus_sample.jsonl` exists (built by
+  `eval-prepare-corpus`) and `eval.compare.models` has at least one enabled entry. Iterates over
+  every enabled embedding model; ignores `eval.rerank`.
+- **Single-model** — the production embedding model against the live DB (real pgvector semantic
+  search). This is the only mode that applies `eval.rerank`. Force it even when a corpus sample
+  is present with `eval.compare=null`.
+
+Both modes log one MLflow run per (model, dataset) — or (model, dataset, reranked) in single-model
+mode — to the `retrieval_pipeline` experiment, unless disabled.
+
 ```bash
 poetry run eval-retrieval
 poetry run eval-retrieval eval.top_k=10
@@ -63,7 +74,25 @@ poetry run eval-retrieval eval.output=results/v2.2.jsonl
 
 # single dataset only
 poetry run eval-retrieval eval.datasets=null eval.dataset=data/eval/queries_ml.jsonl
+
+# force single-model mode (production model, live DB) even if corpus_sample.jsonl exists
+poetry run eval-retrieval eval.compare=null
+
+# with cross-encoder reranking (single-model mode only — ignored by multi-model compare)
+poetry run eval-retrieval eval.compare=null eval.rerank=true
+poetry run eval-retrieval eval.compare=null eval.rerank=true eval.reranker_model=cross-encoder/some-other-model
+
+# stdout only, skip MLflow
+poetry run eval-retrieval eval.compare=null eval.mlflow=false
+
+# browse results
+mlflow ui --port 5001
 ```
+
+Run once with `eval.rerank=false` (the default) and once with `eval.rerank=true` — both logged to
+MLflow with a `reranked` tag/param so you can pull up both runs side by side — and compare
+Hit@1/Hit@k/MRR against the added latency to decide whether reranking earns its cost before
+turning it on by default in `config/rag/default.yaml`.
 
 ### Metrics
 
@@ -159,6 +188,20 @@ All `*_semantic` and `*_manglish` intents are scored in **both** commands.
 Re-run it whenever query files change or the DB is re-ingested.
 
 ---
+
+## Future work (low priority)
+
+- **RAGAS faithfulness eval for the RAG pipeline.** Current metrics (Hit@k, MRR) score retrieval
+  only. A RAGAS-style faithfulness/answer-relevance check on `rag/pipeline.py`'s synthesized
+  answers (`llm=anthropic`/`openai`/`togetherai`) would catch hallucination against retrieved
+  candidates that retrieval metrics can't see. Needs an LLM-as-judge budget, so it's a separate,
+  non-deterministic eval track from this harness rather than an addition to it.
+- **One embedding per sense for Ekkurup.** Ekkurup entries currently embed one vector per headword
+  even when a headword has multiple distinct senses/synonym groups, which dilutes the embedding
+  and can hurt semantic recall for polysemous words. Splitting `to_embed_text()` per sense (see
+  `linguaalayam/models/entries.py` / `linguaalayam/corpus/ekkurup.py`) would mean one DB row (and
+  one HNSW-indexed vector) per sense instead of per headword — a schema and ingestion change, so
+  it needs its own design pass before starting.
 
 ## CI
 

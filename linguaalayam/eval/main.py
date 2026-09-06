@@ -20,6 +20,7 @@ CLI examples::
     poetry run eval-retrieval eval.top_k=10
     poetry run eval-retrieval eval.output=results/v2.1.jsonl
     poetry run eval-retrieval eval.compare.mlflow=false
+    poetry run eval-retrieval eval.rerank=true   # single-model mode only
 """
 
 from __future__ import annotations
@@ -35,7 +36,7 @@ import hydra
 import mlflow
 import numpy as np
 import torch
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from sentence_transformers import SentenceTransformer
 
 from linguaalayam.database import build_engine, build_session_factory
@@ -44,6 +45,7 @@ from linguaalayam.env import load_env
 from linguaalayam.eval.dataset import load_dataset
 from linguaalayam.eval.metrics import QueryResult, intent_breakdown, mrr, tool_breakdown
 from linguaalayam.eval.runner import SemanticFn, run_eval
+from linguaalayam.rag.reranker import CrossEncoderReranker
 from linguaalayam.rag.tools import DictionaryTools
 
 load_env()
@@ -140,6 +142,7 @@ def _print_summary(
     cfg: DictConfig,
     label: str = "",
     model_label: str = "",
+    reranked: bool = False,
 ) -> None:
     n = len(results)
     if n == 0:
@@ -155,6 +158,8 @@ def _print_summary(
     top_k = cfg.eval.get("top_k", 5)
 
     parts = [p for p in ("RAG Evaluation", label, model_label) if p]
+    if reranked:
+        parts.append("reranked")
     heading = " — ".join(parts)
 
     print()
@@ -203,6 +208,8 @@ def _log_retrieval_to_mlflow(
     model_hf_id: str,
     dataset_label: str,
     cfg: DictConfig,
+    reranked: bool = False,
+    reranker_model: str | None = None,
 ) -> None:
     top_k = cfg.eval.get("top_k", 5)
     n = len(results)
@@ -210,19 +217,23 @@ def _log_retrieval_to_mlflow(
     mrr_val = mrr(results)
     intents = intent_breakdown(results)
 
-    run_name = f"{model_key}_{dataset_label}"
+    run_name = f"{model_key}_{dataset_label}" + ("_reranked" if reranked else "")
     with mlflow.start_run(run_name=run_name):
-        mlflow.set_tags({"model": model_key, "dataset": dataset_label})
-        mlflow.log_params(
-            {
-                "model_hf_id": model_hf_id,
-                "model_key": model_key,
-                "dataset_label": dataset_label,
-                "top_k": top_k,
-                "n_queries": n,
-                "embedding_model": cfg.embedding.model,
-            }
+        mlflow.set_tags(
+            {"model": model_key, "dataset": dataset_label, "reranked": str(reranked)}
         )
+        params = {
+            "model_hf_id": model_hf_id,
+            "model_key": model_key,
+            "dataset_label": dataset_label,
+            "top_k": top_k,
+            "n_queries": n,
+            "embedding_model": cfg.embedding.model,
+            "reranked": reranked,
+        }
+        if reranked:
+            params["reranker_model"] = reranker_model
+        mlflow.log_params(params)
         mlflow.log_metrics(
             {
                 "hit_at_1": round(sum(r.hit_at_1 for r in results) / n, 4) if n else 0.0,
@@ -326,14 +337,14 @@ def main(cfg: DictConfig) -> None:  # pragma: no cover
 
     datasets_cfg = cfg.eval.get("datasets")
     if not datasets_cfg:
-        datasets_cfg = [{"path": cfg.eval.dataset, "label": "default"}]
+        datasets_cfg = OmegaConf.create([{"path": cfg.eval.dataset, "label": "default"}])
 
     loaded_datasets = [
         {"label": ds.label, "queries": load_dataset(ds.path), "path": ds.path}
         for ds in datasets_cfg
     ]
 
-    use_mlflow = compare_cfg.get("mlflow", True) if compare_cfg else False
+    use_mlflow_compare = compare_cfg.get("mlflow", True) if compare_cfg else False
 
     if multi_model_mode:
         # Multi-model mode: exact+fuzzy from DB, semantic in-memory per candidate
@@ -350,7 +361,7 @@ def main(cfg: DictConfig) -> None:  # pragma: no cover
             f"Multi-model RAG eval — {len(active_models)} models × {len(loaded_datasets)} datasets"
         )
 
-        if use_mlflow:
+        if use_mlflow_compare:
             mlflow.set_experiment(_RAG_EXPERIMENT)
             print(f"MLflow experiment: '{_RAG_EXPERIMENT}'  (mlflow ui --port 5001)")
 
@@ -382,7 +393,7 @@ def main(cfg: DictConfig) -> None:  # pragma: no cover
                 )
                 all_results.extend(results)
 
-                if use_mlflow:
+                if use_mlflow_compare:
                     _log_retrieval_to_mlflow(
                         results,
                         model_key=model_cfg.key,
@@ -408,12 +419,36 @@ def main(cfg: DictConfig) -> None:  # pragma: no cover
                 corpus_path,
             )
 
+        reranker = None
+        if cfg.eval.get("rerank", False):
+            log.info("Loading reranker: %s", cfg.eval.reranker_model)
+            reranker = CrossEncoderReranker(cfg.eval.reranker_model)
+
+        use_mlflow_single = cfg.eval.get("mlflow", True)
+        if use_mlflow_single:
+            mlflow.set_experiment(_RAG_EXPERIMENT)
+            print(f"MLflow experiment: '{_RAG_EXPERIMENT}'  (mlflow ui --port 5001)")
+
+        model_key = cfg.embedding.model.rsplit("/", 1)[-1]
+
         all_results = []
         for ds in loaded_datasets:
             log.info("Running eval on %s (%s)", ds["path"], ds["label"])
-            results = run_eval(tools, cfg.eval, queries=ds["queries"])
-            _print_summary(results, cfg, label=ds["label"])
+            results = run_eval(tools, cfg.eval, queries=ds["queries"], reranker=reranker)
+            _print_summary(results, cfg, label=ds["label"], reranked=reranker is not None)
             all_results.extend(results)
+
+            if use_mlflow_single:
+                _log_retrieval_to_mlflow(
+                    results,
+                    model_key=model_key,
+                    model_hf_id=cfg.embedding.model,
+                    dataset_label=ds["label"],
+                    cfg=cfg,
+                    reranked=reranker is not None,
+                    reranker_model=cfg.eval.reranker_model if reranker is not None else None,
+                )
+                print(f"  → logged to MLflow: {model_key}/{ds['label']}")
 
         if cfg.eval.output and all_results:
             _write_results(all_results, Path(cfg.eval.output))
