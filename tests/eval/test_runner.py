@@ -97,6 +97,33 @@ class TestEvalQuery:
         assert result.hit_at_k
         assert result.reciprocal_rank == pytest.approx(0.5)
 
+    def test_reranker_reorders_candidates(self):
+        """A reranker promoting the lower-ranked candidate should improve reciprocal_rank."""
+        tools = self._make_tools(
+            exact=[{"headword": "walk", "match_type": "exact", "source": "olam_enml"}],
+            semantic=[{"headword": "run", "match_type": "semantic", "source": "olam_enml"}],
+        )
+        reranker = MagicMock()
+        reranker.rerank.return_value = [
+            {"headword": "run", "match_type": "semantic", "source": "olam_enml"},
+            {"headword": "walk", "match_type": "exact", "source": "olam_enml"},
+        ]
+        q = EvalQuery(query="run", expected_headword="run", intent="define")
+        result = _eval_query(
+            q, tools, top_k=5, fuzzy_threshold=0.3, fuzzy_limit=10, reranker=reranker
+        )
+        assert result.hit_at_1
+        assert result.reciprocal_rank == pytest.approx(1.0)
+        reranker.rerank.assert_called_once()
+
+    def test_reranker_not_called_when_no_candidates(self):
+        """Reranker should be skipped entirely when there are no merged candidates."""
+        tools = self._make_tools()
+        reranker = MagicMock()
+        q = EvalQuery(query="xyzzy", expected_headword="xyzzy", intent="define")
+        _eval_query(q, tools, top_k=5, fuzzy_threshold=0.3, fuzzy_limit=10, reranker=reranker)
+        reranker.rerank.assert_not_called()
+
 
 class TestRunEval:
     """run_eval end-to-end over a dataset file."""

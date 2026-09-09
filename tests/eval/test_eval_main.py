@@ -70,6 +70,18 @@ class TestPrintSummary:
         out = capsys.readouterr().out
         assert "more" in out
 
+    def test_reranked_flag_shown_in_heading(self, capsys):
+        """reranked=True should append a 'reranked' marker to the heading."""
+        _print_summary([_make_result()], _CFG, reranked=True)
+        out = capsys.readouterr().out
+        assert "reranked" in out
+
+    def test_reranked_flag_absent_by_default(self, capsys):
+        """reranked defaults to False and should not appear in the heading."""
+        _print_summary([_make_result()], _CFG)
+        out = capsys.readouterr().out
+        assert "reranked" not in out
+
 
 class TestWriteResults:
     """_write_results file creation and JSONL output correctness."""
