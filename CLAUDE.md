@@ -100,7 +100,7 @@ user query
 | `linguaalayam/corpus/` | One parser per corpus (`enml.py`, `datuk.py`, `ekkurup.py`), each exposes `parse()` |
 | `linguaalayam/embeddings/service.py` | `EmbeddingService` wraps `paraphrase-multilingual-mpnet-base-v2`; exposes `batch_size` and `vector_size` |
 | `linguaalayam/database/queries.py` | `batch_insert()`, `similarity_search()` (HNSW cosine), `get_ingested_headwords()` |
-| `linguaalayam/llm/adapters/` | `LLMAdapter` ABC + `AnthropicAdapter`, `OpenAIAdapter`, `NoLLMAdapter` |
+| `linguaalayam/llm/adapters/` | `LLMAdapter` ABC + `AnthropicAdapter`, `OpenAIAdapter`, `TogetherAIAdapter` (Qwen 3.5 9B via TogetherAI, server-side default for the web app), `NoLLMAdapter` |
 | `linguaalayam/rag/pipeline.py` | LangGraph graph: understand → retrieve → rerank? → synthesize |
 | `linguaalayam/rag/tools.py` | `DictionaryTools` — exact, fuzzy, semantic lookup over a live DB session |
 | `linguaalayam/mcp/server.py` | FastMCP server — three tools + `dictionary://{headword}` resource |
@@ -113,7 +113,7 @@ user query
 Config lives in `config/` with override groups:
 - `corpus`: `all` (full ingest) or `debug` (limit=50). Each source entry carries `parser._target_` pointing to its `parse` function — no hardcoded parser map in Python.
 - `embedding`: `model` (multilingual-mpnet) or `multilingual_e5_large`
-- `llm`: `anthropic` (default), `openai`, `nollm`
+- `llm`: `nollm` (CLI default, no API key needed), `togetherai` (web app's server-side default), `openai`, `anthropic`
 - `database`: `local` (default) or `supabase` (adds `sslmode=require`)
 - `rag`: query, top_k, source, rerank flag, `reranker_model` (cross-encoder HuggingFace ID)
 
@@ -130,7 +130,7 @@ Table `dictionary_entries`: `source` + `headword` have a UNIQUE constraint (ON C
 
 ## Adding a new LLM provider
 
-1. Subclass `LLMAdapter` in `linguaalayam/llm/adapters/`.
+1. Subclass `LLMAdapter` in `linguaalayam/llm/adapters/` — or `LangChainAdapter` if the provider is LangChain-backed (has a chat model with `.invoke()`/`.with_structured_output()`, like Anthropic/OpenAI/TogetherAI all do), which gets you `complete()`/`extract_structured()` for free.
 2. Add a YAML config in `config/llm/` with `_target_` pointing to your class.
 
 ## Testing notes
@@ -141,7 +141,7 @@ Unit tests use an SQLite in-memory database via the `db_cfg` fixture — no runn
 
 Requires a `.env` file with: `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME`. Set `DB_SSLMODE=require` for hosted Postgres.
 
-Also: `ANTHROPIC_API_KEY`/`OPENAI_API_KEY` (optional, only for their respective `llm=` configs), `MCP_ISSUER_URL` (public URL where `/mcp` is reachable, drives OAuth discovery), `ADMIN_USER`/`ADMIN_PASSWORD` (HTTP Basic Auth for `/admin/analytics`). See `.env.example` for the full list.
+Also: `TOGETHER_API_KEY` (required for the web app's server-side AI synthesis default, Qwen 3.5 9B; also used by CLI `llm=togetherai`), `ANTHROPIC_API_KEY`/`OPENAI_API_KEY` (optional, CLI-only — `poetry run rag llm=anthropic`/`llm=openai`; the web app is bring-your-own-key for these providers, never uses a server-side key for them), `MCP_ISSUER_URL` (public URL where `/mcp` is reachable, drives OAuth discovery), `ADMIN_USER`/`ADMIN_PASSWORD` (HTTP Basic Auth for `/admin/analytics`). See `.env.example` for the full list.
 
 ## Versioning
 

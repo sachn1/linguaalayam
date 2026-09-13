@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _DOTENV_PATH = _PROJECT_ROOT / ".env"
 
-_WCM_SECRETS = ("DB_PASSWORD", "ANTHROPIC_API_KEY", "OPENAI_API_KEY")
+_WCM_SECRETS = ("DB_PASSWORD", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "TOGETHER_API_KEY")
 
 
 def _is_wsl() -> bool:

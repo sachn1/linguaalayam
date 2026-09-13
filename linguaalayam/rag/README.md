@@ -44,10 +44,11 @@ Each candidate in the output shows its source tool and similarity score:
 
 ## LLM adapters
 
-Provider is selected via Hydra override (`llm=anthropic` / `llm=openai` / `llm=nollm`). Default: `anthropic`.
+Provider is selected via Hydra override (`llm=togetherai` / `llm=anthropic` / `llm=openai` / `llm=nollm`). Default: `nollm`.
 
 | Provider | Config | Requires |
 |---|---|---|
+| `togetherai` | `config/llm/togetherai.yaml` | `TOGETHER_API_KEY` in `.env` |
 | `anthropic` | `config/llm/anthropic.yaml` | `ANTHROPIC_API_KEY` in `.env` |
 | `openai` | `config/llm/openai.yaml` | `OPENAI_API_KEY` in `.env` |
 | `nollm` | `config/llm/nollm.yaml` | No API key — synthesis returns formatted reranker output |
