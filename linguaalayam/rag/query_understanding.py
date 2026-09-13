@@ -19,6 +19,12 @@ Intent = Literal["define", "translate", "compare", "usage", "unknown"]
 
 # (compiled pattern, intent) — tried in order, first match wins
 _PATTERNS: list[tuple[re.Pattern, Intent]] = [
+    # "What does it mean to configure a laptop?" — "it" here is a dummy/expletive
+    # subject referring forward to the infinitive clause, not the definiendum.
+    # Must come before the generic "what does X mean" pattern below, which would
+    # otherwise greedily-but-non-greedily match just "it" and stop there. Common
+    # after translating a literal "was bedeutet es, ... zu tun?" construction.
+    (re.compile(r"what does it mean (?:to|when|if) (.+?)\??$", re.I), "define"),
     (re.compile(r"what does ['\"]?(.+?)['\"]? mean", re.I), "define"),
     (re.compile(r"what is the meaning of ['\"]?(.+?)['\"]?$", re.I), "define"),
     (re.compile(r"define (?:the word )?['\"]?(.+?)['\"]?$", re.I), "define"),

@@ -28,9 +28,12 @@
     htmx.on("htmx:configRequest", function (evt) {
       const key = localStorage.getItem("llm_key");
       const provider = localStorage.getItem("llm_provider");
+      const aiEnabled = localStorage.getItem("ai_enabled") === "1";
       if (key) {
         evt.detail.headers["X-LLM-Key"] = key;
-        evt.detail.headers["X-LLM-Provider"] = provider || "anthropic";
+        evt.detail.headers["X-LLM-Provider"] = provider || "togetherai";
+      } else if (aiEnabled) {
+        evt.detail.headers["X-LLM-Enabled"] = "1";
       }
       if (localStorage.getItem("romanise") === "1") {
         evt.detail.headers["X-Romanise"] = "1";
@@ -285,6 +288,44 @@
     .s-btn-ghost:hover { background: var(--surface); }
     .s-status { font-size: 0.75rem; margin-top: 0.6rem; color: var(--text-muted); }
     .s-status.active { color: #16a34a; }
+    .s-status-cost { display: block; font-size: 0.7rem; color: var(--text-muted); margin-top: 0.35rem; font-style: italic; line-height: 1.5; }
+    .s-toggle-label { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+    .s-switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+    .s-switch input { opacity: 0; width: 0; height: 0; }
+    .s-slider { position: absolute; inset: 0; background: var(--border); border-radius: 22px; transition: 0.2s; }
+    .s-slider::before { content: ""; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; }
+    .s-switch input:checked + .s-slider { background: var(--accent); }
+    .s-switch input:checked + .s-slider::before { transform: translateX(18px); }
+    .s-advanced-key summary { font-size: 0.78rem; color: var(--accent); cursor: pointer; }
+    .s-advanced-key summary:hover { text-decoration: underline; }
+
+    /* One-time confirmation shown the first time AI synthesis is enabled —
+       from the sidebar toggle or the results-page "AI hint" link alike. */
+    .ai-cost-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(26, 26, 46, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 400;
+      padding: 1rem;
+    }
+    .ai-cost-modal {
+      position: relative;
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 1.75rem 1.5rem 1.5rem;
+      max-width: 340px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+    }
+    .ai-cost-modal-emoji { font-size: 2rem; margin-bottom: 0.25rem; }
+    .ai-cost-modal h3 { font-size: 1rem; margin-bottom: 0.6rem; }
+    .ai-cost-modal p { font-size: 0.82rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1.25rem; }
+    .ai-cost-modal-actions { display: flex; gap: 0.5rem; }
+    .ai-cost-modal-actions .s-btn { flex: 1; }
 
     .s-corpus-row { font-size: 0.78rem; color: var(--text-muted); line-height: 1.6; padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
     .s-corpus-row:last-child { border-bottom: none; }
@@ -407,30 +448,46 @@
       <div class="s-card">
         <h3><span data-i18n="ai_synthesis">AI Synthesis</span> <span style="font-weight:400;color:var(--text-muted);font-size:0.8rem;" data-i18n="ai_synthesis_optional">— optional</span></h3>
         <p class="s-desc" data-i18n="ai_synthesis_desc">
-          Without a key, search works fully — Quick, Exact, and Smart all return dictionary entries.
-          Add your own API key to get a plain-language explanation written by an AI.
-          Your key is stored only in this browser, never on our servers.
+          Uses Qwen 3.5 9B on our server by default. Toggle on to enable AI synthesis.
+          Optionally add your own API key below to use a different provider.
         </p>
 
         <div class="s-field">
-          <label for="sb-provider" data-i18n="provider">Provider</label>
-          <select id="sb-provider">
-            <option value="anthropic">Anthropic — Claude</option>
-            <option value="openai">OpenAI — GPT-4</option>
-          </select>
-          <span class="s-field-hint">
-            Get a key:
-            <a href="https://console.anthropic.com/settings/keys" target="_blank">Anthropic</a>
-            &nbsp;·&nbsp;
-            <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI</a>
-          </span>
+          <label for="sb-ai-toggle" class="s-toggle-label">
+            <span data-i18n="enable_ai">Enable AI synthesis</span>
+            <label class="s-switch">
+              <input type="checkbox" id="sb-ai-toggle" />
+              <span class="s-slider"></span>
+            </label>
+          </label>
         </div>
 
-        <div class="s-field">
-          <label for="sb-apikey" data-i18n="api_key">API Key</label>
-          <input type="password" id="sb-apikey" placeholder="sk-ant-… or sk-…" autocomplete="off" />
-          <span class="s-field-hint" data-i18n="api_key_hint">Stored only in your browser's localStorage.</span>
-        </div>
+        <details class="s-advanced-key">
+          <summary data-i18n="use_own_key">Use your own API key instead</summary>
+
+          <div class="s-field" style="margin-top:0.5rem">
+            <label for="sb-provider" data-i18n="provider">Provider</label>
+            <select id="sb-provider">
+              <option value="togetherai">TogetherAI — Qwen 3.5 9B</option>
+              <option value="anthropic">Anthropic — Claude</option>
+              <option value="openai">OpenAI — GPT-4</option>
+            </select>
+            <span class="s-field-hint">
+              Get a key:
+              <a href="https://api.together.ai/settings/keys" target="_blank">TogetherAI</a>
+              &nbsp;·&nbsp;
+              <a href="https://console.anthropic.com/settings/keys" target="_blank">Anthropic</a>
+              &nbsp;·&nbsp;
+              <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI</a>
+            </span>
+          </div>
+
+          <div class="s-field">
+            <label for="sb-apikey" data-i18n="api_key">API Key</label>
+            <input type="password" id="sb-apikey" placeholder="togetherai, sk-ant-… or sk-…" autocomplete="off" />
+            <span class="s-field-hint" data-i18n="api_key_hint">Stored only in your browser's localStorage.</span>
+          </div>
+        </details>
 
         <div class="s-actions">
           <button class="s-btn s-btn-primary" onclick="sbSave()" data-i18n="save">Save</button>
@@ -457,6 +514,24 @@
     <div style="padding: 0.75rem 1.25rem; border-top: 1px solid var(--border); font-size: 0.75rem; color: var(--text-muted);">
       v{{ app_version }}
     </div>
+    </div>
+  </div>
+
+  <!-- One-time AI-synthesis cost notice — shown before the very first enable,
+       whichever entry point (sidebar toggle or results-page hint) triggered it. -->
+  <div id="ai-cost-modal" class="ai-cost-modal-overlay" style="display:none">
+    <div class="ai-cost-modal" role="dialog" aria-modal="true" aria-labelledby="ai-cost-modal-title">
+      <p class="ai-cost-modal-emoji">✨</p>
+      <h3 id="ai-cost-modal-title" data-i18n="ai_cost_modal_title">Just so you know</h3>
+      <p data-i18n="ai_cost_modal_body">
+        Just need a word meaning? The raw dictionary entries are usually enough — AI
+        synthesis costs us to run, so please use it only when you truly need a
+        conversational explanation. Happy learning!
+      </p>
+      <div class="ai-cost-modal-actions">
+        <button class="s-btn s-btn-ghost" id="ai-cost-modal-cancel" data-i18n="cancel">Cancel</button>
+        <button class="s-btn s-btn-primary" id="ai-cost-modal-confirm" data-i18n="enable_ai">Enable AI synthesis</button>
+      </div>
     </div>
   </div>
 
@@ -516,19 +591,96 @@
     }
     document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeSidebar(); });
 
+    // Deep link from old bookmarks/docs (e.g. docs/user-guide.md) — /settings
+    // now redirects to /?settings=1 rather than serving its own page.
+    if (new URLSearchParams(location.search).get('settings') === '1') {
+      openSidebar();
+      history.replaceState(null, '', location.pathname);
+    }
+
     // Settings logic
     (function () {
+      const toggleEl = document.getElementById('sb-ai-toggle');
       const keyEl = document.getElementById('sb-apikey');
       const provEl = document.getElementById('sb-provider');
       const statusEl = document.getElementById('sb-status');
 
+      const aiEnabled = localStorage.getItem('ai_enabled') === '1';
+      if (toggleEl) toggleEl.checked = aiEnabled;
+
       const saved = localStorage.getItem('llm_key');
-      const savedProv = localStorage.getItem('llm_provider') || 'anthropic';
+      const savedProv = localStorage.getItem('llm_provider') || 'togetherai';
       provEl.value = savedProv;
       if (saved) {
         keyEl.placeholder = 'Key saved — enter new key to replace';
-        statusEl.textContent = '✓ Key is set. AI synthesis enabled.';
+        statusEl.textContent = '✓ Key is set. Using your API key.';
         statusEl.className = 's-status active';
+      } else if (aiEnabled) {
+        statusEl.textContent = '✓ AI synthesis enabled — server model (Qwen 3.5 9B).';
+        statusEl.className = 's-status active';
+      }
+
+      // One-time cost notice — only relevant for the server model (a saved
+      // BYOK key means the cost is the user's own, not ours to flag). Shown
+      // as a confirmation modal the first time anyone enables AI synthesis,
+      // from either the sidebar toggle below or the results-page "AI hint"
+      // link (see enableAiHint) — whichever the user reaches first.
+      const aiCostModal = document.getElementById('ai-cost-modal');
+      const aiCostConfirm = document.getElementById('ai-cost-modal-confirm');
+      const aiCostCancel = document.getElementById('ai-cost-modal-cancel');
+      let pendingAiConfirm = null;
+
+      function aiCostNoticeSeen() { return !!localStorage.getItem('ai_cost_notice_seen'); }
+      function openAiCostModal(onConfirm) {
+        pendingAiConfirm = onConfirm;
+        if (aiCostModal) aiCostModal.style.display = 'flex';
+      }
+      function closeAiCostModal() {
+        pendingAiConfirm = null;
+        if (aiCostModal) aiCostModal.style.display = 'none';
+      }
+      if (aiCostConfirm) {
+        aiCostConfirm.addEventListener('click', function () {
+          localStorage.setItem('ai_cost_notice_seen', '1');
+          const onConfirm = pendingAiConfirm;
+          closeAiCostModal();
+          if (onConfirm) onConfirm();
+        });
+      }
+      if (aiCostCancel) aiCostCancel.addEventListener('click', closeAiCostModal);
+      if (aiCostModal) {
+        aiCostModal.addEventListener('click', function (e) {
+          if (e.target === aiCostModal) closeAiCostModal();
+        });
+      }
+
+      function applyAiEnabled() {
+        localStorage.setItem('ai_enabled', '1');
+        if (toggleEl) toggleEl.checked = true;
+        statusEl.textContent = '✓ AI synthesis enabled — server model (Qwen 3.5 9B).';
+        statusEl.className = 's-status active';
+      }
+
+      if (toggleEl) {
+        // Intercept the click (fires before the checkbox's own state commits)
+        // so a not-yet-confirmed enable can be reverted with preventDefault
+        // and re-applied only once the modal is confirmed.
+        toggleEl.addEventListener('click', function (e) {
+          if (toggleEl.checked && !saved && !aiCostNoticeSeen()) {
+            e.preventDefault();
+            openAiCostModal(applyAiEnabled);
+          }
+        });
+        toggleEl.addEventListener('change', function () {
+          localStorage.setItem('ai_enabled', toggleEl.checked ? '1' : '0');
+          if (toggleEl.checked && !saved) {
+            statusEl.textContent = '✓ AI synthesis enabled — server model (Qwen 3.5 9B).';
+            statusEl.className = 's-status active';
+          } else if (!toggleEl.checked) {
+            statusEl.textContent = 'AI synthesis disabled.';
+            statusEl.className = 's-status';
+          }
+        });
       }
 
       window.toggleRomanise = function(currentlyOn) {
@@ -538,14 +690,32 @@
         if (queryEl) htmx.trigger(queryEl, 'input');
       };
 
+      window.enableAiHint = function(evt) {
+        if (evt) evt.preventDefault();
+        function proceed() {
+          localStorage.setItem('ai_enabled', '1');
+          if (toggleEl) toggleEl.checked = true;
+          trackClick('ai_hint');
+          const queryEl = document.getElementById('query');
+          if (queryEl) htmx.trigger(queryEl, 'input');
+        }
+        if (!saved && !aiCostNoticeSeen()) {
+          openAiCostModal(proceed);
+        } else {
+          proceed();
+        }
+      };
+
       window.sbSave = function () {
         const key = keyEl.value.trim();
         if (!key) { statusEl.textContent = 'Enter a key first.'; statusEl.className = 's-status'; return; }
         localStorage.setItem('llm_key', key);
         localStorage.setItem('llm_provider', provEl.value);
+        localStorage.setItem('ai_enabled', '1');
+        if (toggleEl) toggleEl.checked = true;
         keyEl.value = '';
         keyEl.placeholder = 'Key saved — enter new key to replace';
-        statusEl.textContent = '✓ Key saved. AI synthesis enabled.';
+        statusEl.textContent = '✓ Key saved. Using your API key.';
         statusEl.className = 's-status active';
       };
 
@@ -553,8 +723,12 @@
         localStorage.removeItem('llm_key');
         localStorage.removeItem('llm_provider');
         keyEl.value = '';
-        keyEl.placeholder = 'sk-ant-… or sk-…';
-        statusEl.textContent = 'Key cleared. Raw dictionary results only.';
+        keyEl.placeholder = 'togetherai, sk-ant-… or sk-…';
+        if (toggleEl && toggleEl.checked) {
+          statusEl.textContent = 'Key cleared. Falling back to server model.';
+        } else {
+          statusEl.textContent = 'Key cleared. AI synthesis disabled.';
+        }
         statusEl.className = 's-status';
       };
     })();
