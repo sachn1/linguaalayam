@@ -32,6 +32,7 @@ ml2en = "^1.0.0"
 mlmorph = "^1.4.0"
 sentencepiece = ">=0.1.99"
 alembic = "^1.18.4"
+langdetect = "^1.0.9"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
@@ -120,6 +121,9 @@ fail-under = 80
 verbose = 0
 omit-covered-files = false
 exclude = ["migrations", "notebooks", "linguaalayam/eval"]
+
+[tool.readme-drift]
+plain-text-search = false
 
 [tool.djlint]
 profile = "jinja"

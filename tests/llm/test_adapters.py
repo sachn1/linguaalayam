@@ -1,4 +1,4 @@
-"""Tests for llm/adapters — AnthropicAdapter, OpenAIAdapter, NoLLMAdapter."""
+"""Tests for llm/adapters — AnthropicAdapter, OpenAIAdapter, TogetherAIAdapter, NoLLMAdapter."""
 
 import os
 from unittest.mock import MagicMock, patch
@@ -9,14 +9,17 @@ from langchain_core.messages import AIMessage
 from linguaalayam.llm.adapters import AnthropicAdapter, LLMAdapter, NoLLMAdapter
 from linguaalayam.llm.adapters.base import LLMAdapter as LLMAdapterBase
 from linguaalayam.llm.adapters.openai import OpenAIAdapter
+from linguaalayam.llm.adapters.togetherai import TogetherAIAdapter
 
 
 class TestLLMAdapterInterface:
     """LLMAdapter ABC subclass and instantiation checks."""
 
     def test_all_adapters_subclass_base(self):
-        """AnthropicAdapter and NoLLMAdapter should both subclass LLMAdapterBase."""
+        """All adapters (Anthropic, OpenAI, TogetherAI, NoLLM) should subclass LLMAdapterBase."""
         assert issubclass(AnthropicAdapter, LLMAdapterBase)
+        assert issubclass(OpenAIAdapter, LLMAdapterBase)
+        assert issubclass(TogetherAIAdapter, LLMAdapterBase)
         assert issubclass(NoLLMAdapter, LLMAdapterBase)
 
     def test_base_is_abstract(self):
@@ -144,6 +147,83 @@ class TestOpenAIAdapter:
         ):
             with pytest.raises(ImportError, match="langchain-openai"):
                 OpenAIAdapter(model="gpt-4o-mini")
+
+
+class TestTogetherAIAdapter:
+    """TogetherAIAdapter construction, complete, and error handling."""
+
+    def _make(self, model: str = "Qwen/Qwen3.5-9B") -> tuple[TogetherAIAdapter, MagicMock]:
+        """Build a TogetherAIAdapter with a mocked ChatOpenAI.
+
+        Returns the adapter plus the mocked ``ChatOpenAI`` class itself, so
+        tests can inspect what constructor kwargs it was called with.
+        """
+        mock_chat_openai = MagicMock()
+        with (
+            patch.dict(os.environ, {"TOGETHER_API_KEY": "together-test"}),
+            patch.dict("sys.modules", {"langchain_openai": MagicMock(ChatOpenAI=mock_chat_openai)}),
+        ):
+            adapter = TogetherAIAdapter(model=model)
+        return adapter, mock_chat_openai
+
+    def test_has_llm_true(self):
+        """has_llm should return True for TogetherAIAdapter."""
+        adapter, _ = self._make()
+        assert adapter.has_llm
+
+    def test_disables_thinking_mode(self):
+        """Regression test: Qwen models on TogetherAI default to "thinking" mode,
+        which burns the entire max_tokens budget on hidden reasoning and returns
+        empty content — enable_thinking must stay disabled via extra_body.
+        """
+        _, mock_chat_openai = self._make()
+        _, kwargs = mock_chat_openai.call_args
+        assert kwargs["extra_body"] == {"chat_template_kwargs": {"enable_thinking": False}}
+
+    def test_points_at_together_base_url(self):
+        """ChatOpenAI should be pointed at TogetherAI's endpoint, not OpenAI's."""
+        _, mock_chat_openai = self._make()
+        _, kwargs = mock_chat_openai.call_args
+        assert kwargs["openai_api_base"] == "https://api.together.xyz/v1"
+
+    def test_complete_returns_string(self):
+        """complete should return the AIMessage content as a string."""
+        adapter, _ = self._make()
+        adapter._llm = MagicMock()
+        adapter._llm.invoke.return_value = AIMessage(content="ജലജന്തു")
+        result = adapter.complete("system", "user")
+        assert result == "ജലജന്തു"
+
+    def test_extract_structured_delegates_to_langchain(self):
+        """extract_structured should return a validated Pydantic instance."""
+        from pydantic import BaseModel
+
+        class Schema(BaseModel):
+            word: str
+
+        adapter, _ = self._make()
+        adapter._llm = MagicMock()
+        structured = MagicMock()
+        structured.invoke.return_value = Schema(word="run")
+        adapter._llm.with_structured_output.return_value = structured
+
+        result = adapter.extract_structured(Schema, "prompt")
+        assert result.word == "run"
+
+    def test_raises_without_api_key(self):
+        """Should raise RuntimeError when TOGETHER_API_KEY is unset."""
+        with patch.dict(os.environ, {}, clear=True):
+            with pytest.raises(RuntimeError, match="TOGETHER_API_KEY"):
+                TogetherAIAdapter(model="Qwen/Qwen3.5-9B")
+
+    def test_raises_import_error_when_package_missing(self):
+        """Should raise ImportError with install hint when langchain-openai is absent."""
+        with (
+            patch.dict(os.environ, {"TOGETHER_API_KEY": "together-test"}),
+            patch.dict("sys.modules", {"langchain_openai": None}),
+        ):
+            with pytest.raises(ImportError, match="langchain-openai"):
+                TogetherAIAdapter(model="Qwen/Qwen3.5-9B")
 
 
 class TestNoLLMAdapter:

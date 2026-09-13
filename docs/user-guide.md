@@ -48,12 +48,15 @@ Malayalam words in definitions are clickable when they exist as their own dictio
 
 ## AI synthesis (optional)
 
-By default, results are raw dictionary entries. Add an API key in [Settings](/settings) to enable AI synthesis — the app reads the top results and writes a plain-English explanation alongside them.
+By default, results are raw dictionary entries. Open [Settings](/settings) (the gear icon) and toggle "Enable AI synthesis" — no key needed, this uses a server-side model. The app reads the top results and writes a plain-English explanation alongside them, in whichever language you've picked with the input-language flag next to the search box.
+
+Prefer a different model, or want to use your own account? Expand "Use your own API key instead" in Settings.
 
 ### How to get a key
 
 | Provider | Where | Key format |
 |---|---|---|
+| TogetherAI (Qwen) | [api.together.ai/settings/keys](https://api.together.ai/settings/keys) | alphanumeric |
 | Anthropic (Claude) | [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys) | `sk-ant-…` |
 | OpenAI (GPT) | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) | `sk-…` |
 

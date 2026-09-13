@@ -13,11 +13,10 @@ from linguaalayam.api.dependencies import get_session_factory
 from linguaalayam.api.web import _TEMPLATES
 from linguaalayam.database import get_session
 from linguaalayam.observability import (
-    top_clients,
+    searches_by_country,
+    top_clients_simple,
     top_outbound_clicks,
-    top_queries,
-    top_user_agents,
-    traffic_by_route_type,
+    top_queries_with_sources,
 )
 
 router = APIRouter(include_in_schema=False)
@@ -54,6 +53,11 @@ def _window_start(window_minutes: int) -> datetime.datetime:
     return datetime.datetime.now(datetime.UTC) - datetime.timedelta(minutes=window_minutes)
 
 
+def _fmt(timestamp: datetime.datetime) -> str:
+    """Format a timestamp for display, e.g. ``2026-09-10 20:29 UTC``."""
+    return timestamp.strftime("%Y-%m-%d %H:%M UTC")
+
+
 @router.get("/admin/analytics", response_class=HTMLResponse, dependencies=[Depends(_require_admin)])
 def analytics_page(request: Request) -> HTMLResponse:
     """Serve the traffic/usage analytics dashboard shell."""
@@ -73,26 +77,43 @@ def analytics_partial(
     since = _window_start(window_minutes)
     session_factory = get_session_factory()
     with get_session(session_factory) as session:
-        routes = traffic_by_route_type(session, since)
-        queries = top_queries(session, since, limit=10)
-        clients = top_clients(session, since, limit=10)
+        queries = top_queries_with_sources(session, since, limit=20)
+        by_country = searches_by_country(session, since, limit=20)
         clicks = top_outbound_clicks(session, since, limit=10)
-        user_agents = top_user_agents(session, since, limit=10)
+        clients = top_clients_simple(session, since, limit=10)
 
-    total_requests = sum(count for _, count, _ in routes)
-    total_bots = sum(bot_count for _, _, bot_count in routes)
+    total_searches = sum(count for _, count, _, _, _, _ in queries)
+    unique_queries = len(queries)
+    queries_with_sources = [
+        (
+            query,
+            count,
+            ", ".join(f"{country}({n})" for country, n in countries) or "—",
+            ", ".join(client_ips) or "—",
+            _fmt(first_seen),
+            _fmt(last_seen),
+        )
+        for query, count, countries, client_ips, first_seen, last_seen in queries
+    ]
+    by_country_fmt = [
+        (country, count, unique, _fmt(first_seen), _fmt(last_seen))
+        for country, count, unique, first_seen, last_seen in by_country
+    ]
+    clients_fmt = [
+        (ip, count, _fmt(first_seen), _fmt(last_seen))
+        for ip, count, first_seen, last_seen in clients
+    ]
 
     return _TEMPLATES.TemplateResponse(
         request,
         "partials/admin_analytics_partial.html",
         {
             "window_minutes": window_minutes,
-            "total_requests": total_requests,
-            "total_bots": total_bots,
-            "routes": routes,
-            "queries": queries,
-            "clients": clients,
+            "total_searches": total_searches,
+            "unique_queries": unique_queries,
+            "queries_with_sources": queries_with_sources,
+            "by_country": by_country_fmt,
             "clicks": clicks,
-            "user_agents": user_agents,
+            "top_clients_list": clients_fmt,
         },
     )

@@ -8,6 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from linguaalayam.api.app import app
+from linguaalayam.rag.query_understanding import QueryUnderstanding
 from linguaalayam.translation.base import TranslationResult
 
 _LOCALES = Path(__file__).resolve().parents[2] / "linguaalayam/static/locales"
@@ -251,6 +252,129 @@ def test_search_default_lang_is_en(client, mock_translator):
     assert r.status_code == 200
     _, kwargs = mock_translator.translate.call_args
     assert kwargs.get("source_lang") == "en-US"
+
+
+# ── AI Answer hint ────────────────────────────────────────────────────────────
+
+
+def test_search_shows_ai_hint_for_long_query_without_ai(client, mock_tools):
+    """A long/sentence-like query with AI off and a confident result should surface
+    the 'turn on AI Answer' hint instead of a synthesized answer."""
+    mock_tools.semantic_lookup.return_value = [_result(match_type="exact")]
+    r = client.get("/search?query=ജലജന്തു+എന്ന+വാക്ക്+വിഗ്രഹിക്കുക")
+    assert r.status_code == 200
+    assert 'onclick="enableAiHint(event)"' in r.text
+    assert '<p class="answer-label">' not in r.text
+
+
+def test_search_no_ai_hint_for_short_query(client, mock_tools):
+    """A short (< 3 word) query shouldn't trigger the AI hint even without AI enabled —
+    single-headword lookups are exactly what raw entries already answer well."""
+    mock_tools.fuzzy_lookup.return_value = [_result(match_type="exact")]
+    r = client.get("/search?query=run")
+    assert r.status_code == 200
+    assert 'onclick="enableAiHint(event)"' not in r.text
+
+
+def test_search_no_ai_hint_when_ai_already_enabled(client, mock_tools):
+    """No hint should show once AI Answer is already on — the answer card takes its place."""
+    mock_tools.semantic_lookup.return_value = [_result(match_type="exact")]
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "synthesized answer"
+    # This query is multi-word Malayalam text that no regex pattern in
+    # query_understanding.py matches, so understand_query() falls through to
+    # llm.extract_structured(). Without a configured return value that call
+    # yields a bare MagicMock instead of a QueryUnderstanding, so `headword`
+    # downstream is a MagicMock too — it then sails past every truthy/bool
+    # check in search()'s Manglish-detection branch (MagicMock.__iter__
+    # defaults to an empty iterator, so `is_latin_script` and friends don't
+    # even raise) and reaches the real Varnam transliteration call with
+    # garbage input, which spins for minutes. Give the mock a real return
+    # value so it behaves like the actual LLM adapter would.
+    mock_llm.extract_structured.return_value = QueryUnderstanding(
+        headword="ജലജന്തു എന്ന വാക്ക് വിഗ്രഹിക്കുക", intent="define"
+    )
+    with patch("linguaalayam.api.web._get_server_llm", return_value=mock_llm):
+        r = client.get(
+            "/search?query=ജലജന്തു+എന്ന+വാക്ക്+വിഗ്രഹിക്കുക",
+            headers={"X-LLM-Enabled": "1"},
+        )
+    assert r.status_code == 200
+    assert 'onclick="enableAiHint(event)"' not in r.text
+    assert "synthesized answer" in r.text
+
+
+def test_search_shows_ai_hint_even_without_confident_result(client, mock_tools):
+    """A weak-only fuzzy match (below the display threshold) should still trigger the
+    hint — a poor raw match is exactly when AI Answer would help most, so the nudge
+    isn't gated on how confident the underlying dictionary lookup was."""
+    mock_tools.semantic_lookup.return_value = [{**_result(match_type="fuzzy"), "score": 0.2}]
+    r = client.get("/search?query=ജലജന്തു+എന്ന+വാക്ക്+വിഗ്രഹിക്കുക")
+    assert r.status_code == 200
+    assert 'onclick="enableAiHint(event)"' in r.text
+
+
+# ── AI Answer synthesis gating ──────────────────────────────────────────────────
+
+
+def test_search_skips_ai_for_short_confident_query(client, mock_tools):
+    """AI Answer should not fire for a short query with an already-confident match —
+    raw entries already answer it as well as a paraphrase would."""
+    mock_tools.lemma_lookup.return_value = []
+    mock_tools.fuzzy_lookup.return_value = [_result(headword="നീന്തുക", match_type="exact")]
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "should not be called"
+    with patch("linguaalayam.api.web._get_server_llm", return_value=mock_llm):
+        r = client.get("/search?query=നീന്തുക", headers={"X-LLM-Enabled": "1"})
+    assert r.status_code == 200
+    assert '<p class="answer-label">' not in r.text
+    mock_llm.complete.assert_not_called()
+
+
+def test_search_still_synthesizes_short_query_without_confident_result(client, mock_tools):
+    """A short query without a confident match should still get AI Answer — there's
+    real ambiguity here for synthesis to resolve, unlike a clean exact hit."""
+    mock_tools.semantic_lookup.return_value = [{**_result(match_type="fuzzy"), "score": 0.3}]
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "synthesized answer"
+    with patch("linguaalayam.api.web._get_server_llm", return_value=mock_llm):
+        r = client.get("/search?query=run", headers={"X-LLM-Enabled": "1"})
+    assert r.status_code == 200
+    assert "synthesized answer" in r.text
+
+
+# ── feature tip ──────────────────────────────────────────────────────────────
+
+
+class TestFeatureTip:
+    """_feature_tip's mlmorph/jayasree selection and edge-case guards."""
+
+    def test_none_for_latin_headword(self):
+        from linguaalayam.api.web import _feature_tip
+
+        assert _feature_tip("configure") is None
+
+    def test_none_for_multiword_headword(self):
+        """An unresolved question falls back to the whole sentence as "headword" —
+        neither mlmorph nor the trace button applies to a full sentence."""
+        from linguaalayam.api.web import _feature_tip
+
+        assert _feature_tip("നീന്തുക എന്നതിനർത്ഥം എന്താണ്") is None
+
+    def test_skip_mlmorph_forces_jayasree(self):
+        from linguaalayam.api.web import _feature_tip
+
+        tip = _feature_tip("നീന്തുക", skip_mlmorph=True)
+        assert tip is not None
+        assert "trace icon" in tip
+
+    def test_falls_back_to_jayasree_when_mlmorph_cant_analyse(self):
+        from linguaalayam.api.web import _feature_tip
+
+        with patch("linguaalayam.api.web.analyse_word", return_value=None):
+            tip = _feature_tip("നീന്തുക")
+        assert tip is not None
+        assert "trace icon" in tip
 
 
 # ── locale bundle tests ────────────────────────────────────────────────────────

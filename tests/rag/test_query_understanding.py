@@ -15,6 +15,36 @@ class TestRegexPatterns:
         assert r.headword == "ephemeral"
         assert r.intent == "define"
 
+    def test_what_does_it_mean_to(self):
+        """'what does it mean to VERB...' should extract the clause, not "it".
+
+        "it" here is a dummy/expletive subject referring forward to the
+        infinitive clause — this is the literal-translation shape of German's
+        "was bedeutet es, ... zu tun?", so it surfaces whenever a German
+        question like that gets machine-translated to English.
+        """
+        r = understand_query("What does it mean to configure your laptop?")
+        assert r.headword == "configure your laptop"
+        assert r.intent == "define"
+
+    def test_what_does_it_mean_when(self):
+        """'what does it mean when X' should extract the clause, not "it"."""
+        r = understand_query("What does it mean when the light blinks?")
+        assert r.headword == "the light blinks"
+        assert r.intent == "define"
+
+    def test_what_does_it_mean_if(self):
+        """'what does it mean if X' should extract the clause, not "it"."""
+        r = understand_query("What does it mean if the app crashes?")
+        assert r.headword == "the app crashes"
+        assert r.intent == "define"
+
+    def test_what_does_it_mean_alone_still_extracts_it(self):
+        """With no trailing clause, "it" genuinely is the only token present."""
+        r = understand_query("what does it mean")
+        assert r.headword == "it"
+        assert r.intent == "define"
+
     def test_what_is_meaning_of(self):
         """'what is the meaning of X' should yield intent=define."""
         r = understand_query("what is the meaning of pastoral")

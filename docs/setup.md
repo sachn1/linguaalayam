@@ -47,9 +47,10 @@ DB_PASSWORD=yourpassword        # same as POSTGRES_PASSWORD in the docker run co
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=linguaalayam
-ANTHROPIC_API_KEY=sk-ant-...   # required for llm=anthropic (get from console.anthropic.com)
-OPENAI_API_KEY=sk-...          # required for llm=openai
-# DB_SSLMODE=require           # uncomment for hosted Postgres
+# TOGETHER_API_KEY=tgp_...       # required for the web app's server-side AI synthesis (Qwen 3.5 9B) and llm=togetherai
+# ANTHROPIC_API_KEY=sk-ant-...   # optional — only needed for llm=anthropic (CLI only; get from console.anthropic.com)
+# OPENAI_API_KEY=sk-...          # optional — only needed for llm=openai (CLI only)
+# DB_SSLMODE=require             # uncomment for hosted Postgres
 
 ADMIN_USER=admin               # HTTP Basic Auth for /admin/analytics (traffic dashboard)
 ADMIN_PASSWORD=changeme        # set a strong value — this path is public in source, only the password gates it

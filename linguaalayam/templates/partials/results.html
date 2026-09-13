@@ -1,7 +1,14 @@
 {% if answer %}
 <div class="answer-card">
   <p class="answer-label">AI Answer</p>
-  <p>{{ answer }}</p>
+  <p>{{ answer | safe }}</p>
+  {% if tip %}
+  <p class="answer-tip">💡 {{ tip }}</p>
+  {% endif %}
+</div>
+{% elif show_ai_hint %}
+<div class="ai-hint">
+  <p>This looks like a full question — <a href="#" onclick="enableAiHint(event)">turn on AI Answer</a> for a synthesised response instead of just raw entries.</p>
 </div>
 {% endif %}
 
@@ -217,7 +224,12 @@
 
 <style>
   .answer-card { background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1rem; font-size: 0.95rem; line-height: 1.6; }
+  .answer-card a { color: var(--accent); }
   .answer-label { font-size: 0.7rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+  .answer-tip { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px dashed var(--border); }
+  .ai-hint { background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius); padding: 0.6rem 1rem; margin-bottom: 1rem; font-size: 0.82rem; color: var(--text-muted); }
+  .ai-hint a { color: var(--accent); text-decoration: none; border-bottom: 1px dotted var(--accent); cursor: pointer; }
+  .ai-hint a:hover { border-bottom-style: solid; }
   .results-meta { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem; }
   .multi-corpus-note { cursor: help; border-bottom: 1px dashed var(--border); }
   .corpus-group-label { font-size: 0.7rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 1.25rem 0 0.5rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--border); }

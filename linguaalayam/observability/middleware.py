@@ -1,4 +1,4 @@
-"""ASGI middleware that records one request_log row per inbound HTTP request."""
+"""ASGI middleware that records one request_log row per real search bar query."""
 
 import logging
 import re
@@ -32,12 +32,7 @@ _ROUTE_TYPES: list[tuple[str, str]] = [
     ("/static", "static"),
 ]
 
-# Paths never worth a request_log row from the generic middleware: the analytics
-# dashboard's own polling (logging it would create a feedback loop where watching
-# traffic generates traffic), the liveness probe (infra noise, never real
-# user/bot activity), and /track/click (its handler logs its own row with a
-# label-specific route_type — see observability/router.py — so double-logging
-# it here under a generic classification would be redundant and wrong).
+# Paths never worth processing — skip immediately.
 _EXCLUDED_PREFIXES = ("/admin", "/health", "/track/click")
 
 # Known crawler/bot user-agent substrings (case-insensitive). Not authoritative —
@@ -65,11 +60,13 @@ def looks_like_bot(user_agent: str | None) -> bool:
 
 
 class RequestLoggingMiddleware:
-    """Raw ASGI middleware that records one ``request_log`` row per HTTP request.
+    """Raw ASGI middleware that records one ``request_log`` row per real search bar query.
 
-    Implemented as pure ASGI (rather than ``BaseHTTPMiddleware``) because the
-    latter buffers the whole response, which breaks the MCP sub-app's
-    streamable-HTTP (SSE) responses mounted at ``/mcp``.
+    Only logs ``/search`` requests with a non-empty ``query`` parameter from
+    non-bot clients. Everything else (static assets, API docs, health probes,
+    MCP traffic, empty typing, bots/scrapers) is intentionally ignored —
+    Cloudflare already covers that. The owner cares about where actual
+    dictionary searches come from, not every HTTP hit.
     """
 
     def __init__(self, app: ASGIApp) -> None:
@@ -91,13 +88,6 @@ class RequestLoggingMiddleware:
         try:
             await self.app(scope, receive, send_wrapper)
         finally:
-            # By this point the response has already been fully sent via
-            # send_wrapper — the client isn't waiting on anything below.
-            # _record() does a blocking DB write (sync SQLAlchemy session);
-            # running it inline here would stall the event loop — and every
-            # other concurrent request on it — for the duration of that
-            # write. to_thread.run_sync offloads it to a worker thread so
-            # logging never taxes request latency for anyone.
             duration_ms = (time.monotonic() - start) * 1000
             status_code = status_holder.get("status", 0)
             await to_thread.run_sync(self._record, scope, status_code, duration_ms)
@@ -108,20 +98,29 @@ class RequestLoggingMiddleware:
         try:
             request = Request(scope)
             path = request.url.path
+            query = request.query_params.get("query", "").strip()
+
+            route_type = classify_route(path)
+            is_bot = looks_like_bot(request.headers.get("user-agent"))
+
+            # Only log real search bar queries with actual content from real humans.
+            if route_type != "web_search" or not query or is_bot:
+                return
+
             session_factory = get_session_factory()
             with get_session(session_factory) as session:
                 log_request(
                     session,
                     method=request.method,
                     path=path,
-                    route_type=classify_route(path),
-                    query=request.query_params.get("query"),
+                    route_type=route_type,
+                    query=query,
                     status_code=status_code,
                     duration_ms=duration_ms,
                     ip=client_ip(request),
                     country=request.headers.get("cf-ipcountry"),
                     user_agent=request.headers.get("user-agent"),
-                    is_bot=looks_like_bot(request.headers.get("user-agent")),
+                    is_bot=False,
                 )
         except Exception:  # pragma: no cover — logging must never break a request
             log.warning("Failed to record request_log entry", exc_info=True)

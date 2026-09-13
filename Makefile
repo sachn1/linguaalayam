@@ -1,4 +1,4 @@
-.PHONY: install install-local check lint format test ingest ingest-debug rag mcp sync-jayasree
+.PHONY: install install-local check lint format test ingest ingest-debug rag mcp web docker-app-stop docker-app-start docker-app-rebuild sync-jayasree
 
 # Standard install (CPU torch — matches CI and production)
 install:
@@ -45,3 +45,20 @@ sync-jayasree:
 
 mcp:
 	poetry run mcp-server
+
+web:
+	poetry run api-server
+
+# Frees port 8000 from the Docker `app` container so `make web` can bind to it
+# locally against the same `db` container. Pair with docker-app-start when done.
+docker-app-stop:
+	docker compose stop app
+
+docker-app-start:
+	docker compose start app
+
+# Builds the app image from local source (uncommitted changes included) and
+# recreates the container from it — the actual image shape prod runs, unlike
+# `make web`. Only local; cd.yml builds the real prod image in CI.
+docker-app-rebuild:
+	docker compose up -d --build app

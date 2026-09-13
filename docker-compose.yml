@@ -14,6 +14,9 @@ services:
       retries: 5
 
   app:
+    # image is what `docker compose pull` fetches in prod (see cd.yml).
+    # docker-compose.override.yml adds `build: .` + templates/static bind
+    # mounts on top of this for local dev — see there for the build path.
     image: ghcr.io/sachn1/linguaalayam-app:latest
     restart: unless-stopped
     ports:
@@ -27,6 +30,7 @@ services:
       MCP_ISSUER_URL: ${MCP_ISSUER_URL:-http://localhost:8000/mcp}
       ADMIN_USER: ${ADMIN_USER:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      TOGETHER_API_KEY: ${TOGETHER_API_KEY:-}
     depends_on:
       db:
         condition: service_healthy
