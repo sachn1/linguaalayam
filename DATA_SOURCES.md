@@ -1,6 +1,6 @@
 # Data Sources and Attribution
 
-LinguAalayam uses three open datasets distributed through [olam.in/p/open](https://olam.in/p/open). Each has its own author and licence.
+LinguAalayam uses four open datasets. Three are distributed through [olam.in/p/open](https://olam.in/p/open); one is from the Sayahna Foundation.
 
 ---
 
