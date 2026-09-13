@@ -1,37 +1,47 @@
 <div class="stat-row">
   <div class="stat-tile">
-    <div class="value">{{ total_requests }}</div>
-    <div class="label">requests ({{ window_minutes }} min)</div>
+    <div class="value">{{ total_searches }}</div>
+    <div class="label">searches ({{ window_minutes }} min)</div>
   </div>
   <div class="stat-tile">
-    <div class="value">{{ total_bots }}</div>
-    <div class="label">flagged as bot</div>
+    <div class="value">{{ unique_queries }}</div>
+    <div class="label">unique queries</div>
   </div>
 </div>
 
 <div class="analytics-card">
-  <h2>By route</h2>
+  <h2>Top queries</h2>
   <table class="analytics-table">
-    <thead><tr><th>Route</th><th>Requests</th><th>Bot-flagged</th></tr></thead>
+    <thead>
+      <tr><th>Query</th><th>Count</th><th>Countries</th><th>Clients</th><th>First seen</th><th>Last seen</th></tr>
+    </thead>
     <tbody>
-      {% for route_type, count, bot_count in routes %}
-      <tr><td>{{ route_type }}</td><td>{{ count }}</td><td>{{ bot_count }}</td></tr>
+      {% for query, count, countries, clients, first_seen, last_seen in queries_with_sources %}
+      <tr>
+        <td class="ml">{{ query }}</td><td>{{ count }}</td><td>{{ countries }}</td><td>{{ clients }}</td>
+        <td>{{ first_seen }}</td><td>{{ last_seen }}</td>
+      </tr>
       {% else %}
-      <tr><td colspan="3">No requests in this window.</td></tr>
+      <tr><td colspan="6">No searches in this window.</td></tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 
 <div class="analytics-card">
-  <h2>Top search terms</h2>
+  <h2>By country</h2>
   <table class="analytics-table">
-    <thead><tr><th>Query</th><th>Count</th></tr></thead>
+    <thead>
+      <tr><th>Country</th><th>Searches</th><th>Unique queries</th><th>First seen</th><th>Last seen</th></tr>
+    </thead>
     <tbody>
-      {% for query, count in queries %}
-      <tr><td class="ml">{{ query }}</td><td>{{ count }}</td></tr>
+      {% for country, count, unique, first_seen, last_seen in by_country %}
+      <tr>
+        <td>{{ country or "Unknown" }}</td><td>{{ count }}</td><td>{{ unique }}</td>
+        <td>{{ first_seen }}</td><td>{{ last_seen }}</td>
+      </tr>
       {% else %}
-      <tr><td colspan="2">No search terms in this window.</td></tr>
+      <tr><td colspan="5">No searches in this window.</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -52,35 +62,12 @@
 </div>
 
 <div class="analytics-card">
-  <h2>Top user agents</h2>
-  <table class="analytics-table">
-    <thead><tr><th>User agent</th><th>Requests</th><th></th></tr></thead>
-    <tbody>
-      {% for user_agent, count, mostly_bot in user_agents %}
-      <tr>
-        <td class="ua-cell" title="{{ user_agent }}">{{ user_agent }}</td>
-        <td>{{ count }}</td>
-        <td>{% if mostly_bot %}<span class="bot-tag">BOT?</span>{% endif %}</td>
-      </tr>
-      {% else %}
-      <tr><td colspan="3">No requests in this window.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-
-<div class="analytics-card">
   <h2>Top clients</h2>
   <table class="analytics-table">
-    <thead><tr><th>IP</th><th>Country</th><th>Requests</th><th></th></tr></thead>
+    <thead><tr><th>IP</th><th>Searches</th><th>First seen</th><th>Last seen</th></tr></thead>
     <tbody>
-      {% for ip, country, count, mostly_bot in clients %}
-      <tr>
-        <td>{{ ip }}</td>
-        <td>{{ country or "—" }}</td>
-        <td>{{ count }}</td>
-        <td>{% if mostly_bot %}<span class="bot-tag">BOT?</span>{% endif %}</td>
-      </tr>
+      {% for ip, count, first_seen, last_seen in top_clients_list %}
+      <tr><td>{{ ip }}</td><td>{{ count }}</td><td>{{ first_seen }}</td><td>{{ last_seen }}</td></tr>
       {% else %}
       <tr><td colspan="4">No clients in this window.</td></tr>
       {% endfor %}

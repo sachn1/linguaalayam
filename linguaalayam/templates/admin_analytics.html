@@ -39,7 +39,6 @@
     border-bottom: 1px solid var(--border);
   }
   table.analytics-table th { color: var(--text-muted); font-weight: 500; }
-  .bot-tag { color: #b45309; font-size: 0.7rem; font-weight: 600; }
   .ua-cell {
     max-width: 420px;
     overflow: hidden;
@@ -48,6 +47,8 @@
     font-family: monospace;
     font-size: 0.78rem;
   }
+  .ml { font-family: 'Manjari', sans-serif; }
+  .note { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem; font-style: italic; }
 </style>
 
 <div class="analytics-wrap">
@@ -57,7 +58,7 @@
       id="window-select"
       hx-get="/admin/analytics/partial"
       hx-target="#analytics-body"
-      hx-trigger="change, every 15s"
+      hx-trigger="change, every 30s"
       hx-include="#window-select"
       name="window_minutes"
     >
@@ -68,6 +69,8 @@
       <option value="10080">Last 7 days</option>
     </select>
   </div>
+
+  <p class="note">Only real search bar queries are logged — bots, scrapers, and non-search traffic are excluded. Cloudflare covers the rest.</p>
 
   <div
     id="analytics-body"

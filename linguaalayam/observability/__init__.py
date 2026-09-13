@@ -5,11 +5,10 @@ from .middleware import RequestLoggingMiddleware, classify_route, looks_like_bot
 from .models import RequestLog
 from .queries import (
     log_request,
-    top_clients,
+    searches_by_country,
+    top_clients_simple,
     top_outbound_clicks,
-    top_queries,
-    top_user_agents,
-    traffic_by_route_type,
+    top_queries_with_sources,
 )
 from .router import router as click_tracking_router
 
@@ -21,9 +20,8 @@ __all__ = [
     "log_feature_event",
     "log_request",
     "looks_like_bot",
-    "top_clients",
+    "searches_by_country",
+    "top_clients_simple",
     "top_outbound_clicks",
-    "top_queries",
-    "top_user_agents",
-    "traffic_by_route_type",
+    "top_queries_with_sources",
 ]

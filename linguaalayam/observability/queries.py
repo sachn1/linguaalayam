@@ -1,6 +1,7 @@
 """Query functions for request-level traffic and usage analytics."""
 
 import datetime
+from collections import Counter
 
 from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
@@ -67,62 +68,6 @@ def log_request(
     )
 
 
-def traffic_by_route_type(session: Session, since: datetime.datetime) -> list[tuple[str, int, int]]:
-    """Return (route_type, request_count, bot_count) since a given timestamp.
-
-    Parameters
-    ----------
-    session : Session
-        SQLAlchemy session to use for the query.
-    since : datetime.datetime
-        Only count requests logged at or after this timestamp.
-    """
-    stmt = (
-        select(
-            RequestLog.route_type,
-            func.count().label("count"),
-            func.count().filter(RequestLog.is_bot).label("bot_count"),
-        )
-        .where(RequestLog.timestamp >= since)
-        .group_by(RequestLog.route_type)
-        .order_by(desc("count"))
-    )
-    return [(row.route_type, row.count, row.bot_count) for row in session.execute(stmt)]
-
-
-def top_queries(
-    session: Session, since: datetime.datetime, limit: int = 10
-) -> list[tuple[str, int]]:
-    """Return the most frequent search terms since a given timestamp.
-
-    Restricted to search/lookup route types so outbound-click labels (which
-    reuse the same ``query`` column — see ``RequestLog.query``) don't show up
-    here as if they were dictionary lookups.
-
-    Parameters
-    ----------
-    session : Session
-        SQLAlchemy session to use for the query.
-    since : datetime.datetime
-        Only count requests logged at or after this timestamp.
-    limit : int, optional
-        Maximum number of terms to return, by default 10
-    """
-    stmt = (
-        select(RequestLog.query, func.count().label("count"))
-        .where(
-            RequestLog.timestamp >= since,
-            RequestLog.route_type.in_(_SEARCH_ROUTE_TYPES),
-            RequestLog.query.isnot(None),
-            RequestLog.query != "",
-        )
-        .group_by(RequestLog.query)
-        .order_by(desc("count"))
-        .limit(limit)
-    )
-    return [(row.query, row.count) for row in session.execute(stmt)]
-
-
 def top_outbound_clicks(
     session: Session, since: datetime.datetime, limit: int = 10
 ) -> list[tuple[str, int]]:
@@ -147,10 +92,123 @@ def top_outbound_clicks(
     return [(row.query, row.count) for row in session.execute(stmt)]
 
 
-def top_clients(
+def top_queries_with_sources(
+    session: Session, since: datetime.datetime, limit: int = 20
+) -> list[tuple[str, int, list[tuple[str, int]], list[str], datetime.datetime, datetime.datetime]]:
+    """Return the most frequent search terms with a per-query country/client/time breakdown.
+
+    Restricted to search/lookup route types so outbound-click labels and feature
+    events (which reuse the same ``query`` column — see ``RequestLog.query``)
+    don't get attributed to a search term's sources.
+
+    Parameters
+    ----------
+    session : Session
+        SQLAlchemy session to use for the query.
+    since : datetime.datetime
+        Only count requests logged at or after this timestamp.
+    limit : int, optional
+        Maximum number of terms to return, by default 20
+
+    Returns
+    -------
+    list[tuple[str, int, list[tuple[str, int]], list[str], datetime, datetime]]
+        ``(query, total_count, countries, clients, first_seen, last_seen)`` tuples,
+        ordered by total count descending. ``countries`` is a list of
+        ``(country, count)`` pairs sorted by count descending (missing values
+        grouped under "Unknown"); ``clients`` is a sorted list of the distinct
+        client IPs that issued that query; ``first_seen``/``last_seen`` are the
+        earliest/latest timestamps for that query in the window.
+    """
+    stmt = select(RequestLog.query, RequestLog.country, RequestLog.ip, RequestLog.timestamp).where(
+        RequestLog.timestamp >= since,
+        RequestLog.route_type.in_(_SEARCH_ROUTE_TYPES),
+        RequestLog.query.isnot(None),
+        RequestLog.query != "",
+    )
+
+    by_query: dict[str, dict] = {}
+    for query, country, ip, timestamp in session.execute(stmt):
+        entry = by_query.setdefault(
+            query,
+            {
+                "count": 0,
+                "countries": Counter(),
+                "clients": set(),
+                "first_seen": timestamp,
+                "last_seen": timestamp,
+            },
+        )
+        entry["count"] += 1
+        entry["countries"][country or "Unknown"] += 1
+        if ip:
+            entry["clients"].add(ip)
+        entry["first_seen"] = min(entry["first_seen"], timestamp)
+        entry["last_seen"] = max(entry["last_seen"], timestamp)
+
+    ranked = sorted(by_query.items(), key=lambda item: item[1]["count"], reverse=True)[:limit]
+    return [
+        (
+            query,
+            data["count"],
+            sorted(data["countries"].items(), key=lambda kv: kv[1], reverse=True),
+            sorted(data["clients"]),
+            data["first_seen"],
+            data["last_seen"],
+        )
+        for query, data in ranked
+    ]
+
+
+def searches_by_country(
+    session: Session, since: datetime.datetime, limit: int = 20
+) -> list[tuple[str | None, int, int, datetime.datetime, datetime.datetime]]:
+    """Return search counts grouped by country since a given timestamp.
+
+    Restricted to search/lookup route types so outbound clicks and feature
+    events don't inflate a country's search count.
+
+    Parameters
+    ----------
+    session : Session
+        SQLAlchemy session to use for the query.
+    since : datetime.datetime
+        Only count requests logged at or after this timestamp.
+    limit : int, optional
+        Maximum number of countries to return, by default 20
+
+    Returns
+    -------
+    list[tuple[str | None, int, int, datetime, datetime]]
+        ``(country, search_count, unique_queries, first_seen, last_seen)`` tuples,
+        ordered by search count.
+    """
+    stmt = (
+        select(
+            RequestLog.country,
+            func.count().label("search_count"),
+            func.count(func.distinct(RequestLog.query)).label("unique_queries"),
+            func.min(RequestLog.timestamp).label("first_seen"),
+            func.max(RequestLog.timestamp).label("last_seen"),
+        )
+        .where(RequestLog.timestamp >= since, RequestLog.route_type.in_(_SEARCH_ROUTE_TYPES))
+        .group_by(RequestLog.country)
+        .order_by(desc("search_count"))
+        .limit(limit)
+    )
+    return [
+        (row.country, row.search_count, row.unique_queries, row.first_seen, row.last_seen)
+        for row in session.execute(stmt)
+    ]
+
+
+def top_clients_simple(
     session: Session, since: datetime.datetime, limit: int = 10
-) -> list[tuple[str, str | None, int, bool]]:
+) -> list[tuple[str, int, datetime.datetime, datetime.datetime]]:
     """Return the most active clients (by IP) since a given timestamp.
+
+    Restricted to search/lookup route types so outbound clicks and feature
+    events don't inflate a client's search count.
 
     Parameters
     ----------
@@ -163,59 +221,23 @@ def top_clients(
 
     Returns
     -------
-    list[tuple[str, str | None, int, bool]]
-        ``(ip, country, request_count, is_bot)`` tuples, ordered by request count descending.
-        ``is_bot`` reflects whether the majority of that IP's requests were flagged as automated.
+    list[tuple[str, int, datetime, datetime]]
+        ``(ip, count, first_seen, last_seen)`` tuples, ordered by count descending.
     """
     stmt = (
         select(
             RequestLog.ip,
-            func.max(RequestLog.country).label("country"),
             func.count().label("count"),
-            (func.count().filter(RequestLog.is_bot) * 2 > func.count()).label("mostly_bot"),
+            func.min(RequestLog.timestamp).label("first_seen"),
+            func.max(RequestLog.timestamp).label("last_seen"),
         )
-        .where(RequestLog.timestamp >= since, RequestLog.ip.isnot(None))
+        .where(
+            RequestLog.timestamp >= since,
+            RequestLog.ip.isnot(None),
+            RequestLog.route_type.in_(_SEARCH_ROUTE_TYPES),
+        )
         .group_by(RequestLog.ip)
         .order_by(desc("count"))
         .limit(limit)
     )
-    return [(row.ip, row.country, row.count, bool(row.mostly_bot)) for row in session.execute(stmt)]
-
-
-def top_user_agents(
-    session: Session, since: datetime.datetime, limit: int = 10
-) -> list[tuple[str, int, bool]]:
-    """Return the most common User-Agent strings since a given timestamp.
-
-    Lets the dashboard show what's actually generating traffic (specific
-    crawler/bot names, MCP client SDKs, browsers) instead of just a bot/not-bot
-    flag on the client IP table.
-
-    Parameters
-    ----------
-    session : Session
-        SQLAlchemy session to use for the query.
-    since : datetime.datetime
-        Only count requests logged at or after this timestamp.
-    limit : int, optional
-        Maximum number of user agents to return, by default 10
-
-    Returns
-    -------
-    list[tuple[str, int, bool]]
-        ``(user_agent, request_count, is_bot)`` tuples, ordered by request count
-        descending. ``is_bot`` reflects whether the majority of that UA's
-        requests were flagged as automated.
-    """
-    stmt = (
-        select(
-            RequestLog.user_agent,
-            func.count().label("count"),
-            (func.count().filter(RequestLog.is_bot) * 2 > func.count()).label("mostly_bot"),
-        )
-        .where(RequestLog.timestamp >= since, RequestLog.user_agent.isnot(None))
-        .group_by(RequestLog.user_agent)
-        .order_by(desc("count"))
-        .limit(limit)
-    )
-    return [(row.user_agent, row.count, bool(row.mostly_bot)) for row in session.execute(stmt)]
+    return [(row.ip, row.count, row.first_seen, row.last_seen) for row in session.execute(stmt)]
