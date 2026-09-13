@@ -122,6 +122,9 @@ verbose = 0
 omit-covered-files = false
 exclude = ["migrations", "notebooks", "linguaalayam/eval"]
 
+[tool.readme-drift]
+plain-text-search = false
+
 [tool.djlint]
 profile = "jinja"
 # H021 inline styles — intentional single-file CSS approach
