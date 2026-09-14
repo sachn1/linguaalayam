@@ -55,3 +55,13 @@ build/
 .gradle/
 store_icon.png
 /linguaalayam.sql.gz
+
+# terraform — local state/cache and anything holding real values
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/*.tfplan
+terraform/*.auto.tfvars
+terraform/override.tf
+terraform/override.tf.json
