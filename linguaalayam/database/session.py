@@ -11,12 +11,21 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from linguaalayam.models.orm import Base
 
+# psycopg2 has no connect timeout by default — a host that's unreachable but
+# not actively refusing the connection (e.g. no firewall rule even rejecting
+# it) hangs at the OS level for minutes rather than failing fast. Seen live:
+# a misconfigured DB_HOST hung every /search request until Cloud Run's own
+# 300s request timeout killed it, with no error from the app at all.
+_CONNECT_TIMEOUT_SECONDS = 5
+
 
 def build_engine(db_cfg: DictConfig) -> Engine:
     """Create a SQLAlchemy engine from a Hydra database config.
 
     Registers a ``connect`` listener that ensures the ``vector`` extension is
     present so pgvector operations work without a separate migration step.
+    Connections use a short ``connect_timeout`` (see ``_CONNECT_TIMEOUT_SECONDS``)
+    so an unreachable host fails fast instead of hanging indefinitely.
 
     Parameters
     ----------
@@ -42,6 +51,7 @@ def build_engine(db_cfg: DictConfig) -> Engine:
         pool_pre_ping=True,
         pool_size=db_cfg.pool_size,
         max_overflow=db_cfg.max_overflow,
+        connect_args={"connect_timeout": _CONNECT_TIMEOUT_SECONDS},
     )
 
     # Ensure the pgvector extension is present even when connecting

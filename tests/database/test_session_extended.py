@@ -87,6 +87,20 @@ class TestBuildEngine:
 
         assert "sslmode" not in captured_url[0]
 
+    def test_connect_timeout_set(self):
+        """create_engine should receive a short connect_timeout — an unreachable
+        DB must fail fast rather than hang until Cloud Run's own request timeout."""
+        cfg = _pg_cfg()
+        with (
+            patch("linguaalayam.database.session.create_engine") as mock_ce,
+            patch("linguaalayam.database.session.event"),
+        ):
+            mock_ce.return_value = MagicMock()
+            build_engine(cfg)
+
+        _, kwargs = mock_ce.call_args
+        assert kwargs["connect_args"] == {"connect_timeout": 5}
+
     def test_password_url_encoded(self):
         """Special characters in the password should be percent-encoded in the URL."""
         cfg = _pg_cfg(password="p@ss w0rd")
