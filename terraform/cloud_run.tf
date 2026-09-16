@@ -29,18 +29,25 @@ resource "google_secret_manager_secret_iam_member" "admin_password_access" {
 }
 
 resource "google_cloud_run_v2_service" "linguaalayam" {
-  name     = "linguaalayam"
-  location = var.region
-  ingress  = "INGRESS_TRAFFIC_ALL"
+  name                = "linguaalayam"
+  location            = var.region
+  ingress             = "INGRESS_TRAFFIC_ALL"
+  deletion_protection = false # TEMP: flip back to true right after this apply replaces the tainted service
 
   template {
     service_account = google_service_account.cloud_run_sa.email
 
     scaling {
-      min_instance_count = 1 # keep one warm instance — avoids model-load cold
-      # starts; with cpu_idle=true below, idle billing is memory-only, no CPU
-      # charge while waiting. Re-evaluate after a week of real billing data.
+      min_instance_count = 0
       max_instance_count = 3
+    }
+
+    vpc_access {
+      network_interfaces {
+        network    = google_compute_network.linguaalayam.id
+        subnetwork = google_compute_subnetwork.linguaalayam.id
+      }
+      egress = "ALL_TRAFFIC"
     }
 
     containers {

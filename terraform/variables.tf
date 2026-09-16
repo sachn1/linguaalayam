@@ -19,6 +19,17 @@ variable "image_tag" {
 variable "db_host" {
   description = "Hetzner Postgres host, reachable from Cloud Run's public egress"
   type        = string
+
+  # Hetzner's origin IP, not the linguaalayam.org hostname. That domain is
+  # proxied through Cloudflare (resolves to a Cloudflare IP, confirmed via
+  # `getent hosts`), and Cloudflare's standard proxy only forwards HTTP(S),
+  # not arbitrary TCP like Postgres on 5432. Cloudflare Spectrum *can* proxy
+  # arbitrary TCP/UDP ports, and would be the ideal way to keep this off a
+  # bare IP — but it's a paid add-on, likely costing more on its own than
+  # this whole Cloud NAT setup, and it would widen Hetzner's firewall rule
+  # from our one known Cloud NAT static IP to Cloudflare's entire published
+  # IP range. Not worth it for a single known caller.
+  default = "178.105.165.149"
 }
 
 variable "db_port" {
@@ -39,6 +50,7 @@ variable "db_user" {
 variable "mcp_issuer_url" {
   description = "Public URL where /mcp is reachable, e.g. https://linguaalayam.org/mcp"
   type        = string
+  default     = "https://linguaalayam.org/mcp"
 }
 
 variable "admin_user" {
@@ -47,9 +59,11 @@ variable "admin_user" {
   default     = "admin"
 }
 
-# Sensitive values — supplied via terraform.tfvars (gitignored) or -var on the CLI,
-# never committed. Stored into Secret Manager below, not passed to Cloud Run as
-# plain env vars.
+# Sensitive values — the only variables with no default, so `terraform plan`/
+# `apply` always prompts for them (or reads TF_VAR_* env vars) rather than
+# risk silently reusing a stale or wrong secret. Never put these in
+# terraform.tfvars or any committed file. Stored into Secret Manager below,
+# not passed to Cloud Run as plain env vars.
 variable "db_password" {
   type      = string
   sensitive = true

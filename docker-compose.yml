@@ -2,6 +2,14 @@ services:
   db:
     image: ankane/pgvector
     restart: unless-stopped
+    # Published so Cloud Run (GCP) can reach Postgres directly — safe only
+    # because Hetzner's Cloud Firewall restricts inbound 5432 to exactly one
+    # IP: the Cloud NAT static IP Cloud Run's egress always originates from
+    # (see terraform/networking.tf, output nat_static_ip). Binding 0.0.0.0
+    # here is fine since that firewall rule blocks everything else before it
+    # ever reaches this container.
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       POSTGRES_DB: ${DB_NAME:-linguaalayam}
