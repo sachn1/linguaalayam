@@ -102,10 +102,11 @@ resource "google_cloud_run_v2_job" "linguaalayam_migrate" {
           name  = "DB_USER"
           value = var.db_user
         }
-        env {
-          name  = "DB_SSLMODE"
-          value = "require"
-        }
+        # No DB_SSLMODE here: unlike api/app.py (which never actually reads
+        # it — confirmed working all session despite the service having
+        # this same var set), Alembic's env.py goes through the Hydra-based
+        # config path, which does act on it, and Hetzner's Postgres doesn't
+        # support SSL at all. Setting it broke this job's first real run.
         env {
           name = "DB_PASSWORD"
           value_source {
