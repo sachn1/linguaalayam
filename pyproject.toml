@@ -73,6 +73,7 @@ api-server = "linguaalayam.api.app:main"
 # Ingestion and debugging — require a live database
 ingest = "linguaalayam.scripts.ingest:main"
 debug-retriever = "linguaalayam.scripts.debug_retriever:main"
+backfill-geoip = "linguaalayam.scripts.backfill_geoip:main"
 rag = "linguaalayam.rag.main:main"
 
 # Evaluation — require a live database (run eval-prepare-queries first)
