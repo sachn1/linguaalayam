@@ -103,6 +103,10 @@ Just need the database running (e.g. for `psql`/DBeaver access)?
 docker compose up -d db
 ```
 
+### Production deployment
+
+The hosted app runs on **Google Cloud Run** (Postgres stays on a Hetzner VPS). See [terraform/RUNBOOK.md](terraform/RUNBOOK.md) for the Terraform-managed infra and its safe-apply policy — `docker compose up --build` above is for local development, not how production is deployed.
+
 ### Data storage
 
 Corpus files (`data/`) and database snapshots (`linguaalayam.sql.gz`) are tracked with [DVC](https://dvc.org), backed by a private remote.
