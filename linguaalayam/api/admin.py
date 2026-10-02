@@ -15,6 +15,7 @@ from linguaalayam.database import get_session
 from linguaalayam.observability import (
     searches_by_country,
     top_clients_simple,
+    top_locations,
     top_outbound_clicks,
     top_queries_with_sources,
 )
@@ -79,6 +80,7 @@ def analytics_partial(
     with get_session(session_factory) as session:
         queries = top_queries_with_sources(session, since, limit=20)
         by_country = searches_by_country(session, since, limit=20)
+        by_location = top_locations(session, since, limit=20)
         clicks = top_outbound_clicks(session, since, limit=10)
         clients = top_clients_simple(session, since, limit=10)
 
@@ -99,6 +101,18 @@ def analytics_partial(
         (country, count, unique, _fmt(first_seen), _fmt(last_seen))
         for country, count, unique, first_seen, last_seen in by_country
     ]
+    by_location_fmt = [
+        (
+            city or "Unknown",
+            region or "—",
+            country or "—",
+            count,
+            unique,
+            _fmt(first_seen),
+            _fmt(last_seen),
+        )
+        for city, region, country, count, unique, first_seen, last_seen in by_location
+    ]
     clients_fmt = [
         (ip, count, _fmt(first_seen), _fmt(last_seen))
         for ip, count, first_seen, last_seen in clients
@@ -113,6 +127,7 @@ def analytics_partial(
             "unique_queries": unique_queries,
             "queries_with_sources": queries_with_sources,
             "by_country": by_country_fmt,
+            "by_location": by_location_fmt,
             "clicks": clicks,
             "top_clients_list": clients_fmt,
         },

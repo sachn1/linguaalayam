@@ -10,6 +10,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from linguaalayam.api.dependencies import get_session_factory
 from linguaalayam.database.session import get_session
+from linguaalayam.observability.geoip import locate_ip
 from linguaalayam.observability.http import client_ip
 from linguaalayam.observability.queries import log_request
 
@@ -107,6 +108,13 @@ class RequestLoggingMiddleware:
             if route_type != "web_search" or not query or is_bot:
                 return
 
+            ip = client_ip(request)
+            # CF-IPCountry is free and already-resolved when Cloudflare is
+            # proxying; the GeoIP lookup is the fallback (and the only source
+            # of city/region) for traffic that reaches Cloud Run directly.
+            city, region, geoip_country = locate_ip(ip)
+            country = request.headers.get("cf-ipcountry") or geoip_country
+
             session_factory = get_session_factory()
             with get_session(session_factory) as session:
                 log_request(
@@ -117,8 +125,10 @@ class RequestLoggingMiddleware:
                     query=query,
                     status_code=status_code,
                     duration_ms=duration_ms,
-                    ip=client_ip(request),
-                    country=request.headers.get("cf-ipcountry"),
+                    ip=ip,
+                    city=city,
+                    region=region,
+                    country=country,
                     user_agent=request.headers.get("user-agent"),
                     is_bot=False,
                 )

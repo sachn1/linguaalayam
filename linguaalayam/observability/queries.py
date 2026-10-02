@@ -21,6 +21,8 @@ def log_request(
     status_code: int,
     duration_ms: float,
     ip: str | None,
+    city: str | None,
+    region: str | None,
     country: str | None,
     user_agent: str | None,
     is_bot: bool,
@@ -45,6 +47,10 @@ def log_request(
         Request handling time in milliseconds.
     ip : str | None
         Client IP address.
+    city : str | None
+        City name from a GeoIP lookup, if resolved.
+    region : str | None
+        Subdivision (state/region) name from a GeoIP lookup, if resolved.
     country : str | None
         Two-letter country code, if available.
     user_agent : str | None
@@ -61,6 +67,8 @@ def log_request(
             status_code=status_code,
             duration_ms=duration_ms,
             ip=ip,
+            city=city,
+            region=region,
             country=country,
             user_agent=user_agent,
             is_bot=is_bot,
@@ -198,6 +206,66 @@ def searches_by_country(
     )
     return [
         (row.country, row.search_count, row.unique_queries, row.first_seen, row.last_seen)
+        for row in session.execute(stmt)
+    ]
+
+
+_LocationRow = tuple[
+    str | None, str | None, str | None, int, int, datetime.datetime, datetime.datetime
+]
+
+
+def top_locations(
+    session: Session, since: datetime.datetime, limit: int = 20
+) -> list[_LocationRow]:
+    """Return search counts grouped by city/region/country since a given timestamp.
+
+    Restricted to search/lookup route types so outbound clicks and feature
+    events don't inflate a location's search count. Rows where the GeoIP
+    lookup didn't resolve (e.g. the database file is missing, or the IP is
+    private/reserved) group together as all-``None``, shown as "Unknown" by
+    the template.
+
+    Parameters
+    ----------
+    session : Session
+        SQLAlchemy session to use for the query.
+    since : datetime.datetime
+        Only count requests logged at or after this timestamp.
+    limit : int, optional
+        Maximum number of locations to return, by default 20
+
+    Returns
+    -------
+    list[tuple[str | None, str | None, str | None, int, int, datetime, datetime]]
+        ``(city, region, country, search_count, unique_queries, first_seen, last_seen)``
+        tuples, ordered by search count descending.
+    """
+    stmt = (
+        select(
+            RequestLog.city,
+            RequestLog.region,
+            RequestLog.country,
+            func.count().label("search_count"),
+            func.count(func.distinct(RequestLog.query)).label("unique_queries"),
+            func.min(RequestLog.timestamp).label("first_seen"),
+            func.max(RequestLog.timestamp).label("last_seen"),
+        )
+        .where(RequestLog.timestamp >= since, RequestLog.route_type.in_(_SEARCH_ROUTE_TYPES))
+        .group_by(RequestLog.city, RequestLog.region, RequestLog.country)
+        .order_by(desc("search_count"))
+        .limit(limit)
+    )
+    return [
+        (
+            row.city,
+            row.region,
+            row.country,
+            row.search_count,
+            row.unique_queries,
+            row.first_seen,
+            row.last_seen,
+        )
         for row in session.execute(stmt)
     ]
 

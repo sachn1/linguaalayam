@@ -48,6 +48,25 @@
 </div>
 
 <div class="analytics-card">
+  <h2>By location</h2>
+  <table class="analytics-table">
+    <thead>
+      <tr><th>City</th><th>Region</th><th>Country</th><th>Searches</th><th>Unique queries</th><th>First seen</th><th>Last seen</th></tr>
+    </thead>
+    <tbody>
+      {% for city, region, country, count, unique, first_seen, last_seen in by_location %}
+      <tr>
+        <td>{{ city }}</td><td>{{ region }}</td><td>{{ country }}</td><td>{{ count }}</td><td>{{ unique }}</td>
+        <td>{{ first_seen }}</td><td>{{ last_seen }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7">No searches in this window.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="analytics-card">
   <h2>Outbound link clicks</h2>
   <table class="analytics-table">
     <thead><tr><th>Link</th><th>Clicks</th></tr></thead>

@@ -26,6 +26,11 @@ COPY migrations/ ./migrations/
 COPY alembic.ini ./
 COPY --from=jsbuild /app/linguaalayam/static/vendor ./linguaalayam/static/vendor
 
+# GeoLite2-City.mmdb for /admin/analytics location lookups — baked in rather
+# than downloaded at startup since Cloud Run containers have no persistent
+# disk between cold starts. See .env.example for how to obtain/refresh it.
+COPY data/geoip/GeoLite2-City.mmdb ./data/geoip/GeoLite2-City.mmdb
+
 # Install the package itself
 RUN poetry install --without dev,huggingface --no-interaction
 

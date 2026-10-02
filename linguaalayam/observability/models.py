@@ -36,10 +36,16 @@ class RequestLog(Base):
     duration_ms : float
         Request handling time in milliseconds.
     ip : str | None
-        Client IP — prefers the ``CF-Connecting-IP`` header, falls back to the
-        ASGI transport address.
+        Client IP — prefers the ``CF-Connecting-IP`` header, falls back to
+        ``X-Forwarded-For``, then the ASGI transport address.
+    city : str | None
+        City name from a local MaxMind GeoLite2-City lookup on ``ip``, if resolved.
+    region : str | None
+        Subdivision (state/region) name from the same lookup, if resolved.
     country : str | None
-        Two-letter country code from the ``CF-IPCountry`` header, if present.
+        Two-letter country code — from the ``CF-IPCountry`` header when
+        Cloudflare is proxying, otherwise from the same GeoIP lookup as
+        ``city``/``region``.
     user_agent : str | None
         Raw ``User-Agent`` header.
     is_bot : bool
@@ -60,6 +66,8 @@ class RequestLog(Base):
     status_code: Mapped[int] = mapped_column(Integer, nullable=False)
     duration_ms: Mapped[float] = mapped_column(Float, nullable=False)
     ip: Mapped[str | None] = mapped_column(Text, nullable=True)
+    city: Mapped[str | None] = mapped_column(Text, nullable=True)
+    region: Mapped[str | None] = mapped_column(Text, nullable=True)
     country: Mapped[str | None] = mapped_column(Text, nullable=True)
     user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_bot: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
