@@ -19,6 +19,11 @@ resource "google_iam_workload_identity_pool_provider" "github" {
   attribute_mapping = {
     "google.subject"       = "assertion.sub"
     "attribute.repository" = "assertion.repository"
+    # Lets a binding restrict itself to a specific branch (e.g. only
+    # refs/heads/master), not just this repo — used by the write-capable
+    # Cloud Run deploy identity in ../cd.tf, which (unlike this read-only
+    # plan SA) can actually mutate production.
+    "attribute.ref" = "assertion.ref"
   }
 
   # Only OIDC tokens minted for this exact repo's workflows can use this
