@@ -72,7 +72,7 @@ def analytics_page(request: Request) -> HTMLResponse:
 )
 def analytics_partial(
     request: Request,
-    window_minutes: Annotated[int, Query(ge=1, le=10080)] = 60,
+    window_minutes: Annotated[int, Query(ge=1, le=525600)] = 60,
 ) -> HTMLResponse:
     """Return the HTMX-polled analytics fragment for the given lookback window."""
     since = _window_start(window_minutes)
