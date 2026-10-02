@@ -39,7 +39,8 @@
     border-bottom: 1px solid var(--border);
   }
   table.analytics-table th { color: var(--text-muted); font-weight: 500; }
-  .table-scroll { overflow-x: auto; }
+  .table-scroll { overflow-x: auto; overflow-y: auto; max-height: 420px; }
+  .table-scroll thead th { position: sticky; top: 0; background: var(--surface); }
   .wrap-cell {
     max-width: 320px;
     white-space: normal;
