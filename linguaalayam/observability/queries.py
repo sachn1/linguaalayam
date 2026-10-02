@@ -138,8 +138,17 @@ def top_feature_usage(
 
 def top_queries_with_sources(
     session: Session, since: datetime.datetime, limit: int = 20
-) -> list[tuple[str, int, list[tuple[str, int]], list[str], datetime.datetime, datetime.datetime]]:
-    """Return the most frequent search terms with a per-query country/client/time breakdown.
+) -> list[
+    tuple[
+        str,
+        int,
+        list[tuple[str | None, str | None, str | None, int]],
+        list[str],
+        datetime.datetime,
+        datetime.datetime,
+    ]
+]:
+    """Return the most frequent search terms with a per-query location/client/time breakdown.
 
     Restricted to search/lookup route types so outbound-click labels and feature
     events (which reuse the same ``query`` column — see ``RequestLog.query``)
@@ -156,15 +165,23 @@ def top_queries_with_sources(
 
     Returns
     -------
-    list[tuple[str, int, list[tuple[str, int]], list[str], datetime, datetime]]
-        ``(query, total_count, countries, clients, first_seen, last_seen)`` tuples,
-        ordered by total count descending. ``countries`` is a list of
-        ``(country, count)`` pairs sorted by count descending (missing values
-        grouped under "Unknown"); ``clients`` is a sorted list of the distinct
-        client IPs that issued that query; ``first_seen``/``last_seen`` are the
+    list[tuple[str, int, list[tuple], list[str], datetime, datetime]]
+        ``(query, total_count, locations, clients, first_seen, last_seen)`` tuples,
+        ordered by total count descending. ``locations`` is a list of
+        ``(city, region, country, count)`` tuples sorted by count descending
+        (an unresolved location groups under all-``None``, shown as "Unknown"
+        by the template); ``clients`` is a sorted list of the distinct client
+        IPs that issued that query; ``first_seen``/``last_seen`` are the
         earliest/latest timestamps for that query in the window.
     """
-    stmt = select(RequestLog.query, RequestLog.country, RequestLog.ip, RequestLog.timestamp).where(
+    stmt = select(
+        RequestLog.query,
+        RequestLog.city,
+        RequestLog.region,
+        RequestLog.country,
+        RequestLog.ip,
+        RequestLog.timestamp,
+    ).where(
         RequestLog.timestamp >= since,
         RequestLog.route_type.in_(_SEARCH_ROUTE_TYPES),
         RequestLog.query.isnot(None),
@@ -172,19 +189,19 @@ def top_queries_with_sources(
     )
 
     by_query: dict[str, dict] = {}
-    for query, country, ip, timestamp in session.execute(stmt):
+    for query, city, region, country, ip, timestamp in session.execute(stmt):
         entry = by_query.setdefault(
             query,
             {
                 "count": 0,
-                "countries": Counter(),
+                "locations": Counter(),
                 "clients": set(),
                 "first_seen": timestamp,
                 "last_seen": timestamp,
             },
         )
         entry["count"] += 1
-        entry["countries"][country or "Unknown"] += 1
+        entry["locations"][(city, region, country)] += 1
         if ip:
             entry["clients"].add(ip)
         entry["first_seen"] = min(entry["first_seen"], timestamp)
@@ -195,7 +212,12 @@ def top_queries_with_sources(
         (
             query,
             data["count"],
-            sorted(data["countries"].items(), key=lambda kv: kv[1], reverse=True),
+            [
+                (city, region, country, count)
+                for (city, region, country), count in sorted(
+                    data["locations"].items(), key=lambda kv: kv[1], reverse=True
+                )
+            ],
             sorted(data["clients"]),
             data["first_seen"],
             data["last_seen"],

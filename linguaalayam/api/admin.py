@@ -60,6 +60,11 @@ def _fmt(timestamp: datetime.datetime) -> str:
     return timestamp.strftime("%Y-%m-%d %H:%M UTC")
 
 
+def _fmt_location(city: str | None, region: str | None, country: str | None) -> str:
+    """Format a city/region/country tuple for display, e.g. ``Dresden, Saxony, DE``."""
+    return ", ".join(part for part in (city, region, country) if part) or "Unknown"
+
+
 @router.get("/admin/analytics", response_class=HTMLResponse, dependencies=[Depends(_require_admin)])
 def analytics_page(request: Request) -> HTMLResponse:
     """Serve the traffic/usage analytics dashboard shell."""
@@ -92,12 +97,16 @@ def analytics_partial(
         (
             query,
             count,
-            ", ".join(f"{country}({n})" for country, n in countries) or "—",
+            ", ".join(
+                f"{_fmt_location(city, region, country)}({n})"
+                for city, region, country, n in locations
+            )
+            or "—",
             ", ".join(client_ips) or "—",
             _fmt(first_seen),
             _fmt(last_seen),
         )
-        for query, count, countries, client_ips, first_seen, last_seen in queries
+        for query, count, locations, client_ips, first_seen, last_seen in queries
     ]
     by_country_fmt = [
         (country, count, unique, _fmt(first_seen), _fmt(last_seen))

@@ -13,12 +13,12 @@
   <h2>Top queries</h2>
   <table class="analytics-table">
     <thead>
-      <tr><th>Query</th><th>Count</th><th>Countries</th><th>Clients</th><th>First seen</th><th>Last seen</th></tr>
+      <tr><th>Query</th><th>Count</th><th>Locations</th><th>Clients</th><th>First seen</th><th>Last seen</th></tr>
     </thead>
     <tbody>
-      {% for query, count, countries, clients, first_seen, last_seen in queries_with_sources %}
+      {% for query, count, locations, clients, first_seen, last_seen in queries_with_sources %}
       <tr>
-        <td class="ml">{{ query }}</td><td>{{ count }}</td><td>{{ countries }}</td><td>{{ clients }}</td>
+        <td class="ml">{{ query }}</td><td>{{ count }}</td><td>{{ locations }}</td><td>{{ clients }}</td>
         <td>{{ first_seen }}</td><td>{{ last_seen }}</td>
       </tr>
       {% else %}
