@@ -32,7 +32,7 @@ resource "google_cloud_run_v2_service" "linguaalayam" {
   name                = "linguaalayam"
   location            = var.region
   ingress             = "INGRESS_TRAFFIC_ALL"
-  deletion_protection = false # TEMP: flip back to true right after this apply replaces the tainted service
+  deletion_protection = true
 
   template {
     service_account = google_service_account.cloud_run_sa.email
