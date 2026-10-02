@@ -5,7 +5,12 @@
 node_modules/
 __pycache__/
 mlruns/
-data/
+# Only db_corpus needs excluding — it's DVC-tracked and regenerated via
+# ingest, never needed for the Docker build. data/geoip's GeoLite2-City.mmdb
+# IS needed (baked into the image, see Dockerfile) and data/eval is small
+# enough not to bother excluding — gcloud's ignore matcher doesn't reliably
+# support un-excluding a path under a blanket "data/" exclusion, unlike git.
+data/db_corpus/
 tests/
 docs/
 notebooks/
