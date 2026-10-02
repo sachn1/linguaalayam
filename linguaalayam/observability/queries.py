@@ -10,6 +10,18 @@ from linguaalayam.observability.models import RequestLog
 
 _SEARCH_ROUTE_TYPES = ("web_search", "lookup_exact", "lookup_fuzzy", "lookup_semantic")
 
+# In-app feature buttons logged via log_feature_event (see
+# observability/router.py's _CLICK_LABEL_ROUTES) — distinct from
+# "outbound_click" (links that leave the site) and from real search traffic.
+_FEATURE_ROUTE_TYPES = ("jayasree", "ml2en", "web_speech")
+
+# Route types any current dashboard view actually groups/filters by. Rows
+# outside this set (e.g. "other", "static", "mcp" — logged under the
+# pre-2026-09-14 "log every request" policy) have nowhere to be displayed,
+# so scripts/backfill_geoip.py skips them rather than resolving location
+# data no view will ever show.
+LOCATION_RELEVANT_ROUTE_TYPES = _SEARCH_ROUTE_TYPES + _FEATURE_ROUTE_TYPES + ("outbound_click",)
+
 
 def log_request(
     session: Session,
@@ -98,12 +110,6 @@ def top_outbound_clicks(
         .limit(limit)
     )
     return [(row.query, row.count) for row in session.execute(stmt)]
-
-
-# In-app feature buttons logged via log_feature_event (see
-# observability/router.py's _CLICK_LABEL_ROUTES) — distinct from
-# "outbound_click" (links that leave the site) and from real search traffic.
-_FEATURE_ROUTE_TYPES = ("jayasree", "ml2en", "web_speech")
 
 
 def top_feature_usage(
