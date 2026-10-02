@@ -1,10 +1,17 @@
-name: Deploy to VPS
+name: Rollback deploy to Hetzner VPS
+# Manual-only — the app's primary deployment target is Cloud Run (see
+# terraform/cloud_run.tf); this is the fallback path if GCP costs or
+# behavior ever justify rolling back. Previously ran automatically on every
+# version bump, which kept silently restarting the app here even after
+# traffic moved to Cloud Run — disabled for that reason, not because the
+# capability is unwanted. Postgres (the `db` service) is unaffected either
+# way — it's Cloud Run's real database too, and keeps running regardless of
+# which deploy target is active.
+#
+# Required secrets: VPS_HOST, VPS_USER, VPS_SSH_KEY
 
 on:
   workflow_dispatch:
-  workflow_run:
-    workflows: ["Bump Version"]
-    types: [completed]
 
 env:
   IMAGE: ghcr.io/sachn1/linguaalayam-app
@@ -13,7 +20,6 @@ jobs:
   build:
     name: Build and push image
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     permissions:
       contents: read
       packages: write
@@ -22,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
 
       - id: version
@@ -53,13 +59,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.sha }}
 
       - name: Run migrations and restart app
         uses: appleboy/ssh-action@v1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          GH_SHA: ${{ github.sha }}
           VERSION: ${{ needs.build.outputs.version }}
         with:
           host: ${{ secrets.VPS_HOST }}
