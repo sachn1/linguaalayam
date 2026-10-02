@@ -1,7 +1,7 @@
 """add city and region columns to request_log
 
 Revision ID: d7e1a9c3f6b4
-Revises: c2a4f6b8d0e2
+Revises: b1d9e4f7a3c5
 Create Date: 2026-10-02
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "d7e1a9c3f6b4"
-down_revision: Union[str, None] = "c2a4f6b8d0e2"
+down_revision: Union[str, None] = "b1d9e4f7a3c5"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
