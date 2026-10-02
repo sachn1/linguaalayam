@@ -7,6 +7,8 @@ from .queries import (
     log_request,
     searches_by_country,
     top_clients_simple,
+    top_feature_usage,
+    top_locations,
     top_outbound_clicks,
     top_queries_with_sources,
 )
@@ -22,6 +24,8 @@ __all__ = [
     "looks_like_bot",
     "searches_by_country",
     "top_clients_simple",
+    "top_feature_usage",
+    "top_locations",
     "top_outbound_clicks",
     "top_queries_with_sources",
 ]

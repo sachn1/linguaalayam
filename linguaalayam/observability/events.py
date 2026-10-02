@@ -11,7 +11,7 @@ from starlette.requests import Request
 
 from linguaalayam.api.dependencies import get_session_factory
 from linguaalayam.database.session import get_session
-from linguaalayam.observability.http import client_ip
+from linguaalayam.observability.http import client_location
 from linguaalayam.observability.middleware import looks_like_bot
 from linguaalayam.observability.queries import log_request
 
@@ -42,6 +42,8 @@ def log_feature_event(
     """
     try:
         user_agent = request.headers.get("user-agent")
+        ip, city, region, country = client_location(request)
+
         session_factory = get_session_factory()
         with get_session(session_factory) as session:
             log_request(
@@ -52,8 +54,10 @@ def log_feature_event(
                 query=query,
                 status_code=status_code,
                 duration_ms=0.0,
-                ip=client_ip(request),
-                country=request.headers.get("cf-ipcountry"),
+                ip=ip,
+                city=city,
+                region=region,
+                country=country,
                 user_agent=user_agent,
                 is_bot=looks_like_bot(user_agent),
             )

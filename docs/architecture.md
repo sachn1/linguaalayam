@@ -52,7 +52,10 @@ flowchart LR
     F --> L[LLMAdapter: BYOK via X-LLM-Key header]
 ```
 
-Deployed at [linguaalayam.org](https://linguaalayam.org) — Hetzner CX33, Docker Compose, nginx reverse proxy, Let's Encrypt HTTPS.
+Deployed at [linguaalayam.org](https://linguaalayam.org) — Google Cloud Run (the app, scale-to-zero), connecting over
+Direct VPC egress + Cloud NAT to **Postgres on the original Hetzner VPS**, which stays as-is. A dormant Hetzner
+copy of the app itself is kept as a manual rollback path (see `.github/workflows/cd.yml`), not serving traffic.
+See `terraform/RUNBOOK.md` for the full Terraform-managed infra and its safe-apply policy.
 LLM synthesis is opt-in: the user supplies their own API key in the browser settings page; the key is never persisted server-side.
 
 ---
@@ -86,6 +89,8 @@ flowchart LR
 
 Every inbound request is logged once, classified into a `route_type` (`web_search`, `lookup_*`, `mcp`, `mcp_setup_page`, `api_docs`, `outbound_click`, `jayasree`, `ml2en`, `web_speech`, `varnam`, …). Client-side interactions with no server route of their own (or that would otherwise be misclassified, like a romanise-toggle re-triggering `/search`) are reported via a `sendBeacon` to `POST /track/click`, validated against a label allow-list. The dashboard at `/admin/analytics` is gated by HTTP Basic Auth and never publicly linked.
 
+City/region/country come from a local MaxMind GeoLite2-City lookup (`observability/geoip.py`), not a Cloudflare header — Cloud Run has no equivalent of `CF-IPCountry`/`CF-Connecting-IP` since Cloudflare no longer proxies the production hostnames. The `.mmdb` database is baked into the Docker image at build time (see `Dockerfile`); `scripts/backfill_geoip.py` retroactively resolves location for rows logged before this existed.
+
 ---
 
 ## Module reference
@@ -109,7 +114,8 @@ Every inbound request is logged once, classified into a `route_type` (`web_searc
 | `linguaalayam/transliteration/morphology.py` | `analyse_word()` — mlmorph-based Malayalam morphological analyser; LRU-cached, handles archaic chillu normalisation; computed once at ingest time and stored on `DatukEntry`/`SayahnaEntry` |
 | `linguaalayam/transliteration/varnam.py` | `manglish_to_malayalam()` — Varnam API client for informal Manglish transliteration; falls back to `core.roman_to_malayalam_candidates()` when unavailable |
 | `linguaalayam/env.py` | Centralised env loader; reads secrets from Windows Credential Manager on WSL, falls back to `.env` |
-| `linguaalayam/observability/` | `RequestLog` ORM model, `RequestLoggingMiddleware` (ASGI), `log_feature_event()`, and query helpers backing `/admin/analytics` |
+| `linguaalayam/observability/` | `RequestLog` ORM model, `RequestLoggingMiddleware` (ASGI), `log_feature_event()`, `geoip.py` (local MaxMind city/region/country lookup), and query helpers backing `/admin/analytics` |
+| `linguaalayam/scripts/backfill_geoip.py` | One-off: resolves city/region on `request_log` rows logged before the GeoIP lookup existed |
 | `linguaalayam/api/admin.py` | `/admin/analytics` dashboard + HTMX partial, HTTP Basic Auth via `ADMIN_USER`/`ADMIN_PASSWORD` |
 | `linguaalayam/static/vendor/jayasree/` | Vendored from the [`jayasree`](https://github.com/sachn1/jayasree) npm package by `scripts/sync_jayasree.sh` (`make sync-jayasree`); not committed — regenerated at build time from `package.json`. Powers the per-word handwriting trace button on Malayalam headwords, lazy-loaded client-side |
 | `config/` | Hydra config groups: `corpus` (with per-source `parser._target_`), `embedding`, `database`, `llm`, `rag` |
@@ -129,7 +135,7 @@ Every inbound request is logged once, classified into a `route_type` (`web_searc
 | LLM | TogetherAI (Qwen 3.5 9B) default; Anthropic Claude, OpenAI via `LLMAdapter`; `NoLLMAdapter` for zero-key usage |
 | REST API / Web UI | FastAPI, HTMX, Jinja2 |
 | MCP | FastMCP (`mcp` SDK) |
-| Deployment | Docker Compose, nginx, Let's Encrypt (Hetzner CX33) |
+| Deployment | Google Cloud Run (app, scale-to-zero) + Terraform; Postgres stays on Hetzner CX33, reached via Direct VPC egress + Cloud NAT |
 | Config | Hydra |
 | Testing | pytest, ruff, pre-commit |
 

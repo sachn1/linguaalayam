@@ -4,6 +4,10 @@ docs/
 notebooks/
 android/
 data/
+# GeoLite2-City.mmdb is baked into the image (see Dockerfile) so Cloud Run
+# has city/region lookups without a startup download — un-exclude just that.
+!data/geoip/
+!data/geoip/*.mmdb
 *.md
 !README.md
 linguaalayam.sql.gz

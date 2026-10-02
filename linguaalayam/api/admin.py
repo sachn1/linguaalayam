@@ -15,6 +15,8 @@ from linguaalayam.database import get_session
 from linguaalayam.observability import (
     searches_by_country,
     top_clients_simple,
+    top_feature_usage,
+    top_locations,
     top_outbound_clicks,
     top_queries_with_sources,
 )
@@ -58,6 +60,11 @@ def _fmt(timestamp: datetime.datetime) -> str:
     return timestamp.strftime("%Y-%m-%d %H:%M UTC")
 
 
+def _fmt_location(city: str | None, region: str | None, country: str | None) -> str:
+    """Format a city/region/country tuple for display, e.g. ``Dresden, Saxony, DE``."""
+    return ", ".join(part for part in (city, region, country) if part) or "Unknown"
+
+
 @router.get("/admin/analytics", response_class=HTMLResponse, dependencies=[Depends(_require_admin)])
 def analytics_page(request: Request) -> HTMLResponse:
     """Serve the traffic/usage analytics dashboard shell."""
@@ -71,7 +78,7 @@ def analytics_page(request: Request) -> HTMLResponse:
 )
 def analytics_partial(
     request: Request,
-    window_minutes: Annotated[int, Query(ge=1, le=10080)] = 60,
+    window_minutes: Annotated[int, Query(ge=1, le=525600)] = 60,
 ) -> HTMLResponse:
     """Return the HTMX-polled analytics fragment for the given lookback window."""
     since = _window_start(window_minutes)
@@ -79,7 +86,9 @@ def analytics_partial(
     with get_session(session_factory) as session:
         queries = top_queries_with_sources(session, since, limit=20)
         by_country = searches_by_country(session, since, limit=20)
+        by_location = top_locations(session, since, limit=20)
         clicks = top_outbound_clicks(session, since, limit=10)
+        feature_usage = top_feature_usage(session, since, limit=10)
         clients = top_clients_simple(session, since, limit=10)
 
     total_searches = sum(count for _, count, _, _, _, _ in queries)
@@ -88,16 +97,32 @@ def analytics_partial(
         (
             query,
             count,
-            ", ".join(f"{country}({n})" for country, n in countries) or "—",
+            ", ".join(
+                f"{_fmt_location(city, region, country)}({n})"
+                for city, region, country, n in locations
+            )
+            or "—",
             ", ".join(client_ips) or "—",
             _fmt(first_seen),
             _fmt(last_seen),
         )
-        for query, count, countries, client_ips, first_seen, last_seen in queries
+        for query, count, locations, client_ips, first_seen, last_seen in queries
     ]
     by_country_fmt = [
         (country, count, unique, _fmt(first_seen), _fmt(last_seen))
         for country, count, unique, first_seen, last_seen in by_country
+    ]
+    by_location_fmt = [
+        (
+            city or "Unknown",
+            region or "—",
+            country or "—",
+            count,
+            unique,
+            _fmt(first_seen),
+            _fmt(last_seen),
+        )
+        for city, region, country, count, unique, first_seen, last_seen in by_location
     ]
     clients_fmt = [
         (ip, count, _fmt(first_seen), _fmt(last_seen))
@@ -113,7 +138,9 @@ def analytics_partial(
             "unique_queries": unique_queries,
             "queries_with_sources": queries_with_sources,
             "by_country": by_country_fmt,
+            "by_location": by_location_fmt,
             "clicks": clicks,
+            "feature_usage": feature_usage,
             "top_clients_list": clients_fmt,
         },
     )

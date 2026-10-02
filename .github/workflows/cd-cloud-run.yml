@@ -1,0 +1,51 @@
+name: Deploy to Cloud Run
+# Primary deploy pipeline — build, run pending migrations, deploy. The
+# Hetzner path (cd.yml) is now a manual-only rollback, not this.
+#
+# Required secrets: GCP_CD_WIF_PROVIDER, GCP_CD_SA (see
+# terraform/outputs.tf: cd_workload_identity_provider, cd_service_account_email)
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Bump Version"]
+    types: [completed]
+
+env:
+  IMAGE: europe-west1-docker.pkg.dev/linguaalayam/linguaalayam/linguaalayam
+  REGION: europe-west1
+  PROJECT: linguaalayam
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Build, migrate, deploy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_CD_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_CD_SA }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build and push image
+        run: gcloud builds submit --tag "${{ env.IMAGE }}:latest" --project="${{ env.PROJECT }}" .
+
+      - name: Run pending migrations
+        run: gcloud run jobs execute linguaalayam-migrate --region="${{ env.REGION }}" --project="${{ env.PROJECT }}" --wait
+
+      - name: Deploy
+        run: |
+          gcloud run deploy linguaalayam \
+            --image="${{ env.IMAGE }}:latest" \
+            --region="${{ env.REGION }}" \
+            --project="${{ env.PROJECT }}"

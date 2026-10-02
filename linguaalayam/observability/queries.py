@@ -10,6 +10,18 @@ from linguaalayam.observability.models import RequestLog
 
 _SEARCH_ROUTE_TYPES = ("web_search", "lookup_exact", "lookup_fuzzy", "lookup_semantic")
 
+# In-app feature buttons logged via log_feature_event (see
+# observability/router.py's _CLICK_LABEL_ROUTES) — distinct from
+# "outbound_click" (links that leave the site) and from real search traffic.
+_FEATURE_ROUTE_TYPES = ("jayasree", "ml2en", "web_speech")
+
+# Route types any current dashboard view actually groups/filters by. Rows
+# outside this set (e.g. "other", "static", "mcp" — logged under the
+# pre-2026-09-14 "log every request" policy) have nowhere to be displayed,
+# so scripts/backfill_geoip.py skips them rather than resolving location
+# data no view will ever show.
+LOCATION_RELEVANT_ROUTE_TYPES = _SEARCH_ROUTE_TYPES + _FEATURE_ROUTE_TYPES + ("outbound_click",)
+
 
 def log_request(
     session: Session,
@@ -21,6 +33,8 @@ def log_request(
     status_code: int,
     duration_ms: float,
     ip: str | None,
+    city: str | None,
+    region: str | None,
     country: str | None,
     user_agent: str | None,
     is_bot: bool,
@@ -45,6 +59,10 @@ def log_request(
         Request handling time in milliseconds.
     ip : str | None
         Client IP address.
+    city : str | None
+        City name from a GeoIP lookup, if resolved.
+    region : str | None
+        Subdivision (state/region) name from a GeoIP lookup, if resolved.
     country : str | None
         Two-letter country code, if available.
     user_agent : str | None
@@ -61,6 +79,8 @@ def log_request(
             status_code=status_code,
             duration_ms=duration_ms,
             ip=ip,
+            city=city,
+            region=region,
             country=country,
             user_agent=user_agent,
             is_bot=is_bot,
@@ -92,10 +112,43 @@ def top_outbound_clicks(
     return [(row.query, row.count) for row in session.execute(stmt)]
 
 
+def top_feature_usage(
+    session: Session, since: datetime.datetime, limit: int = 10
+) -> list[tuple[str, int]]:
+    """Return usage counts for in-app feature buttons (handwriting trace, etc.) since a timestamp.
+
+    Parameters
+    ----------
+    session : Session
+        SQLAlchemy session to use for the query.
+    since : datetime.datetime
+        Only count requests logged at or after this timestamp.
+    limit : int, optional
+        Maximum number of features to return, by default 10
+    """
+    stmt = (
+        select(RequestLog.route_type, func.count().label("count"))
+        .where(RequestLog.timestamp >= since, RequestLog.route_type.in_(_FEATURE_ROUTE_TYPES))
+        .group_by(RequestLog.route_type)
+        .order_by(desc("count"))
+        .limit(limit)
+    )
+    return [(row.route_type, row.count) for row in session.execute(stmt)]
+
+
 def top_queries_with_sources(
     session: Session, since: datetime.datetime, limit: int = 20
-) -> list[tuple[str, int, list[tuple[str, int]], list[str], datetime.datetime, datetime.datetime]]:
-    """Return the most frequent search terms with a per-query country/client/time breakdown.
+) -> list[
+    tuple[
+        str,
+        int,
+        list[tuple[str | None, str | None, str | None, int]],
+        list[str],
+        datetime.datetime,
+        datetime.datetime,
+    ]
+]:
+    """Return the most frequent search terms with a per-query location/client/time breakdown.
 
     Restricted to search/lookup route types so outbound-click labels and feature
     events (which reuse the same ``query`` column — see ``RequestLog.query``)
@@ -112,15 +165,23 @@ def top_queries_with_sources(
 
     Returns
     -------
-    list[tuple[str, int, list[tuple[str, int]], list[str], datetime, datetime]]
-        ``(query, total_count, countries, clients, first_seen, last_seen)`` tuples,
-        ordered by total count descending. ``countries`` is a list of
-        ``(country, count)`` pairs sorted by count descending (missing values
-        grouped under "Unknown"); ``clients`` is a sorted list of the distinct
-        client IPs that issued that query; ``first_seen``/``last_seen`` are the
+    list[tuple[str, int, list[tuple], list[str], datetime, datetime]]
+        ``(query, total_count, locations, clients, first_seen, last_seen)`` tuples,
+        ordered by total count descending. ``locations`` is a list of
+        ``(city, region, country, count)`` tuples sorted by count descending
+        (an unresolved location groups under all-``None``, shown as "Unknown"
+        by the template); ``clients`` is a sorted list of the distinct client
+        IPs that issued that query; ``first_seen``/``last_seen`` are the
         earliest/latest timestamps for that query in the window.
     """
-    stmt = select(RequestLog.query, RequestLog.country, RequestLog.ip, RequestLog.timestamp).where(
+    stmt = select(
+        RequestLog.query,
+        RequestLog.city,
+        RequestLog.region,
+        RequestLog.country,
+        RequestLog.ip,
+        RequestLog.timestamp,
+    ).where(
         RequestLog.timestamp >= since,
         RequestLog.route_type.in_(_SEARCH_ROUTE_TYPES),
         RequestLog.query.isnot(None),
@@ -128,19 +189,19 @@ def top_queries_with_sources(
     )
 
     by_query: dict[str, dict] = {}
-    for query, country, ip, timestamp in session.execute(stmt):
+    for query, city, region, country, ip, timestamp in session.execute(stmt):
         entry = by_query.setdefault(
             query,
             {
                 "count": 0,
-                "countries": Counter(),
+                "locations": Counter(),
                 "clients": set(),
                 "first_seen": timestamp,
                 "last_seen": timestamp,
             },
         )
         entry["count"] += 1
-        entry["countries"][country or "Unknown"] += 1
+        entry["locations"][(city, region, country)] += 1
         if ip:
             entry["clients"].add(ip)
         entry["first_seen"] = min(entry["first_seen"], timestamp)
@@ -151,7 +212,12 @@ def top_queries_with_sources(
         (
             query,
             data["count"],
-            sorted(data["countries"].items(), key=lambda kv: kv[1], reverse=True),
+            [
+                (city, region, country, count)
+                for (city, region, country), count in sorted(
+                    data["locations"].items(), key=lambda kv: kv[1], reverse=True
+                )
+            ],
             sorted(data["clients"]),
             data["first_seen"],
             data["last_seen"],
@@ -198,6 +264,66 @@ def searches_by_country(
     )
     return [
         (row.country, row.search_count, row.unique_queries, row.first_seen, row.last_seen)
+        for row in session.execute(stmt)
+    ]
+
+
+_LocationRow = tuple[
+    str | None, str | None, str | None, int, int, datetime.datetime, datetime.datetime
+]
+
+
+def top_locations(
+    session: Session, since: datetime.datetime, limit: int = 20
+) -> list[_LocationRow]:
+    """Return search counts grouped by city/region/country since a given timestamp.
+
+    Restricted to search/lookup route types so outbound clicks and feature
+    events don't inflate a location's search count. Rows where the GeoIP
+    lookup didn't resolve (e.g. the database file is missing, or the IP is
+    private/reserved) group together as all-``None``, shown as "Unknown" by
+    the template.
+
+    Parameters
+    ----------
+    session : Session
+        SQLAlchemy session to use for the query.
+    since : datetime.datetime
+        Only count requests logged at or after this timestamp.
+    limit : int, optional
+        Maximum number of locations to return, by default 20
+
+    Returns
+    -------
+    list[tuple[str | None, str | None, str | None, int, int, datetime, datetime]]
+        ``(city, region, country, search_count, unique_queries, first_seen, last_seen)``
+        tuples, ordered by search count descending.
+    """
+    stmt = (
+        select(
+            RequestLog.city,
+            RequestLog.region,
+            RequestLog.country,
+            func.count().label("search_count"),
+            func.count(func.distinct(RequestLog.query)).label("unique_queries"),
+            func.min(RequestLog.timestamp).label("first_seen"),
+            func.max(RequestLog.timestamp).label("last_seen"),
+        )
+        .where(RequestLog.timestamp >= since, RequestLog.route_type.in_(_SEARCH_ROUTE_TYPES))
+        .group_by(RequestLog.city, RequestLog.region, RequestLog.country)
+        .order_by(desc("search_count"))
+        .limit(limit)
+    )
+    return [
+        (
+            row.city,
+            row.region,
+            row.country,
+            row.search_count,
+            row.unique_queries,
+            row.first_seen,
+            row.last_seen,
+        )
         for row in session.execute(stmt)
     ]
 

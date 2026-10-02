@@ -87,6 +87,14 @@
 - [x] **Search-quality fixes** — Varnam candidates are validated via exact/lemma lookup instead of fuzzy match, eliminating false "did you mean" links to words that don't actually exist; fallback triggers (Varnam, semantic) now check for a *confident* result, not just a non-empty one, so weak spelling coincidences (e.g. "kundi" matching unrelated entries like "Kunti" at 30%) no longer silently block better matches or show a misleading empty "0 results" heading
 - [x] **Search box sync** — clicking a definition word-link or a "did you mean" suggestion now updates the visible search box to match, instead of leaving it showing the original query
 
+### Unreleased — Cloud Run migration and GeoIP-based location analytics
+- [x] **Migrated the app to Google Cloud Run** — scale-to-zero serverless hosting, replacing the always-on Hetzner VPS as the live deploy target. Postgres stays on Hetzner unchanged, reached from Cloud Run via Direct VPC egress + a Cloud Router/Cloud NAT static IP, allow-listed on Hetzner's firewall (see `terraform/` and `terraform/RUNBOOK.md`)
+- [x] **DNS cutover** — `linguaalayam.org`/`www.linguaalayam.org` now point at Cloud Run via Google-managed domain mappings (DNS-only, not Cloudflare-proxied — required for Google's managed TLS certificate issuance)
+- [x] **Hetzner kept as a manual rollback path** — the app container there is stopped (not deleted); `.github/workflows/cd.yml` can redeploy it on demand via `workflow_dispatch` if Cloud Run costs or behavior ever justify rolling back
+- [x] **GeoIP-based location analytics** — Cloud Run has no Cloudflare-style `CF-IPCountry`/`CF-Connecting-IP` header, so `/admin/analytics` now resolves city/region/country from a local MaxMind GeoLite2-City database (`observability/geoip.py`) instead; `scripts/backfill_geoip.py` retroactively resolved historical rows
+- [x] **Automated Cloud Run deploys** — `.github/workflows/cd-cloud-run.yml` builds, runs pending Alembic migrations via a Cloud Run Job, and deploys, replacing the manual `gcloud` commands used during the migration itself
+- [ ] **Parked: Pub/Sub + BigQuery search analytics** — a deeper analytics pipeline (which corpus answered, AI-answer economics, query-understanding regex-vs-LLM rate, Manglish signals, language mix, query shape, MCP-vs-web split) designed but not built — see `docs/pubsub_bigquery_design.md` on `feature/pubsub-bigquery-analytics`
+
 ### v2.9 — Word of the Day
 - [ ] **Phonetic Manglish index** — add `headword_roman` column storing ml2en output for each Malayalam headword; pg_trgm index enables reliable informal Manglish matching (e.g. "oduka" → "otuka" → "ഓടുക") without the ISO 15919 formalism gap; requires migration + re-ingest
 - [ ] **Word of the Day** — daily featured word, filtered by frequency list to exclude common words (top 5k excluded); alternates EN/ML by default

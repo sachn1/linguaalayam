@@ -10,7 +10,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from linguaalayam.api.dependencies import get_session_factory
 from linguaalayam.database.session import get_session
-from linguaalayam.observability.http import client_ip
+from linguaalayam.observability.http import client_location
 from linguaalayam.observability.queries import log_request
 
 log = logging.getLogger(__name__)
@@ -107,6 +107,8 @@ class RequestLoggingMiddleware:
             if route_type != "web_search" or not query or is_bot:
                 return
 
+            ip, city, region, country = client_location(request)
+
             session_factory = get_session_factory()
             with get_session(session_factory) as session:
                 log_request(
@@ -117,8 +119,10 @@ class RequestLoggingMiddleware:
                     query=query,
                     status_code=status_code,
                     duration_ms=duration_ms,
-                    ip=client_ip(request),
-                    country=request.headers.get("cf-ipcountry"),
+                    ip=ip,
+                    city=city,
+                    region=region,
+                    country=country,
                     user_agent=request.headers.get("user-agent"),
                     is_bot=False,
                 )

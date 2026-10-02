@@ -11,14 +11,16 @@
 
 <div class="analytics-card">
   <h2>Top queries</h2>
+  <div class="table-scroll">
   <table class="analytics-table">
     <thead>
-      <tr><th>Query</th><th>Count</th><th>Countries</th><th>Clients</th><th>First seen</th><th>Last seen</th></tr>
+      <tr><th>Query</th><th>Count</th><th>Locations</th><th>Clients</th><th>First seen</th><th>Last seen</th></tr>
     </thead>
     <tbody>
-      {% for query, count, countries, clients, first_seen, last_seen in queries_with_sources %}
+      {% for query, count, locations, clients, first_seen, last_seen in queries_with_sources %}
       <tr>
-        <td class="ml">{{ query }}</td><td>{{ count }}</td><td>{{ countries }}</td><td>{{ clients }}</td>
+        <td class="ml">{{ query }}</td><td>{{ count }}</td>
+        <td class="wrap-cell">{{ locations }}</td><td class="wrap-cell">{{ clients }}</td>
         <td>{{ first_seen }}</td><td>{{ last_seen }}</td>
       </tr>
       {% else %}
@@ -26,10 +28,12 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 </div>
 
 <div class="analytics-card">
   <h2>By country</h2>
+  <div class="table-scroll">
   <table class="analytics-table">
     <thead>
       <tr><th>Country</th><th>Searches</th><th>Unique queries</th><th>First seen</th><th>Last seen</th></tr>
@@ -45,10 +49,33 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
+</div>
+
+<div class="analytics-card">
+  <h2>By location</h2>
+  <div class="table-scroll">
+  <table class="analytics-table">
+    <thead>
+      <tr><th>City</th><th>Region</th><th>Country</th><th>Searches</th><th>Unique queries</th><th>First seen</th><th>Last seen</th></tr>
+    </thead>
+    <tbody>
+      {% for city, region, country, count, unique, first_seen, last_seen in by_location %}
+      <tr>
+        <td>{{ city }}</td><td>{{ region }}</td><td>{{ country }}</td><td>{{ count }}</td><td>{{ unique }}</td>
+        <td>{{ first_seen }}</td><td>{{ last_seen }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7">No searches in this window.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
 </div>
 
 <div class="analytics-card">
   <h2>Outbound link clicks</h2>
+  <div class="table-scroll">
   <table class="analytics-table">
     <thead><tr><th>Link</th><th>Clicks</th></tr></thead>
     <tbody>
@@ -59,10 +86,28 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
+</div>
+
+<div class="analytics-card">
+  <h2>Feature usage</h2>
+  <div class="table-scroll">
+  <table class="analytics-table">
+    <thead><tr><th>Feature</th><th>Uses</th></tr></thead>
+    <tbody>
+      {% for route_type, count in feature_usage %}
+      <tr><td>{{ route_type }}</td><td>{{ count }}</td></tr>
+      {% else %}
+      <tr><td colspan="2">No feature usage in this window.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
 </div>
 
 <div class="analytics-card">
   <h2>Top clients</h2>
+  <div class="table-scroll">
   <table class="analytics-table">
     <thead><tr><th>IP</th><th>Searches</th><th>First seen</th><th>Last seen</th></tr></thead>
     <tbody>
@@ -73,4 +118,5 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 </div>

@@ -39,6 +39,13 @@
     border-bottom: 1px solid var(--border);
   }
   table.analytics-table th { color: var(--text-muted); font-weight: 500; }
+  .table-scroll { overflow-x: auto; overflow-y: auto; max-height: 420px; }
+  .table-scroll thead th { position: sticky; top: 0; background: var(--surface); }
+  .wrap-cell {
+    max-width: 320px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
   .ua-cell {
     max-width: 420px;
     overflow: hidden;
@@ -67,6 +74,8 @@
       <option value="360">Last 6 hours</option>
       <option value="1440">Last 24 hours</option>
       <option value="10080">Last 7 days</option>
+      <option value="43200">Last 30 days</option>
+      <option value="525600">Last 365 days</option>
     </select>
   </div>
 

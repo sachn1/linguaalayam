@@ -62,7 +62,28 @@ poetry run ruff format .
 scripts/db_dump.sh                              # dump live db, push to DVC remote
 scripts/db_restore.sh                           # pull dump from DVC, restore into running db
 dvc pull && scripts/db_restore.sh               # skip `poetry run ingest`, use a pre-built db instead
+
+# One-off maintenance
+poetry run backfill-geoip +dry_run=true         # preview resolving city/region on old request_log rows
+poetry run backfill-geoip                       # write it
 ```
+
+## GCP deployment (production)
+
+The app runs on **Cloud Run**; Postgres stays on the Hetzner VPS (reached via Direct VPC egress + Cloud NAT — see
+`terraform/RUNBOOK.md` for the full infra and its safe-apply policy). A dormant copy of the app on Hetzner is kept
+as a manual rollback path only (`.github/workflows/cd.yml`, `workflow_dispatch`-only) — it does not serve traffic.
+
+```bash
+# Deploy automation lives in .github/workflows/cd-cloud-run.yml (workflow_dispatch, or
+# automatic on every "Bump Version" completion). Manual equivalent, if ever needed:
+gcloud builds submit --tag europe-west1-docker.pkg.dev/linguaalayam/linguaalayam/linguaalayam:latest .
+gcloud run jobs execute linguaalayam-migrate --region europe-west1 --project linguaalayam --wait
+gcloud run deploy linguaalayam --image europe-west1-docker.pkg.dev/linguaalayam/linguaalayam/linguaalayam:latest --region europe-west1 --project linguaalayam
+```
+
+**IMPORTANT for Claude Code**: never run a bare `terraform apply` — always go through `terraform/scripts/safe-apply.sh`
+(reviews the plan, hard-stops on any destroy/replace). See `terraform/RUNBOOK.md`.
 
 ## Architecture
 
@@ -141,7 +162,7 @@ Unit tests use an SQLite in-memory database via the `db_cfg` fixture — no runn
 
 Requires a `.env` file with: `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME`. Set `DB_SSLMODE=require` for hosted Postgres.
 
-Also: `TOGETHER_API_KEY` (required for the web app's server-side AI synthesis default, Qwen 3.5 9B; also used by CLI `llm=togetherai`), `ANTHROPIC_API_KEY`/`OPENAI_API_KEY` (optional, CLI-only — `poetry run rag llm=anthropic`/`llm=openai`; the web app is bring-your-own-key for these providers, never uses a server-side key for them), `MCP_ISSUER_URL` (public URL where `/mcp` is reachable, drives OAuth discovery), `ADMIN_USER`/`ADMIN_PASSWORD` (HTTP Basic Auth for `/admin/analytics`). See `.env.example` for the full list.
+Also: `TOGETHER_API_KEY` (required for the web app's server-side AI synthesis default, Qwen 3.5 9B; also used by CLI `llm=togetherai`), `ANTHROPIC_API_KEY`/`OPENAI_API_KEY` (optional, CLI-only — `poetry run rag llm=anthropic`/`llm=openai`; the web app is bring-your-own-key for these providers, never uses a server-side key for them), `MCP_ISSUER_URL` (public URL where `/mcp` is reachable, drives OAuth discovery), `ADMIN_USER`/`ADMIN_PASSWORD` (HTTP Basic Auth for `/admin/analytics`), `GEOIP_DB_PATH` (path to a MaxMind GeoLite2-City `.mmdb`, default `data/geoip/GeoLite2-City.mmdb`, baked into the Docker image — used for `/admin/analytics` location data since Cloud Run has no Cloudflare geo header; missing file degrades gracefully to empty location fields, nothing breaks). See `.env.example` for the full list.
 
 ## Versioning
 

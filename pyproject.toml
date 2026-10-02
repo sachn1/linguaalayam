@@ -33,6 +33,7 @@ mlmorph = "^1.4.0"
 sentencepiece = ">=0.1.99"
 alembic = "^1.18.4"
 langdetect = "^1.0.9"
+geoip2 = "^5.3.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
@@ -72,6 +73,7 @@ api-server = "linguaalayam.api.app:main"
 # Ingestion and debugging — require a live database
 ingest = "linguaalayam.scripts.ingest:main"
 debug-retriever = "linguaalayam.scripts.debug_retriever:main"
+backfill-geoip = "linguaalayam.scripts.backfill_geoip:main"
 rag = "linguaalayam.rag.main:main"
 
 # Evaluation — require a live database (run eval-prepare-queries first)
