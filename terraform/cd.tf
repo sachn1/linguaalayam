@@ -33,43 +33,13 @@ resource "google_artifact_registry_repository_iam_member" "cd_registry_writer" {
   member     = "serviceAccount:${google_service_account.cd.email}"
 }
 
-# roles/cloudbuild.builds.editor — lets this identity submit a build at all
-# (artifactregistry.writer above only covers *pushing the result*, not
-# *triggering the build*). Project-level: Cloud Build has no per-build or
-# per-repo resource to scope this to.
-resource "google_project_iam_member" "cd_cloudbuild_editor" {
-  project = var.project_id
-  role    = "roles/cloudbuild.builds.editor"
-  member  = "serviceAccount:${google_service_account.cd.email}"
-}
-
-# roles/serviceusage.serviceUsageConsumer — cloudbuild.builds.editor and the
-# bucket grant below both confirmed present via `gsutil iam get`/`gcloud
-# projects get-iam-policy`, yet the same "forbidden... serviceusage.services.use"
-# error persisted. This is the role GCP's own error message points at.
-resource "google_project_iam_member" "cd_service_usage_consumer" {
-  project = var.project_id
-  role    = "roles/serviceusage.serviceUsageConsumer"
-  member  = "serviceAccount:${google_service_account.cd.email}"
-}
-
-# gcloud builds submit stages the source tarball in an auto-created
-# "<project>_cloudbuild" GCS bucket — cloudbuild.builds.editor alone doesn't
-# cover writing to it. Scoped to that one bucket, not project-wide storage.
-data "google_storage_bucket" "cloudbuild_staging" {
-  name = "${var.project_id}_cloudbuild"
-}
-
-resource "google_storage_bucket_iam_member" "cd_cloudbuild_staging_writer" {
-  bucket = data.google_storage_bucket.cloudbuild_staging.name
-  # storage.objectAdmin (tried first) doesn't include storage.buckets.get,
-  # which `gcloud builds submit` calls to validate the staging bucket before
-  # uploading — confirmed still failing with that role alone. storage.admin
-  # covers both bucket and object operations; still scoped to this one
-  # bucket, not project-wide.
-  role   = "roles/storage.admin"
-  member = "serviceAccount:${google_service_account.cd.email}"
-}
+# No Cloud Build IAM here on purpose: the CD workflow builds via `docker
+# buildx build --push` instead of `gcloud builds submit`, which never touches
+# Cloud Build or its auto-created GCS staging bucket at all — see
+# .github/workflows/cd-cloud-run.yml for why (that bucket's path rejected
+# this WIF-federated identity with an unresolvable "forbidden..." error
+# across every IAM combination tried). artifactregistry.writer above is the
+# only grant this identity needs to push the built image.
 
 # roles/run.developer (not the broader roles/run.admin) — covers deploying a
 # new revision and executing jobs, not setting IAM policy on Cloud Run
