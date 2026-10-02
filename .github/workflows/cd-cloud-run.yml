@@ -34,6 +34,7 @@ jobs:
         with:
           workload_identity_provider: ${{ secrets.GCP_CD_WIF_PROVIDER }}
           service_account: ${{ secrets.GCP_CD_SA }}
+          project_id: ${{ env.PROJECT }}
 
       - uses: google-github-actions/setup-gcloud@v2
 

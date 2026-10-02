@@ -43,6 +43,16 @@ resource "google_project_iam_member" "cd_cloudbuild_editor" {
   member  = "serviceAccount:${google_service_account.cd.email}"
 }
 
+# roles/serviceusage.serviceUsageConsumer — cloudbuild.builds.editor and the
+# bucket grant below both confirmed present via `gsutil iam get`/`gcloud
+# projects get-iam-policy`, yet the same "forbidden... serviceusage.services.use"
+# error persisted. This is the role GCP's own error message points at.
+resource "google_project_iam_member" "cd_service_usage_consumer" {
+  project = var.project_id
+  role    = "roles/serviceusage.serviceUsageConsumer"
+  member  = "serviceAccount:${google_service_account.cd.email}"
+}
+
 # gcloud builds submit stages the source tarball in an auto-created
 # "<project>_cloudbuild" GCS bucket — cloudbuild.builds.editor alone doesn't
 # cover writing to it. Scoped to that one bucket, not project-wide storage.
@@ -52,7 +62,12 @@ data "google_storage_bucket" "cloudbuild_staging" {
 
 resource "google_storage_bucket_iam_member" "cd_cloudbuild_staging_writer" {
   bucket = data.google_storage_bucket.cloudbuild_staging.name
-  role   = "roles/storage.objectAdmin"
+  # storage.objectAdmin (tried first) doesn't include storage.buckets.get,
+  # which `gcloud builds submit` calls to validate the staging bucket before
+  # uploading — confirmed still failing with that role alone. storage.admin
+  # covers both bucket and object operations; still scoped to this one
+  # bucket, not project-wide.
+  role   = "roles/storage.admin"
   member = "serviceAccount:${google_service_account.cd.email}"
 }
 
