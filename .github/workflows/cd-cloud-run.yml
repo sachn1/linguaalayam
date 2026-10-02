@@ -38,6 +38,17 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@v2
 
+      # data/geoip/GeoLite2-City.mmdb is gitignored (a 64MB third-party
+      # MaxMind download, never committed — see .env.example) but the
+      # Dockerfile COPYs it into the image. A fresh CI checkout never has
+      # it on disk, so fetch it from the bucket it's stored in before
+      # building, same path the manual local builds this session always
+      # had it present for.
+      - name: Fetch GeoIP database
+        run: |
+          mkdir -p data/geoip
+          gsutil cp gs://linguaalayam-assets/geoip/GeoLite2-City.mmdb data/geoip/GeoLite2-City.mmdb
+
       # Builds via `docker buildx build --push` rather than `gcloud builds
       # submit` — the latter stages source in Cloud Build's auto-created GCS
       # bucket, which repeatedly rejected this WIF-federated identity with
