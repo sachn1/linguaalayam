@@ -33,6 +33,29 @@ resource "google_artifact_registry_repository_iam_member" "cd_registry_writer" {
   member     = "serviceAccount:${google_service_account.cd.email}"
 }
 
+# roles/cloudbuild.builds.editor — lets this identity submit a build at all
+# (artifactregistry.writer above only covers *pushing the result*, not
+# *triggering the build*). Project-level: Cloud Build has no per-build or
+# per-repo resource to scope this to.
+resource "google_project_iam_member" "cd_cloudbuild_editor" {
+  project = var.project_id
+  role    = "roles/cloudbuild.builds.editor"
+  member  = "serviceAccount:${google_service_account.cd.email}"
+}
+
+# gcloud builds submit stages the source tarball in an auto-created
+# "<project>_cloudbuild" GCS bucket — cloudbuild.builds.editor alone doesn't
+# cover writing to it. Scoped to that one bucket, not project-wide storage.
+data "google_storage_bucket" "cloudbuild_staging" {
+  name = "${var.project_id}_cloudbuild"
+}
+
+resource "google_storage_bucket_iam_member" "cd_cloudbuild_staging_writer" {
+  bucket = data.google_storage_bucket.cloudbuild_staging.name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.cd.email}"
+}
+
 # roles/run.developer (not the broader roles/run.admin) — covers deploying a
 # new revision and executing jobs, not setting IAM policy on Cloud Run
 # resources, which this identity never needs.
