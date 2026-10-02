@@ -141,3 +141,51 @@ resource "google_cloud_run_v2_service_iam_member" "public_invoker" {
   role     = "roles/run.invoker"
   member   = "allUsers"
 }
+
+# Custom domains for the Cloud Run service. Created by hand during the DNS
+# cutover (`gcloud beta run domain-mappings create`) before this config
+# existed — imported into state rather than left as untracked infra.
+# DNS itself (A/AAAA records for the apex, CNAME for www, both DNS-only/grey
+# cloud in Cloudflare — not proxied, since Google's managed TLS cert
+# issuance needs to see the domain directly) lives outside Terraform, in
+# Cloudflare.
+resource "google_cloud_run_domain_mapping" "linguaalayam_org" {
+  location = var.region
+  name     = "linguaalayam.org"
+
+  metadata {
+    namespace = var.project_id
+  }
+
+  spec {
+    route_name = google_cloud_run_v2_service.linguaalayam.name
+  }
+
+  # certificate_mode is unset (null) on the live resource, created via
+  # `gcloud beta run domain-mappings create` before this config existed.
+  # Leaving it out of spec{} makes the provider inject "AUTOMATIC" as a
+  # plan-time default — and it's a ForceNew field, so that default alone
+  # would destroy and recreate this already-live, cert-provisioned,
+  # traffic-serving mapping for no functional change. Ignored deliberately.
+  lifecycle {
+    ignore_changes = [spec[0].certificate_mode]
+  }
+}
+
+resource "google_cloud_run_domain_mapping" "www_linguaalayam_org" {
+  location = var.region
+  name     = "www.linguaalayam.org"
+
+  metadata {
+    namespace = var.project_id
+  }
+
+  spec {
+    route_name = google_cloud_run_v2_service.linguaalayam.name
+  }
+
+  # See linguaalayam_org above — same reason.
+  lifecycle {
+    ignore_changes = [spec[0].certificate_mode]
+  }
+}
