@@ -81,6 +81,20 @@
 </div>
 
 <div class="analytics-card">
+  <h2>Feature usage</h2>
+  <table class="analytics-table">
+    <thead><tr><th>Feature</th><th>Uses</th></tr></thead>
+    <tbody>
+      {% for route_type, count in feature_usage %}
+      <tr><td>{{ route_type }}</td><td>{{ count }}</td></tr>
+      {% else %}
+      <tr><td colspan="2">No feature usage in this window.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="analytics-card">
   <h2>Top clients</h2>
   <table class="analytics-table">
     <thead><tr><th>IP</th><th>Searches</th><th>First seen</th><th>Last seen</th></tr></thead>

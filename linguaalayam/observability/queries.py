@@ -100,6 +100,36 @@ def top_outbound_clicks(
     return [(row.query, row.count) for row in session.execute(stmt)]
 
 
+# In-app feature buttons logged via log_feature_event (see
+# observability/router.py's _CLICK_LABEL_ROUTES) — distinct from
+# "outbound_click" (links that leave the site) and from real search traffic.
+_FEATURE_ROUTE_TYPES = ("jayasree", "ml2en", "web_speech")
+
+
+def top_feature_usage(
+    session: Session, since: datetime.datetime, limit: int = 10
+) -> list[tuple[str, int]]:
+    """Return usage counts for in-app feature buttons (handwriting trace, etc.) since a timestamp.
+
+    Parameters
+    ----------
+    session : Session
+        SQLAlchemy session to use for the query.
+    since : datetime.datetime
+        Only count requests logged at or after this timestamp.
+    limit : int, optional
+        Maximum number of features to return, by default 10
+    """
+    stmt = (
+        select(RequestLog.route_type, func.count().label("count"))
+        .where(RequestLog.timestamp >= since, RequestLog.route_type.in_(_FEATURE_ROUTE_TYPES))
+        .group_by(RequestLog.route_type)
+        .order_by(desc("count"))
+        .limit(limit)
+    )
+    return [(row.route_type, row.count) for row in session.execute(stmt)]
+
+
 def top_queries_with_sources(
     session: Session, since: datetime.datetime, limit: int = 20
 ) -> list[tuple[str, int, list[tuple[str, int]], list[str], datetime.datetime, datetime.datetime]]:
