@@ -6,6 +6,8 @@ This defines the GitHub Actions identity that reviews changes to the application
 
 Same state backend (`gs://linguaalayam-tfstate`), different prefix (`linguaalayam-ci`) — so it's independently applied but not a second bucket to manage.
 
+**The Workload Identity Federation pool/provider defined here is also reused by `../cd.tf`** (the write-capable Cloud Run deploy identity, via a `data` source — a cross-state reference by GCP resource ID, not a remote-state read). That's why the provider's `attribute_mapping` includes `attribute.ref` as well as `attribute.repository`: the read-only plan SA here is still bound to the whole repository (any branch, since it only ever reads), but `cd.tf`'s binding is scoped tighter — `attribute.ref == refs/heads/master` — since that identity can actually deploy production.
+
 ## Usage
 
 Same rules as `../RUNBOOK.md` — never a bare `apply`:
