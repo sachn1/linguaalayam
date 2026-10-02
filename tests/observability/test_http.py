@@ -2,7 +2,7 @@
 
 from starlette.requests import Request
 
-from linguaalayam.observability.http import client_ip
+from linguaalayam.observability.http import client_ip, client_location
 
 
 def _request(headers: dict[str, str], client_host: str | None = "203.0.113.9") -> Request:
@@ -36,3 +36,18 @@ class TestClientIp:
         """No headers and no transport client resolves to None, not an error."""
         req = _request({}, client_host=None)
         assert client_ip(req) is None
+
+
+class TestClientLocation:
+    """client_location combines client_ip with the GeoIP/CF-IPCountry lookup."""
+
+    def test_missing_geoip_db_still_returns_ip_and_cf_country(self, monkeypatch):
+        """Even with no GeoIP database, the IP and any CF-IPCountry header still resolve."""
+        import linguaalayam.observability.geoip as geoip_module
+
+        monkeypatch.setattr(geoip_module, "_DB_PATH", "/nonexistent/GeoLite2-City.mmdb")
+        monkeypatch.setattr(geoip_module, "_reader", None)
+        monkeypatch.setattr(geoip_module, "_warned_missing", False)
+
+        req = _request({"cf-connecting-ip": "198.51.100.1", "cf-ipcountry": "DE"})
+        assert client_location(req) == ("198.51.100.1", None, None, "DE")

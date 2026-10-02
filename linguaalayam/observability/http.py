@@ -2,6 +2,8 @@
 
 from starlette.requests import Request
 
+from linguaalayam.observability.geoip import locate_ip
+
 
 def client_ip(request: Request) -> str | None:
     """Best-guess client IP.
@@ -17,3 +19,16 @@ def client_ip(request: Request) -> str | None:
     if forwarded := request.headers.get("x-forwarded-for"):
         return forwarded.split(",")[0].strip() or None
     return request.client.host if request.client else None
+
+
+def client_location(request: Request) -> tuple[str | None, str | None, str | None, str | None]:
+    """Resolve ``(ip, city, region, country)`` for the request's client.
+
+    Country prefers Cloudflare's ``CF-IPCountry`` header when present (free,
+    already-resolved); city/region always come from the local GeoIP lookup,
+    since Cloud Run/Cloudflare have no equivalent header for those.
+    """
+    ip = client_ip(request)
+    city, region, geoip_country = locate_ip(ip)
+    country = request.headers.get("cf-ipcountry") or geoip_country
+    return ip, city, region, country
