@@ -26,9 +26,20 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     steps:
+      # Always checks out master's current tip, not a pinned SHA.
+      # github.event.workflow_run.head_sha is frozen to whatever commit
+      # *triggered* the Bump Version run — not the new version-bump commit
+      # it creates and pushes during its own execution. Using that SHA here
+      # deployed real app code correctly but with a permanently-stale
+      # version string baked in (confirmed live: the deployed image reported
+      # "2.12.3" via /openapi.json's info.version, a full release behind
+      # what pyproject.toml said on master at the same moment). This
+      # workflow's whole purpose is "deploy whatever's on master now" —
+      # there's never a reason to pin to a historical SHA the way
+      # terraform-plan.yml does for a specific PR.
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: master
 
       - uses: google-github-actions/auth@v2
         with:
