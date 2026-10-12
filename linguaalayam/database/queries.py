@@ -2,7 +2,7 @@
 
 from dataclasses import asdict
 
-from sqlalchemy import func, select
+from sqlalchemy import Float, cast, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
@@ -160,6 +160,65 @@ def fuzzy_search(
             select(DictionaryEntry, similarity.label("score"))
             .where(similarity > threshold)
             .order_by(similarity.desc())
+            .limit(limit)
+        )
+        if isinstance(source, list):
+            stmt = stmt.where(DictionaryEntry.source.in_(source))
+        elif source:
+            stmt = stmt.where(DictionaryEntry.source == source)
+        return [(row[0], round(float(row[1]), 4)) for row in session.execute(stmt)]
+
+    stmt = select(DictionaryEntry).where(DictionaryEntry.headword.ilike(f"%{query}%")).limit(limit)
+    if isinstance(source, list):
+        stmt = stmt.where(DictionaryEntry.source.in_(source))
+    elif source:
+        stmt = stmt.where(DictionaryEntry.source == source)
+    return [(entry, 1.0) for entry in session.scalars(stmt)]
+
+
+def levenshtein_search(
+    session: Session,
+    query: str,
+    source: str | list[str] | None = None,
+    threshold: float = 0.75,
+    limit: int = 10,
+) -> list[tuple[DictionaryEntry, float]]:
+    """Return entries whose headword is edit-distance-similar to query (fuzzystrmatch).
+
+    Returns (entry, score) tuples where score is normalized similarity,
+    ``1 - levenshtein(headword, query) / max(len(headword), len(query))`` ∈ [0, 1].
+    Unlike pg_trgm's ratio-based similarity, this isn't length-biased — a one-character
+    edit costs the same regardless of word length, which pg_trgm's trigram-overlap ratio
+    doesn't guarantee (see docs/architecture.md's RAG pipeline section for why this
+    replaced trigram as the fuzzy fallback metric). Falls back to ILIKE with score=1.0
+    for non-Postgres dialects (e.g. SQLite in tests) — fuzzystrmatch has no SQLite
+    equivalent, same constraint pg_trgm already had.
+
+    Requires the fuzzystrmatch extension (added by Alembic migration;
+    see migrations/versions/ for the revision).
+
+    Parameters
+    ----------
+    session : Session
+        SQLAlchemy session to use for the query.
+    query : str
+        The query string to match against headwords.
+    source : str | list[str] | None, optional
+        Source identifier(s) to filter by, by default None
+    threshold : float, optional
+        Minimum normalized edit-distance similarity (0–1), by default 0.75
+    limit : int, optional
+        Maximum number of results to return, by default 10
+    """
+    if session.get_bind().dialect.name == "postgresql":
+        max_len = func.greatest(
+            func.char_length(DictionaryEntry.headword), func.char_length(query), 1
+        )
+        score = 1.0 - func.levenshtein(DictionaryEntry.headword, query) / cast(max_len, Float)
+        stmt = (
+            select(DictionaryEntry, score.label("score"))
+            .where(score > threshold)
+            .order_by(score.desc())
             .limit(limit)
         )
         if isinstance(source, list):

@@ -305,11 +305,13 @@ def exact_lookup(
 def fuzzy_lookup(
     query: str = Query(..., max_length=500),
     source: CorpusSource | None = Query(default=None, description="Corpus to search"),
-    threshold: float = Query(default=0.3, ge=0.0, le=1.0, description="Minimum trigram similarity"),
+    threshold: float = Query(
+        default=0.75, ge=0.0, le=1.0, description="Minimum normalized edit-distance similarity"
+    ),
     top_k: int = Query(default=10, ge=1, le=100),
     response: Response = None,
 ) -> list[dict]:
-    """Trigram fuzzy headword search (pg_trgm)."""
+    """Fuzzy headword search — mlmorph lemma first, then edit-distance similarity."""
     response.headers["Cache-Control"] = _CACHE_1D
     return get_tools().fuzzy_lookup(query, source=source, threshold=threshold, top_k=top_k)
 

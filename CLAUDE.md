@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-LinguAalayam is a Malayalam lexical knowledge base and MCP server. It ingests four corpora — Olam (EN→ML), Datuk (ML→ML), Shabdataaravali/Sayahna (ML→ML, classical 1917), and Ekkurup (EN→ML thesaurus) — into a local Postgres + pgvector database and exposes hybrid retrieval (exact headword, trigram fuzzy, HNSW semantic) through both a LangGraph RAG pipeline and an MCP server for Claude.
+LinguAalayam is a Malayalam lexical knowledge base and MCP server. It ingests four corpora — Olam (EN→ML), Datuk (ML→ML), Shabdataaravali/Sayahna (ML→ML, classical 1917), and Ekkurup (EN→ML thesaurus) — into a local Postgres + pgvector database and exposes hybrid retrieval (exact headword, fuzzy via mlmorph lemma + edit distance, HNSW semantic) through both a LangGraph RAG pipeline and an MCP server for Claude.
 
 ## Local database setup
 

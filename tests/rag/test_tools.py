@@ -120,7 +120,7 @@ class TestDictionaryTools:
 
         with (
             patch("linguaalayam.rag.tools.get_session", return_value=self._mock_session_ctx()),
-            patch("linguaalayam.rag.tools.fuzzy_search", return_value=[(mock_entry, 0.8)]),
+            patch("linguaalayam.rag.tools.levenshtein_search", return_value=[(mock_entry, 0.8)]),
         ):
             results = tools.fuzzy_lookup("runing")
 
@@ -161,7 +161,12 @@ class TestDictionaryTools:
         assert kwargs.get("source") == "olam_enml" or mock_es.call_args[0][2] == "olam_enml"
 
     def test_fuzzy_lookup_reclassifies_shared_lemma_as_lemma(self):
-        """A fuzzy candidate that's a true inflection of the query becomes match_type='lemma'."""
+        """A fuzzy candidate that's a true inflection of the query becomes match_type='lemma'.
+
+        exact_search mocked to return nothing — isolates this test to the edit-distance
+        branch's own relatedness check, not lemma_lookup's separate exact-on-lemma path
+        (covered by its own tests below).
+        """
         tools, _, _ = self._make_tools()
         mock_entry = MagicMock()
         mock_entry.headword = "നിന്ദിക്കുക"  # dictionary lemma the inflected query shares
@@ -172,13 +177,14 @@ class TestDictionaryTools:
 
         with (
             patch("linguaalayam.rag.tools.get_session", return_value=self._mock_session_ctx()),
-            patch("linguaalayam.rag.tools.fuzzy_search", return_value=[(mock_entry, 0.62)]),
+            patch("linguaalayam.rag.tools.exact_search", return_value=[]),
+            patch("linguaalayam.rag.tools.levenshtein_search", return_value=[(mock_entry, 0.62)]),
         ):
             results = tools.fuzzy_lookup("നിന്ദിക്കുന്നു")  # present tense of the same verb
 
         assert len(results) == 1
         assert results[0]["match_type"] == "lemma"
-        assert results[0]["score"] == 0.62  # real trigram score is preserved, not overwritten
+        assert results[0]["score"] == 0.62  # real edit-distance score is preserved, not overwritten
 
     def test_fuzzy_lookup_english_self_match_is_not_reclassified_as_lemma(self):
         """Regression: querying an English word like 'run' must not get treated
@@ -203,7 +209,7 @@ class TestDictionaryTools:
         with (
             patch("linguaalayam.rag.tools.get_session", return_value=self._mock_session_ctx()),
             patch(
-                "linguaalayam.rag.tools.fuzzy_search",
+                "linguaalayam.rag.tools.levenshtein_search",
                 return_value=[(exact_self, 1.0), (other, 0.5)],
             ),
         ):
@@ -223,7 +229,7 @@ class TestDictionaryTools:
 
         with (
             patch("linguaalayam.rag.tools.get_session", return_value=self._mock_session_ctx()),
-            patch("linguaalayam.rag.tools.fuzzy_search", return_value=[(mock_entry, 0.64)]),
+            patch("linguaalayam.rag.tools.levenshtein_search", return_value=[(mock_entry, 0.64)]),
         ):
             results = tools.fuzzy_lookup("നിന്ദിക്കുക")  # "to insult" — different root
 
@@ -265,3 +271,62 @@ class TestDictionaryTools:
         with patch("linguaalayam.rag.tools.get_session", return_value=self._mock_session_ctx()):
             results = tools.lemma_lookup("xyzzy")
         assert results == []
+
+    def test_fuzzy_lookup_prefers_lemma_over_edit_distance_for_same_headword(self):
+        """When the lemma hit and an edit-distance hit are the same entry, the lemma
+        version wins (match_type='lemma', score=1.0) — merge_candidates dedupes on
+        (source, headword), lemma results listed first."""
+        tools, _, _ = self._make_tools()
+        lemma_entry = MagicMock()
+        lemma_entry.headword = "നിന്ദിക്കുക"
+        lemma_entry.source = "datuk"
+        lemma_entry.entry_type = "DatukEntry"
+        lemma_entry.embed_text = "word: നിന്ദിക്കുക"
+        lemma_entry.data = {}
+
+        with (
+            patch("linguaalayam.rag.tools.get_session", return_value=self._mock_session_ctx()),
+            patch("linguaalayam.rag.tools.exact_search", return_value=[lemma_entry]),
+            patch(
+                "linguaalayam.rag.tools.levenshtein_search",
+                return_value=[(lemma_entry, 0.86)],
+            ),
+        ):
+            results = tools.fuzzy_lookup("നിന്ദിക്കുന്നു")
+
+        assert len(results) == 1
+        assert results[0]["match_type"] == "lemma"
+        assert results[0]["score"] == 1.0
+
+    def test_fuzzy_lookup_drops_unrelated_edit_distance_hits_once_lemma_found(self):
+        """Once mlmorph gives a definitive lemma, a plain edit-distance guess for a
+        *different* headword is confirmed unrelated, not just lower-confidence — it's
+        dropped entirely rather than shown alongside the genuine match."""
+        tools, _, _ = self._make_tools()
+        lemma_entry = MagicMock()
+        lemma_entry.headword = "നിന്ദിക്കുക"
+        lemma_entry.source = "datuk"
+        lemma_entry.entry_type = "DatukEntry"
+        lemma_entry.embed_text = "word: നിന്ദിക്കുക"
+        lemma_entry.data = {}
+
+        unrelated = MagicMock()
+        unrelated.headword = "നന്ദിക്കുക"  # "to thank" — spelling-adjacent, unrelated
+        unrelated.source = "datuk"
+        unrelated.entry_type = "DatukEntry"
+        unrelated.embed_text = "word: നന്ദിക്കുക"
+        unrelated.data = {}
+
+        with (
+            patch("linguaalayam.rag.tools.get_session", return_value=self._mock_session_ctx()),
+            patch("linguaalayam.rag.tools.exact_search", return_value=[lemma_entry]),
+            patch(
+                "linguaalayam.rag.tools.levenshtein_search",
+                return_value=[(unrelated, 0.78)],
+            ),
+        ):
+            results = tools.fuzzy_lookup("നിന്ദിക്കുന്നു")
+
+        assert len(results) == 1
+        assert results[0]["headword"] == "നിന്ദിക്കുക"
+        assert results[0]["match_type"] == "lemma"

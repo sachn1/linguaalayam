@@ -20,7 +20,6 @@ from linguaalayam.llm.adapters.togetherai import TogetherAIAdapter
 from linguaalayam.observability import log_feature_event
 from linguaalayam.rag.pipeline import _SYNTHESIS_SYSTEM, _SYNTHESIS_TEMPLATE, _format_entries
 from linguaalayam.rag.query_understanding import understand_query
-from linguaalayam.rag.tools import merge_candidates
 from linguaalayam.translation.marian import LANG_NAMES
 from linguaalayam.transliteration import (
     analyse_word,
@@ -71,8 +70,11 @@ router = APIRouter(include_in_schema=False)
 
 # Must match results.html's MIN_SCORE — a result below this (and not exact/lemma)
 # is filtered out of display, so it shouldn't count as "we already found something"
-# when deciding whether to fall back to Varnam/semantic search.
-_MIN_CONFIDENT_SCORE = 0.55
+# when deciding whether to fall back to Varnam/semantic search. 0.80 is the
+# F1-optimal threshold for normalized edit-distance similarity (stable across
+# EN/ML), not the 0.55 inherited from the earlier pg_trgm-based metric — at 0.55,
+# edit distance's own precision is only ~0.51, barely better than chance.
+_MIN_CONFIDENT_SCORE = 0.80
 
 # A query this long is more likely a full question ("split the word X") than a
 # term lookup — that's exactly the shape of query raw dictionary entries answer
@@ -139,10 +141,10 @@ def _feature_tip(headword: str, *, skip_mlmorph: bool = False) -> str | None:
 def _has_confident_result(results: list[dict]) -> bool:
     """True if at least one result would actually be shown (mirrors results.html's filter).
 
-    Weak fuzzy matches (e.g. "kundi" trigram-matching unrelated entries like
-    "Kunti"/"Hundi" at ~0.3) make ``results`` non-empty without giving the user
-    anything worth seeing — checking raw emptiness alone would wrongly skip the
-    Varnam/semantic fallbacks in that case.
+    Weak fuzzy matches (e.g. "kundi" edit-distance-matching unrelated entries like
+    "Kunti"/"Hundi" at a low score) make ``results`` non-empty without giving the
+    user anything worth seeing — checking raw emptiness alone would wrongly skip
+    the Varnam/semantic fallbacks in that case.
     """
     return any(
         r["match_type"] in ("exact", "lemma") or r["score"] >= _MIN_CONFIDENT_SCORE for r in results
@@ -340,23 +342,10 @@ def search(
         if " " in headword:
             results = tools.semantic_lookup(q_en, top_k=top_k, source=src)
         else:
-            # lemma_lookup resolves headword to its dictionary root (e.g. an
-            # inflected verb form) and looks that up directly — it catches
-            # inflections trigram similarity alone would rank low or miss
-            # entirely. Listed first so it wins fuzzy_lookup on duplicates.
-            results = merge_candidates(
-                [
-                    tools.lemma_lookup(headword, source=src),
-                    tools.fuzzy_lookup(headword, source=src, top_k=top_k),
-                ]
-            )
-            # A lemma match is positive evidence of what headword actually is,
-            # not just a stronger guess — once we have one, plain trigram
-            # "spelled similarly" hits are confirmed unrelated rather than
-            # merely lower-confidence, so drop them instead of just badging
-            # them alongside genuine matches.
-            if any(r["match_type"] == "lemma" for r in results):
-                results = [r for r in results if r["match_type"] != "fuzzy"]
+            # fuzzy_lookup tries the mlmorph lemma first (catches inflected forms
+            # a string metric alone would rank low or miss entirely), then falls
+            # back to edit-distance similarity for genuine typos.
+            results = tools.fuzzy_lookup(headword, source=src, top_k=top_k)
 
         # Manglish handling for single-word Latin queries. Runs even when the
         # English/direct lookup already found a confident result — some words
@@ -388,10 +377,11 @@ def search(
             # Varnam ranks candidates by its own priority, but not every ranked
             # spelling exists in our dictionaries. Validate with exact/lemma
             # lookup only, not fuzzy_lookup — fuzzy-matching a *fabricated*
-            # candidate spelling just tells you something resembles it (e.g.
-            # கூந்தீ trigram-matches unrelated headwords like கூன at ~57%,
-            # clearing the confidence bar despite கூந்தீ itself not existing),
-            # not that the candidate itself is real.
+            # candidate spelling just tells you something resembles it, not
+            # that the candidate itself is real (the same reasoning that drove
+            # the trigram-to-edit-distance switch: a short fabricated spelling
+            # can clear the confidence bar against an unrelated real headword
+            # under either metric).
             candidates_with_entries: list[tuple[str, list[dict]]] = []
             for ml_candidate in ml_candidates:
                 candidate_results = tools.exact_lookup(
@@ -434,6 +424,12 @@ def search(
         )
         if results and llm and worth_synthesizing:
             try:
+                # Deliberately the full, unfiltered `results` — not results.html's
+                # MIN_SCORE-filtered view. A candidate scoring between
+                # fuzzy_lookup's retrieval gate (0.75) and _MIN_CONFIDENT_SCORE
+                # (0.80) is hidden from the plain results list but still visible
+                # to the LLM here, since it's weak evidence worth reasoning over,
+                # not weak enough to withhold from AI Answer entirely.
                 entries_text = _format_entries(results[:top_k])
                 content = _SYNTHESIS_TEMPLATE.format(query=q, entries=entries_text)
                 answer_lang = _ANSWER_LANGUAGE_NAMES.get(translation.source_lang, "English")

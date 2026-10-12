@@ -6,7 +6,7 @@ used directly from LangGraph nodes today and exposed as MCP tools in v0.3.
 
 from sqlalchemy.orm import sessionmaker
 
-from linguaalayam.database.queries import exact_search, fuzzy_search, similarity_search
+from linguaalayam.database.queries import exact_search, levenshtein_search, similarity_search
 from linguaalayam.database.session import get_session
 from linguaalayam.embeddings.service import EmbeddingService
 from linguaalayam.models.orm import DictionaryEntry
@@ -124,12 +124,29 @@ class DictionaryTools:
         self,
         query: str,
         source: str | list[str] | None = None,
-        threshold: float = 0.3,
+        threshold: float = 0.75,
         top_k: int = 10,
     ) -> list[dict]:
-        """Return entries whose headword is trigram-similar to query (pg_trgm).
+        """Return entries matching query by lemma first, then edit-distance similarity.
 
-        Falls back to an ILIKE-based search when running against SQLite (tests).
+        Two layers, run in order:
+
+        1. **Lemma, via mlmorph** (:meth:`lemma_lookup`) — catches inflected forms whose
+           surface form is too different from their dictionary root for any string
+           metric to reliably surface, e.g. എഴുതുന്നു → എഴുതുക. Deterministic, no
+           threshold involved.
+        2. **Edit distance** (:func:`levenshtein_search`, `fuzzystrmatch`) — catches
+           genuine typos. Normalized similarity, ``1 - levenshtein(headword, query) /
+           max(len(headword), len(query))``, chosen over pg_trgm because trigram
+           similarity is length-biased (a fixed-size edit costs a much bigger fraction
+           of a short word's trigram set), silently hiding typos on short words. See
+           `docs/architecture.md`'s Observability section.
+
+        Once mlmorph has told us definitively what the word is, a plain edit-distance
+        guess alongside it is confirmed *unrelated*, not just lower-confidence — so if
+        step 1 finds anything, step 2's results are filtered to exclude ``"fuzzy"``
+        matches entirely (mirroring what ``web.py``'s `search()` used to do manually;
+        now built in here so every caller gets it for free).
 
         Parameters
         ----------
@@ -138,23 +155,26 @@ class DictionaryTools:
         source : str | list[str] | None, optional
             Corpus filter; searches all corpora when ``None``.
         threshold : float, optional
-            Minimum pg_trgm similarity score (0–1); default ``0.3``.
+            Minimum normalized edit-distance similarity (0–1); default ``0.75``.
         top_k : int, optional
             Maximum results to return; default ``10``.
 
         Returns
         -------
         list[dict]
-            Matched entries with pg_trgm similarity as score. ``match_type`` is
-            normally ``"fuzzy"``, but candidates that share a dictionary lemma
-            with `query` (per mlmorph) are reclassified as ``"lemma"`` — e.g. a
+            Lemma matches (``match_type="lemma"``, ``score=1.0``) first, then
+            edit-distance matches. A candidate that also shares `query`'s lemma is
+            reclassified ``"lemma"`` even without an exact headword match — e.g. a
             hit for നിന്ദിക്കുന്നു is a genuine inflection of നിന്ദിക്കുക, not a
-            coincidental spelling match, even though pg_trgm alone can't tell
-            those two cases apart.
+            coincidental spelling match.
         """
+        lemma_results = self.lemma_lookup(query, source=source)
+
         query_lemma = get_lemma(query)
         with get_session(self._session_factory) as session:
-            results = fuzzy_search(session, query, source=source, threshold=threshold, limit=top_k)
+            results = levenshtein_search(
+                session, query, source=source, threshold=threshold, limit=top_k
+            )
 
         out = []
         for entry, score in results:
@@ -162,7 +182,11 @@ class DictionaryTools:
                 entry.headword == query_lemma or get_lemma(entry.headword) == query_lemma
             )
             out.append(_to_result(entry, "lemma" if related else "fuzzy", score))
-        return out
+
+        if lemma_results:
+            out = [r for r in out if r["match_type"] != "fuzzy"]
+
+        return merge_candidates([lemma_results, out])
 
     def lemma_lookup(
         self,
