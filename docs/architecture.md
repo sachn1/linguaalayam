@@ -38,6 +38,15 @@ flowchart LR
 `understand_query` tries regex patterns first and only calls the LLM adapter for unrecognised phrasings.
 When `llm=nollm`, synthesis skips the LLM and returns formatted top-k candidates directly.
 
+**Fuzzy matching** (`DictionaryTools.fuzzy_lookup()`) tries the query's mlmorph lemma first —
+catches inflected forms (e.g. എഴുതുന്നു → എഴുതുക) no string-similarity metric reliably
+retrieves — then falls back to normalized Levenshtein edit distance for genuine typos.
+Not pg_trgm trigram similarity: trigram's similarity ratio is length-biased (a fixed-size
+typo costs a much bigger fraction of a short word's trigram set), which silently hid real
+typos on short words below the confidence bar. Confirmed empirically before switching —
+see `notebooks/malayalam_fuzzy_matching_research.ipynb` and
+`notebooks/fuzzy_vs_edit_retrieval_quality.ipynb`.
+
 ---
 
 ## REST API and web UI

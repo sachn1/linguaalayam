@@ -42,7 +42,7 @@
 ### v2.2 — Diaspora, accessibility, i18n, and search quality
 - [x] **UI language toggle** — English / Malayalam interface labels; JSON locale bundles, no page reload
 - [x] **Romanised output toggle** — Malayalam definitions returned with ISO romanisation alongside for users who cannot read the script (toggle with **A ↔ അ** button)
-- [x] **Smart multi-word search** — phrases and definition queries (multiple words in fuzzy mode) automatically route to semantic retrieval instead of trigram matching
+- [x] **Smart multi-word search** — phrases and definition queries (multiple words in fuzzy mode) automatically route to semantic retrieval instead of fuzzy headword matching
 - [x] **Manglish input (formal romanisation)** — Latin queries that miss exact/fuzzy are tried against multiple formal transliteration schemes; falls back to semantic if no match. Known limitation: informal romanisation ("oduka") is not reliably handled — resolved in v2.8 via Varnam.
 - [x] **Evaluation harness** — corpus-derived query sets (10 intents, EN + ML inputs, generated from live DB); offline model comparison with per-intent metrics and MLflow tracking
 
@@ -70,7 +70,7 @@
 
 ### v2.8 — Informal Manglish, ingest-time morphology, and UI cleanup
 - [x] **Informal Manglish via Varnam** — Latin queries that miss exact/fuzzy now try the [Varnam](https://varnamproject.com) API for informal romanisation (e.g. *oduka* → *ഓടുക*) before falling back to the local formal transliteration schemes from v2.2; resolves the informal-romanisation gap noted in v2.2
-- [x] **Search mode removed** — the exact/fuzzy/semantic selector is gone from both UI and `/search`; retrieval is always trigram-first (exact matches score 1.0) with automatic semantic fallback, simplifying the query surface
+- [x] **Search mode removed** — the exact/fuzzy/semantic selector is gone from both UI and `/search`; retrieval is always fuzzy-first (exact matches score 1.0) with automatic semantic fallback, simplifying the query surface
 - [x] **`ml_ml` source filter** — Datuk + Sayahna merged under one "All Malayalam → Malayalam" UI option; the old `datuk`-expands-to-both behaviour is now explicit
 - [x] **Morphology computed at ingest time** — `DatukEntry`/`SayahnaEntry` store mlmorph analysis at parse time instead of recomputing it per search request
 - [x] **Clickable definitions** — ML→ML definition tokens that exist as their own headword become links, via a cached `DictionaryTools.ml_headword_set()`
@@ -95,8 +95,14 @@
 - [x] **Automated Cloud Run deploys** — `.github/workflows/cd-cloud-run.yml` builds, runs pending Alembic migrations via a Cloud Run Job, and deploys, replacing the manual `gcloud` commands used during the migration itself
 - [ ] **Parked: Pub/Sub + BigQuery search analytics** — a deeper analytics pipeline (which corpus answered, AI-answer economics, query-understanding regex-vs-LLM rate, Manglish signals, language mix, query shape, MCP-vs-web split) designed but not built — see `docs/pubsub_bigquery_design.md` on `feature/pubsub-bigquery-analytics`
 
+### Unreleased — Fuzzy matching: mlmorph lemma first, edit distance over trigram
+- [x] **mlmorph lemma tried before fuzzy matching, for every caller** — `DictionaryTools.fuzzy_lookup()` now runs the existing lemma-lookup step internally (previously wired into `web.py`'s search only); the MCP tools, REST `/lookup/fuzzy`, the CLI RAG pipeline, the eval harness, and the debug script all get it automatically with no call-site changes. Fixes real inflected-form queries (e.g. എഴുതുന്നു → എഴുതുക) that neither trigram nor edit distance alone could retrieve
+- [x] **Fuzzy fallback switched from pg_trgm trigram similarity to normalized Levenshtein edit distance** — trigram's similarity ratio structurally penalizes short words (a fixed-size typo costs a much bigger fraction of a short word's trigram set), silently hiding real typos below the confidence bar; edit distance doesn't have this bias. Confirmed empirically against the real corpus (precision/recall/F1/AUC analysis across English and Malayalam) before switching, not assumed
+- [x] **Thresholds recalibrated for the new metric, not carried over from pg_trgm** — the retrieval-time gate (`fuzzy_lookup`'s own `threshold`) moved `0.3` → `0.75`; the display-confidence gate (`_MIN_CONFIDENT_SCORE`/`MIN_SCORE`) moved `0.55` → `0.80`. At the old `0.55`, edit distance's own precision is only ~0.51 — carrying the number over uncalibrated would have been worse than keeping trigram
+- [x] **Embeddings ruled out as a secondary semantic check** — tested twice against the real corpus (a single-pair test, then a proper candidate-list test with pairwise word-to-word comparison); genuinely unrelated real words scored 0.65–0.92 semantic similarity against each other, no usable separation from "same word" (1.0). Not pursued further
+
 ### v2.9 — Word of the Day
-- [ ] **Phonetic Manglish index** — add `headword_roman` column storing ml2en output for each Malayalam headword; pg_trgm index enables reliable informal Manglish matching (e.g. "oduka" → "otuka" → "ഓടുക") without the ISO 15919 formalism gap; requires migration + re-ingest
+- [ ] **Phonetic Manglish index** — add `headword_roman` column storing ml2en output for each Malayalam headword; fuzzy-matching against it enables reliable informal Manglish matching (e.g. "oduka" → "otuka" → "ഓടുക") without the ISO 15919 formalism gap; requires migration + re-ingest. Re-evaluate which similarity metric to use against `headword_roman` now that headword fuzzy matching itself has moved from pg_trgm to edit distance — the same length-bias reasoning may or may not carry over to romanized text
 - [ ] **Word of the Day** — daily featured word, filtered by frequency list to exclude common words (top 5k excluded); alternates EN/ML by default
 - [ ] **User preference** — app settings: EN only / ML only / alternate; stored in `localStorage`
 - [ ] **Push notifications** — service worker push for word-of-the-day on Android
