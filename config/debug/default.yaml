@@ -1,4 +1,4 @@
 query: ${oc.env:DEBUG_QUERY,"run"}
 top_k: 5
 source: null
-fuzzy_threshold: 0.3
+fuzzy_threshold: 0.75

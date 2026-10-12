@@ -92,34 +92,16 @@ def test_search_no_results_shows_empty_state(client):
 
 
 # ── lemma-match suppression of coincidental spelling matches ───────────────────
-
-
-def test_search_lemma_hit_suppresses_unrelated_fuzzy_matches(client, mock_tools):
-    """A lemma_lookup hit is positive evidence for the query's root — once it
-    exists, plain-fuzzy candidates (confirmed unrelated, not just lower-scoring)
-    should be dropped rather than shown alongside it."""
-    mock_tools.lemma_lookup.return_value = [_result(headword="നിന്ദിക്കുക", match_type="lemma")]
-    mock_tools.fuzzy_lookup.return_value = [
-        _result(headword="നന്ദിക്കുക", source="datuk", match_type="fuzzy"),
-    ]
-    r = client.get("/search?query=നിന്ദിക്കുന്നു")
-    assert r.status_code == 200
-    assert "നിന്ദിക്കുക" in r.text
-    assert "നന്ദിക്കുക" not in r.text
-
-
-def test_search_reclassified_lemma_fuzzy_hit_suppresses_other_fuzzy_matches(client, mock_tools):
-    """fuzzy_lookup itself may reclassify a candidate as match_type='lemma' (see
-    DictionaryTools.fuzzy_lookup) — that alone should also trigger suppression
-    of the remaining plain-fuzzy candidates, with no lemma_lookup hit needed."""
-    mock_tools.fuzzy_lookup.return_value = [
-        _result(headword="നിന്ദിക്കുന്നു", source="datuk", match_type="lemma"),
-        _result(headword="നിനാദിക്കുക", source="datuk", match_type="fuzzy"),
-    ]
-    r = client.get("/search?query=നിന്ദിക്കുക")
-    assert r.status_code == 200
-    assert "നിന്ദിക്കുന്നു" in r.text
-    assert "നിനാദിക്കുക" not in r.text
+#
+# This used to be web.py's own post-processing step (merging a separate
+# tools.lemma_lookup() call with tools.fuzzy_lookup() and filtering the
+# result). It's now built into DictionaryTools.fuzzy_lookup() itself, so
+# every caller gets it for free — see
+# tests/rag/test_tools.py::test_fuzzy_lookup_prefers_lemma_over_edit_distance_for_same_headword
+# and ::test_fuzzy_lookup_drops_unrelated_edit_distance_hits_once_lemma_found for
+# the real coverage. web.py now just passes fuzzy_lookup's result through
+# unchanged, which is exactly what test_search_no_lemma_signal_keeps_all_fuzzy_matches
+# below already confirms.
 
 
 def test_search_no_lemma_signal_keeps_all_fuzzy_matches(client, mock_tools):

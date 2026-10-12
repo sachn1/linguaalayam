@@ -9,6 +9,7 @@ from linguaalayam.database.queries import (
     batch_insert,
     exact_search,
     fuzzy_search,
+    levenshtein_search,
     similarity_search,
 )
 from linguaalayam.database.session import get_session
@@ -172,6 +173,75 @@ class TestFuzzySearchPostgres:
 
         fuzzy_search(mock_session, "run", source="olam_enml")
         mock_session.execute.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# levenshtein_search — SQLite ILIKE fallback
+# ---------------------------------------------------------------------------
+
+
+class TestLevenshteinSearchSQLite:
+    """levenshtein_search SQLite ILIKE fallback behaviour — same fallback as fuzzy_search,
+    since fuzzystrmatch has no SQLite equivalent either."""
+
+    def test_ilike_matches_substring(self, session_factory):
+        """ILIKE search should match entries containing the query substring."""
+        with get_session(session_factory) as session:
+            batch_insert(session, [_entry("run"), _entry("runner")], [_vec(), _vec()])
+        with get_session(session_factory) as session:
+            results = levenshtein_search(session, "run")
+        headwords = [r.headword for r, _ in results]
+        assert "run" in headwords
+
+    def test_ilike_no_match(self, session_factory):
+        """Should return empty list when no entry matches the query."""
+        with get_session(session_factory) as session:
+            results = levenshtein_search(session, "xyzzy")
+        assert results == []
+
+    def test_score_is_1_for_sqlite(self, session_factory):
+        """SQLite ILIKE fallback should assign score=1.0 to all results."""
+        with get_session(session_factory) as session:
+            batch_insert(session, [_entry("run")], [_vec()])
+        with get_session(session_factory) as session:
+            results = levenshtein_search(session, "run")
+        assert all(score == 1.0 for _, score in results)
+
+
+# ---------------------------------------------------------------------------
+# levenshtein_search — PostgreSQL fuzzystrmatch path (mock session)
+# ---------------------------------------------------------------------------
+
+
+class TestLevenshteinSearchPostgres:
+    """levenshtein_search Postgres fuzzystrmatch path (mock session)."""
+
+    def test_levenshtein_returns_results(self):
+        """Should return (entry, score) tuples from the edit-distance query."""
+        mock_session = MagicMock()
+        mock_session.get_bind.return_value.dialect.name = "postgresql"
+        mock_entry = MagicMock(spec=DictionaryEntry)
+        mock_session.execute.return_value = [(mock_entry, 0.86)]
+
+        results = levenshtein_search(mock_session, "run")
+        assert len(results) == 1
+        assert results[0][1] == pytest.approx(0.86)
+
+    def test_levenshtein_with_source(self):
+        """Source filter should be included in the Postgres query."""
+        mock_session = MagicMock()
+        mock_session.get_bind.return_value.dialect.name = "postgresql"
+        mock_session.execute.return_value = []
+
+        levenshtein_search(mock_session, "run", source="olam_enml")
+        mock_session.execute.assert_called_once()
+
+    def test_levenshtein_default_threshold_is_0_75(self):
+        """Default threshold should be 0.75, the F2/recall-favoring value from research
+        — not the old 0.3 pg_trgm default, which would be nonsensical on this scale."""
+        import inspect
+
+        assert inspect.signature(levenshtein_search).parameters["threshold"].default == 0.75
 
 
 # ---------------------------------------------------------------------------

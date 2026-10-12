@@ -2,5 +2,5 @@ query: ${oc.env:RAG_QUERY,"Mendel's pea plant experiments showed that this trait
 source: null
 top_k: 5
 rerank: false
-fuzzy_threshold: 0.3
+fuzzy_threshold: 0.75
 fuzzy_limit: 10

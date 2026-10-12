@@ -6,7 +6,7 @@ datasets:
     label: "ML-input"          # Malayalam/Manglish-expected queries
 output: null
 top_k: 5
-fuzzy_threshold: 0.3
+fuzzy_threshold: 0.75
 fuzzy_limit: 10
 
 compare:

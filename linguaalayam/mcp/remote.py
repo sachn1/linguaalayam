@@ -105,15 +105,15 @@ def exact_lookup(word: str, ctx: Context, source: str | None = None) -> str:
 def fuzzy_lookup(
     query: str,
     ctx: Context,
-    threshold: float = 0.3,
+    threshold: float = 0.75,
     top_k: int = 10,
     source: str | None = None,
 ) -> str:
-    """Search for words by approximate headword similarity (trigram).
+    """Search for words by mlmorph lemma, then edit-distance headword similarity.
 
     Args:
         query: The word or partial word to search for.
-        threshold: Minimum trigram similarity score (0–1). Default 0.3.
+        threshold: Minimum normalized edit-distance similarity (0–1). Default 0.75.
         top_k: Maximum number of results to return. Default 10.
         source: Optional corpus filter. Searches all corpora if omitted.
     """

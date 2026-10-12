@@ -20,7 +20,9 @@
    non-empty but nothing clears the bar — e.g. weak spelling coincidences)
    shows the same "no results" state as truly empty results, instead of a
    confusing "0 results" heading with nothing under it. #}
-{% set MIN_SCORE = 0.55 %}
+{# must match web.py's _MIN_CONFIDENT_SCORE — 0.80 is the F1-optimal threshold for
+   normalized edit-distance similarity, not the 0.55 inherited from pg_trgm #}
+{% set MIN_SCORE = 0.80 %}
 {% set filtered = [] %}
 {% for r in results %}
   {% if r.match_type == 'exact' or r.match_type == 'lemma' or r.score >= MIN_SCORE %}
