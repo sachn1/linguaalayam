@@ -23,18 +23,20 @@ class TestInstantiateAnthropic:
         """instantiate should produce an AnthropicAdapter instance."""
         with (
             patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-ant-test"}),
-            patch("linguaalayam.llm.adapters.anthropic.ChatAnthropic"),
+            patch.dict(
+                "sys.modules", {"langchain_anthropic": MagicMock(ChatAnthropic=MagicMock())}
+            ),
         ):
             result = instantiate(_cfg(self._TARGET, model="claude-3-5-sonnet-20241022"))
         assert isinstance(result, AnthropicAdapter)
 
     def test_passes_temperature(self):
         """Temperature kwarg should be forwarded to ChatAnthropic."""
+        mock_ca = MagicMock(return_value=MagicMock())
         with (
             patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-ant-test"}),
-            patch("linguaalayam.llm.adapters.anthropic.ChatAnthropic") as mock_ca,
+            patch.dict("sys.modules", {"langchain_anthropic": MagicMock(ChatAnthropic=mock_ca)}),
         ):
-            mock_ca.return_value = MagicMock()
             instantiate(_cfg(self._TARGET, model="claude-3-5-sonnet-20241022", temperature=0.5))
         _, kwargs = mock_ca.call_args
         assert kwargs.get("temperature") == 0.5

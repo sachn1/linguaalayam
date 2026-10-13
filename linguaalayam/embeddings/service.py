@@ -1,14 +1,24 @@
 """Embedding service for dictionary entries."""
 
+import threading
+
 import numpy as np
 from omegaconf import DictConfig
-from sentence_transformers import SentenceTransformer
 
 from linguaalayam.models.entries import Embeddable
 
 
 class EmbeddingService:
     """Sentence-transformer wrapper that encodes dictionary entries into vectors.
+
+    ``sentence_transformers`` (which pulls in ``torch``, a large import —
+    measured independently at several seconds) is imported lazily in
+    ``__init__`` rather than at module level. This module is imported at
+    module level by ``rag/tools.py``, which is in turn imported at module
+    level by ``api/web.py`` and ``api/app.py`` — so a module-level import
+    here would be paid on every cold start the moment those modules are
+    imported, before the app's lifespan (or any background-loading of the
+    actual model) ever gets a chance to run.
 
     Parameters
     ----------
@@ -27,6 +37,8 @@ class EmbeddingService:
     """
 
     def __init__(self, embedding_cfg: DictConfig) -> None:
+        from sentence_transformers import SentenceTransformer
+
         self._cfg = embedding_cfg
         self._model = SentenceTransformer(
             embedding_cfg.model,
@@ -85,3 +97,69 @@ class EmbeddingService:
             normalize_embeddings=self._cfg.normalize,
         )
         return vector.tolist()
+
+
+class LazyEmbeddingService:
+    """Drop-in stand-in for ``EmbeddingService`` while the real one loads in the background.
+
+    The real ``EmbeddingService`` construction (importing ``sentence_transformers``/
+    ``torch`` and loading model weights) takes several seconds — real, but only
+    actually needed by MCP's ``semantic_lookup`` tool, the CLI RAG pipeline, and
+    the eval harness. The web search path (``api/web.py``) doesn't call any of
+    this service's methods at all. Blocking the whole app's startup on it, as
+    before, meant every purely-web cold start waited for a model only a minority
+    of requests ever use.
+
+    ``DictionaryTools`` is handed one of these immediately at startup; a
+    background thread constructs the real ``EmbeddingService`` and calls
+    ``set_ready()`` once done. Any method called before that (i.e. a real
+    `semantic_lookup`/`encode` call reaching this instance first) blocks on a
+    ``threading.Event`` until the real service is ready — a bounded per-request
+    wait instead of delaying every request, including ones that never needed
+    this at all.
+    """
+
+    def __init__(self) -> None:
+        self._service: EmbeddingService | None = None
+        self._ready = threading.Event()
+
+    def set_ready(self, service: EmbeddingService) -> None:
+        """Make the real service available; wakes up any callers already waiting.
+
+        Parameters
+        ----------
+        service : EmbeddingService
+            The fully-constructed real embedding service.
+        """
+        self._service = service
+        self._ready.set()
+
+    def _wait(self) -> EmbeddingService:
+        """Block until the real service is ready, then return it."""
+        self._ready.wait()
+        if self._service is None:
+            # set_ready() is the only writer and always sets both together —
+            # reaching here means set_ready() was never actually called, not
+            # that the invariant is merely "probably" true. `assert` would be
+            # stripped under `python -O`, silently turning this into a
+            # confusing AttributeError downstream instead of failing clearly.
+            raise RuntimeError("LazyEmbeddingService._ready was set without a service")
+        return self._service
+
+    @property
+    def vector_size(self) -> int:
+        """Dimensionality of the embedding vectors produced by the model."""
+        return self._wait().vector_size
+
+    @property
+    def batch_size(self) -> int:
+        """Number of texts encoded per forward pass."""
+        return self._wait().batch_size
+
+    def encode(self, entries: list[Embeddable]) -> list[list[float]]:
+        """Encode entries once the real service is ready — see EmbeddingService.encode."""
+        return self._wait().encode(entries)
+
+    def encode_query(self, query: str) -> list[float]:
+        """Encode a query once the real service is ready — see EmbeddingService.encode_query."""
+        return self._wait().encode_query(query)

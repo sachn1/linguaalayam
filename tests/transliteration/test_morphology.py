@@ -16,7 +16,7 @@ class TestGetLemma:
         """നന്ദിക്കുക ("to thank") must not resolve to the same root as
         നിന്ദിക്കുക ("to insult") despite the near-identical spelling — this is
         the whole basis for distinguishing genuine inflections from
-        coincidental trigram matches in rag/tools.py."""
+        coincidental string-similarity matches in rag/tools.py."""
         assert get_lemma("നന്ദിക്കുക") != get_lemma("നിന്ദിക്കുക")
 
     def test_english_word_returns_none_not_itself(self):

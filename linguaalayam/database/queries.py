@@ -126,56 +126,6 @@ def exact_search(
     return list(session.scalars(stmt))
 
 
-def fuzzy_search(
-    session: Session,
-    query: str,
-    source: str | list[str] | None = None,
-    threshold: float = 0.3,
-    limit: int = 10,
-) -> list[tuple[DictionaryEntry, float]]:
-    """Return entries whose headword is trigram-similar to query (pg_trgm).
-
-    Returns (entry, score) tuples where score is the pg_trgm similarity ∈ [0, 1].
-    Falls back to ILIKE with score=1.0 for non-Postgres dialects (e.g. SQLite in tests).
-
-    Requires the pg_trgm extension and ix_dictionary_entries_headword_trgm GIN index
-    (added by Alembic migration c2a4f6b8d0e2).
-
-    Parameters
-    ----------
-    session : Session
-        SQLAlchemy session to use for the query.
-    query : str
-        The query string to match against headwords.
-    source : str | list[str] | None, optional
-        Source identifier(s) to filter by, by default None
-    threshold : float, optional
-        Minimum trigram similarity score (0–1), by default 0.3
-    limit : int, optional
-        Maximum number of results to return, by default 10
-    """
-    if session.get_bind().dialect.name == "postgresql":
-        similarity = func.similarity(DictionaryEntry.headword, query)
-        stmt = (
-            select(DictionaryEntry, similarity.label("score"))
-            .where(similarity > threshold)
-            .order_by(similarity.desc())
-            .limit(limit)
-        )
-        if isinstance(source, list):
-            stmt = stmt.where(DictionaryEntry.source.in_(source))
-        elif source:
-            stmt = stmt.where(DictionaryEntry.source == source)
-        return [(row[0], round(float(row[1]), 4)) for row in session.execute(stmt)]
-
-    stmt = select(DictionaryEntry).where(DictionaryEntry.headword.ilike(f"%{query}%")).limit(limit)
-    if isinstance(source, list):
-        stmt = stmt.where(DictionaryEntry.source.in_(source))
-    elif source:
-        stmt = stmt.where(DictionaryEntry.source == source)
-    return [(entry, 1.0) for entry in session.scalars(stmt)]
-
-
 def levenshtein_search(
     session: Session,
     query: str,
@@ -186,13 +136,12 @@ def levenshtein_search(
     """Return entries whose headword is edit-distance-similar to query (fuzzystrmatch).
 
     Returns (entry, score) tuples where score is normalized similarity,
-    ``1 - levenshtein(headword, query) / max(len(headword), len(query))`` ∈ [0, 1].
-    Unlike pg_trgm's ratio-based similarity, this isn't length-biased — a one-character
-    edit costs the same regardless of word length, which pg_trgm's trigram-overlap ratio
-    doesn't guarantee (see docs/architecture.md's RAG pipeline section for why this
-    replaced trigram as the fuzzy fallback metric). Falls back to ILIKE with score=1.0
-    for non-Postgres dialects (e.g. SQLite in tests) — fuzzystrmatch has no SQLite
-    equivalent, same constraint pg_trgm already had.
+    ``1 - levenshtein(headword, query) / max(len(headword), len(query))`` ∈ [0, 1] —
+    a one-character edit costs the same regardless of word length, so short words
+    aren't penalized the way a ratio-based string metric would be (see
+    docs/architecture.md's RAG pipeline section). Falls back to ILIKE with
+    score=1.0 for non-Postgres dialects (e.g. SQLite in tests) — fuzzystrmatch
+    has no SQLite equivalent.
 
     Requires the fuzzystrmatch extension (added by Alembic migration;
     see migrations/versions/ for the revision).

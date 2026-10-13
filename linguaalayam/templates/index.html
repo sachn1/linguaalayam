@@ -285,9 +285,16 @@
   // that used to sit there instead. `name` is the full English name, used
   // wherever there's room (the dropdown, the onboarding modal) so this
   // doesn't require already knowing the target script to pick correctly.
+  //
+  // Non-EN/ML entries only make sense while translation is actually enabled
+  // (TRANSLATION_BACKEND != "noop") — otherwise picking "German" just lets a
+  // German query through to search untranslated, with no honest path to a
+  // result. See linguaalayam/translation/__init__.py's build_translation_service
+  // docstring for why translation is disabled by default.
   const LANGS = [
     { value: 'en-US', flag: '🇺🇸', code: 'EN', name: 'English' },
     { value: 'ml-IN', flag: '🇮🇳', code: 'ML', name: 'Malayalam' },
+{% if translation_enabled %}
     { value: 'de-DE', flag: '🇩🇪', code: 'DE', name: 'German' },
     { value: 'fr-FR', flag: '🇫🇷', code: 'FR', name: 'French' },
     { value: 'ru-RU', flag: '🇷🇺', code: 'RU', name: 'Russian' },
@@ -299,6 +306,7 @@
     { value: 'hi-IN', flag: '🇮🇳', code: 'HI', name: 'Hindi' },
     { value: 'ta-IN', flag: '🇮🇳', code: 'TA', name: 'Tamil' },
     { value: 'bn-IN', flag: '🇮🇳', code: 'BN', name: 'Bengali' },
+{% endif %}
   ];
 
   langOpts.innerHTML = LANGS.map(l =>

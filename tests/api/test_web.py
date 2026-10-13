@@ -48,6 +48,7 @@ def mock_tools():
 def mock_translator():
     t = MagicMock()
     t.translate.side_effect = _passthrough_translation
+    t.supports_translation = False  # matches the real default backend ("noop")
     return t
 
 
@@ -67,6 +68,26 @@ def test_index_returns_200(client):
     r = client.get("/")
     assert r.status_code == 200
     assert "lingu" in r.text
+
+
+def test_index_hides_non_en_ml_langs_when_translation_disabled(client, mock_translator):
+    """With a noop translator (the default), the input-language picker should
+    only offer EN/ML — any other language has no honest path to a result
+    since nothing actually translates it before search."""
+    mock_translator.supports_translation = False
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "'de-DE'" not in r.text
+    assert "'ta-IN'" not in r.text
+
+
+def test_index_shows_full_lang_list_when_translation_enabled(client, mock_translator):
+    """With a real translation backend, the full language list should render."""
+    mock_translator.supports_translation = True
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "'de-DE'" in r.text
+    assert "'ta-IN'" in r.text
 
 
 def test_search_empty_query(client, mock_tools):
@@ -117,22 +138,35 @@ def test_search_no_lemma_signal_keeps_all_fuzzy_matches(client, mock_tools):
     assert "ran" in r.text
 
 
-# ── semantic fallback ─────────────────────────────────────────────────────────
+# ── routing: edit distance only, semantic retired from the web path ───────────
+#
+# semantic_lookup used to be web.py's multi-word router and its single-word
+# fallback. Both were removed: the multi-word rule routed on word count alone,
+# which meant a literal, confidently-matchable multi-word headword (e.g. a
+# Marian-translated phrase like "Sit down.") never got a chance at fuzzy_lookup
+# at all. And semantic's own display-confidence threshold (0.80) was only ever
+# calibrated for edit distance, never independently validated for cosine
+# similarity — see memory/fuzzy_matching_threshold_research.md. semantic_lookup
+# is still live for MCP's own tool (linguaalayam/mcp/server.py), untouched here.
 
 
-def test_search_multiword_routes_to_semantic(client, mock_tools):
-    """Multi-word queries bypass trigram and go straight to semantic."""
+def test_search_multiword_uses_fuzzy_not_semantic(client, mock_tools):
+    """Multi-word queries now go through fuzzy_lookup like any other query —
+    word count alone no longer routes straight to semantic."""
+    mock_tools.fuzzy_lookup.return_value = [_result(headword="ഒരു ജലസ്ഥലം")]
     r = client.get("/search?query=ഒരു+ജലസ്ഥലം")
     assert r.status_code == 200
-    mock_tools.fuzzy_lookup.assert_not_called()
-    mock_tools.semantic_lookup.assert_called_once()
+    mock_tools.fuzzy_lookup.assert_called_once()
+    mock_tools.semantic_lookup.assert_not_called()
 
 
-def test_search_no_fuzzy_results_falls_back_to_semantic(client, mock_tools):
-    """Single-word query with no fuzzy results falls back to semantic."""
+def test_search_no_fuzzy_results_stays_empty_not_semantic(client, mock_tools):
+    """A query with no fuzzy results should show the empty state, not fall
+    back to semantic_lookup — that fallback no longer exists on the web path."""
     r = client.get("/search?query=xyzzy")
     assert r.status_code == 200
-    mock_tools.semantic_lookup.assert_called()
+    assert "No results" in r.text
+    mock_tools.semantic_lookup.assert_not_called()
 
 
 # ── manglish / varnam fallback ────────────────────────────────────────────────
@@ -241,11 +275,13 @@ def test_search_default_lang_is_en(client, mock_translator):
 
 def test_search_shows_ai_hint_for_long_query_without_ai(client, mock_tools):
     """A long/sentence-like query with AI off and a confident result should surface
-    the 'turn on AI Answer' hint instead of a synthesized answer."""
-    mock_tools.semantic_lookup.return_value = [_result(match_type="exact")]
+    the 'turn on AI Answer' hint instead of a synthesized answer — the softer 'weak'
+    variant, since a real (if possibly not-what-they-meant) answer is already shown."""
+    mock_tools.fuzzy_lookup.return_value = [_result(match_type="exact")]
     r = client.get("/search?query=ജലജന്തു+എന്ന+വാക്ക്+വിഗ്രഹിക്കുക")
     assert r.status_code == 200
     assert 'onclick="enableAiHint(event)"' in r.text
+    assert "Not quite what you meant?" in r.text
     assert '<p class="answer-label">' not in r.text
 
 
@@ -260,7 +296,7 @@ def test_search_no_ai_hint_for_short_query(client, mock_tools):
 
 def test_search_no_ai_hint_when_ai_already_enabled(client, mock_tools):
     """No hint should show once AI Answer is already on — the answer card takes its place."""
-    mock_tools.semantic_lookup.return_value = [_result(match_type="exact")]
+    mock_tools.fuzzy_lookup.return_value = [_result(match_type="exact")]
     mock_llm = MagicMock()
     mock_llm.complete.return_value = "synthesized answer"
     # This query is multi-word Malayalam text that no regex pattern in
@@ -289,11 +325,13 @@ def test_search_no_ai_hint_when_ai_already_enabled(client, mock_tools):
 def test_search_shows_ai_hint_even_without_confident_result(client, mock_tools):
     """A weak-only fuzzy match (below the display threshold) should still trigger the
     hint — a poor raw match is exactly when AI Answer would help most, so the nudge
-    isn't gated on how confident the underlying dictionary lookup was."""
-    mock_tools.semantic_lookup.return_value = [{**_result(match_type="fuzzy"), "score": 0.2}]
+    isn't gated on how confident the underlying dictionary lookup was. This is the
+    "empty" variant, since nothing confident is actually displayed."""
+    mock_tools.fuzzy_lookup.return_value = [{**_result(match_type="fuzzy"), "score": 0.2}]
     r = client.get("/search?query=ജലജന്തു+എന്ന+വാക്ക്+വിഗ്രഹിക്കുക")
     assert r.status_code == 200
     assert 'onclick="enableAiHint(event)"' in r.text
+    assert "Nothing confident found" in r.text
 
 
 # ── AI Answer synthesis gating ──────────────────────────────────────────────────
@@ -316,7 +354,7 @@ def test_search_skips_ai_for_short_confident_query(client, mock_tools):
 def test_search_still_synthesizes_short_query_without_confident_result(client, mock_tools):
     """A short query without a confident match should still get AI Answer — there's
     real ambiguity here for synthesis to resolve, unlike a clean exact hit."""
-    mock_tools.semantic_lookup.return_value = [{**_result(match_type="fuzzy"), "score": 0.3}]
+    mock_tools.fuzzy_lookup.return_value = [{**_result(match_type="fuzzy"), "score": 0.3}]
     mock_llm = MagicMock()
     mock_llm.complete.return_value = "synthesized answer"
     with patch("linguaalayam.api.web._get_server_llm", return_value=mock_llm):

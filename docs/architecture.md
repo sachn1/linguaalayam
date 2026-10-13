@@ -79,7 +79,12 @@ flowchart LR
     DT --> DB[(PostgreSQL: pgvector)]
 ```
 
-No LLM involvement — pure retrieval. The embedding model loads once at startup.
+No LLM involvement — pure retrieval. The production `/mcp` server is mounted inside the FastAPI
+app (`mcp/remote.py`) and shares `DictionaryTools` with the REST API — same `LazyEmbeddingService`
+background-load as the web app (see `api/app.py`'s `_lifespan`), so a `semantic_lookup` call arriving
+before that finishes blocks per-request rather than waiting on a model "loaded once at startup."
+The standalone `poetry run mcp-server` process (`mcp/server.py`, local/bare-metal use) is unaffected —
+it still builds a real `EmbeddingService` synchronously at its own startup.
 
 ---
 
@@ -117,7 +122,7 @@ City/region/country come from a local MaxMind GeoLite2-City lookup (`observabili
 | `linguaalayam/rag/tools.py` | `DictionaryTools` — exact, fuzzy, semantic lookup over a live DB session |
 | `linguaalayam/mcp/server.py` | FastMCP server — three tools + `dictionary://{headword}` resource |
 | `linguaalayam/scripts/ingest.py` | Ingestion entry point; corpus parsers injected via Hydra `_target_` — no hardcoded parser map |
-| `linguaalayam/translation/` | `TranslationService` ABC + `MarianTranslationService` (Helsinki-NLP/opus-mt-mul-en); lazy-loaded via `build_translation_service()`, translates non-EN/ML input to English before search. Built in `app.py` lifespan, exposed through `get_translator()` in `api/dependencies.py`. |
+| `linguaalayam/translation/` | `TranslationService` ABC + `NoOpTranslationService` (default) and `MarianTranslationService` (Helsinki-NLP/opus-mt-mul-en, disabled by default — unreliable across several languages, not just one family, see docs/roadmap.md's backlog). Backend selected via `TRANSLATION_BACKEND` env var in `build_translation_service()`. Built in `app.py` lifespan, exposed through `get_translator()` in `api/dependencies.py`. |
 | `linguaalayam/templates/` | Jinja2 templates served by the web router (`api/web.py`). `base.html` provides the shared layout with i18n helpers. `index.html` is the main search page (HTMX-driven). `partials/results.html` renders search results and AI answers. User API keys and AI-synthesis/language preferences live in the settings sidebar in `base.html` (`/settings` just redirects to `/?settings=1` to open it — no standalone template). All CSS is inline per-template — no external stylesheets. HTMX partials are returned from `/search` and re-render `#results`. |
 | `linguaalayam/transliteration/core.py` | `is_latin_script()`, `malayalam_to_roman()`, `normalize_roman()`, `roman_to_malayalam_candidates()` — formal romanisation schemes |
 | `linguaalayam/transliteration/morphology.py` | `analyse_word()` — mlmorph-based Malayalam morphological analyser; LRU-cached, handles archaic chillu normalisation; computed once at ingest time and stored on `DatukEntry`/`SayahnaEntry` |

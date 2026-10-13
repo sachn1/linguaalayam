@@ -11,7 +11,7 @@ The MCP endpoint is live at `https://linguaalayam.org/mcp`.
 | Tool | Description |
 |---|---|
 | `exact_lookup(word, source?)` | Case-insensitive exact headword match |
-| `fuzzy_lookup(query, threshold?, top_k?, source?)` | Trigram similarity search via pg_trgm |
+| `fuzzy_lookup(query, threshold?, top_k?, source?)` | mlmorph lemma lookup, then edit-distance similarity search |
 | `semantic_lookup(query, top_k?, source?)` | Embedding cosine search via HNSW |
 
 All tools accept an optional `source` parameter to filter by corpus: `olam_enml`, `datuk`, `sayahna`, or `ekkurup`. Omit to search all corpora.

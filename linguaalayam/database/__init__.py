@@ -3,7 +3,6 @@
 from .queries import (
     batch_insert,
     exact_search,
-    fuzzy_search,
     get_ingested_headwords,
     similarity_search,
 )
@@ -18,6 +17,5 @@ __all__ = [
     "get_ingested_headwords",
     "batch_insert",
     "exact_search",
-    "fuzzy_search",
     "similarity_search",
 ]
