@@ -69,6 +69,26 @@ def test_index_returns_200(client):
     assert "lingu" in r.text
 
 
+def test_index_hides_non_en_ml_langs_when_translation_disabled(client, mock_translator):
+    """With a noop translator (the default), the input-language picker should
+    only offer EN/ML — any other language has no honest path to a result
+    since nothing actually translates it before search."""
+    mock_translator.supports_translation = False
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "'de-DE'" not in r.text
+    assert "'ta-IN'" not in r.text
+
+
+def test_index_shows_full_lang_list_when_translation_enabled(client, mock_translator):
+    """With a real translation backend, the full language list should render."""
+    mock_translator.supports_translation = True
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "'de-DE'" in r.text
+    assert "'ta-IN'" in r.text
+
+
 def test_search_empty_query(client, mock_tools):
     """Regression: an empty query used to raise UnboundLocalError on `tools`
     (only assigned inside `if q:`, but used unconditionally for ml_headword_set())."""

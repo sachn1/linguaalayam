@@ -262,9 +262,15 @@
   const hiddenSel = document.getElementById('lang');
   if (!langBtn || !langOpts || !hiddenSel) return;
 
+  // Non-EN/ML entries only make sense while translation is actually enabled
+  // (TRANSLATION_BACKEND != "noop") — otherwise picking "German" just lets a
+  // German query through to search untranslated, with no honest path to a
+  // result. See linguaalayam/translation/__init__.py's build_translation_service
+  // docstring for why translation is disabled by default.
   const LANGS = [
     { value: 'en-US', flag: '🇺🇸', label: 'EN' },
     { value: 'ml-IN', flag: '🇮🇳', label: 'മ' },
+{% if translation_enabled %}
     { value: 'de-DE', flag: '🇩🇪', label: 'DE' },
     { value: 'fr-FR', flag: '🇫🇷', label: 'FR' },
     { value: 'ru-RU', flag: '🇷🇺', label: 'RU' },
@@ -276,6 +282,7 @@
     { value: 'hi-IN', flag: '🇮🇳', label: 'हि' },
     { value: 'ta-IN', flag: '🇮🇳', label: 'தமி' },
     { value: 'bn-IN', flag: '🇮🇳', label: 'বাং' },
+{% endif %}
   ];
 
   langOpts.innerHTML = LANGS.map(l =>

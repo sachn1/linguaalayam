@@ -17,6 +17,12 @@ class TranslationResult:
 class TranslationService(ABC):
     """Abstract base class for text-to-English translation backends."""
 
+    #: True for a backend that can actually translate (e.g. Marian), False for
+    #: one that only passes text through (e.g. NoOpTranslationService). Drives
+    #: whether the UI's input-language picker offers non-EN/ML options at all —
+    #: see web.py's index() and templates/index.html's LANGS array.
+    supports_translation: bool = True
+
     @abstractmethod
     def translate(self, text: str, source_lang: str = "") -> TranslationResult:
         """Return ``text`` translated into English.

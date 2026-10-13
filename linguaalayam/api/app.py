@@ -99,7 +99,10 @@ async def _lifespan(_: FastAPI):
     """Initialise tools, translator, and MCP session manager at application startup."""
     _ensure_docker_db()
     set_tools(_init_tools())
-    set_translator(build_translation_service(os.getenv("TRANSLATION_BACKEND", "marian")))
+    # "noop" is the default — see translation/__init__.py's build_translation_service
+    # docstring for why Marian is disabled by default (unreliable across several
+    # languages, not just one family). Set TRANSLATION_BACKEND=marian to re-enable it.
+    set_translator(build_translation_service(os.getenv("TRANSLATION_BACKEND", "noop")))
     # The MCP sub-app is mount()ed, so Starlette never runs its lifespan — start
     # the streamable-HTTP session manager here or every MCP request 500s.
     async with mcp.session_manager.run():

@@ -187,7 +187,11 @@ def index(request: Request) -> HTMLResponse:
     HTMLResponse
         The rendered main search page.
     """
-    return _TEMPLATES.TemplateResponse(request, "index.html")
+    return _TEMPLATES.TemplateResponse(
+        request,
+        "index.html",
+        {"translation_enabled": get_translator().supports_translation},
+    )
 
 
 @router.get("/settings")
