@@ -8,6 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from linguaalayam.api.app import app
+from linguaalayam.api.web import _decompose_and_lookup, _format_word_entries
 from linguaalayam.rag.query_understanding import QueryUnderstanding
 from linguaalayam.translation.base import TranslationResult
 
@@ -361,6 +362,300 @@ def test_search_still_synthesizes_short_query_without_confident_result(client, m
         r = client.get("/search?query=run", headers={"X-LLM-Enabled": "1"})
     assert r.status_code == 200
     assert "synthesized answer" in r.text
+
+
+# ── phrase decomposition for AI Answer ──────────────────────────────────────────
+#
+# When the whole-phrase lookup finds nothing confident, _decompose_and_lookup()
+# splits the query into words and looks each up individually — real headword
+# first (fuzzy_lookup), Manglish/Varnam fallback for a Latin-script word that
+# isn't one — so AI Answer can stitch a compositional meaning instead of
+# answering from nothing. Never touches the raw/no-AI results list.
+
+
+def _entry(headword: str, embed_text: str, source: str = "datuk") -> dict:
+    """A per-word lookup result, shaped like DictionaryTools' _to_result output."""
+    return {
+        "headword": headword,
+        "source": source,
+        "entry_type": "DatukEntry",
+        "embed_text": embed_text,
+        "data": {},
+        "match_type": "exact",
+        "score": 1.0,
+    }
+
+
+class TestDecomposeAndLookup:
+    """_decompose_and_lookup's per-word resolution logic, unit-tested directly."""
+
+    def test_uses_fuzzy_first_per_word(self):
+        """A word that's already a real headword resolves via fuzzy_lookup,
+        no Varnam fallback needed."""
+        tools = MagicMock()
+        tools.fuzzy_lookup.side_effect = lambda word, **_: (
+            [_entry("run", "to move quickly")] if word == "run" else []
+        )
+        with patch("linguaalayam.transliteration.varnam.manglish_to_malayalam", return_value=[]):
+            found, _trace = _decompose_and_lookup("run fast", tools, None)
+        assert found == [("run", [_entry("run", "to move quickly")])]
+
+    def test_falls_back_to_varnam_for_latin_word(self):
+        """A Latin-script word with no real-headword match tries Manglish —
+        same precedence search() already uses for the whole phrase."""
+        tools = MagicMock()
+        tools.fuzzy_lookup.return_value = []
+        tools.exact_lookup.side_effect = lambda candidate, **_: (
+            [_entry("ഇരിക്കുക", "to sit")] if candidate == "ഇരിക്കുക" else []
+        )
+        tools.lemma_lookup.return_value = []
+        with patch(
+            "linguaalayam.transliteration.varnam.manglish_to_malayalam",
+            return_value=["ഇരിക്കുക"],
+        ):
+            found, trace = _decompose_and_lookup("irikkoo", tools, None)
+        assert found == [("irikkoo", [_entry("ഇരിക്കുക", "to sit")])]
+        assert trace == [
+            {
+                "word": "irikkoo",
+                "fuzzy_senses": [],
+                "varnam_candidates": ["ഇരിക്കുക"],
+                "chosen_candidate": "ഇരിക്കുക",
+                "final_senses": [_entry("ഇരിക്കുക", "to sit")],
+            }
+        ]
+
+    def test_carries_multiple_senses_per_word_not_just_the_first(self):
+        """A polysemous word (e.g. ഇരിക്കുക has both a "to sit" sense and a
+        grammatical-auxiliary sense) should surface more than one sense, so
+        the LLM can pick the one that actually fits — not be stuck with
+        whichever one a DB query happened to return first."""
+        tools = MagicMock()
+        tools.fuzzy_lookup.return_value = [
+            _entry("ഇരിക്കുക", "an auxiliary verb usage"),
+            _entry("ഇരിക്കുക", "to sit"),
+        ]
+        found, _trace = _decompose_and_lookup("irikkoo", tools, None)
+        assert found == [
+            ("irikkoo", [_entry("ഇരിക്കുക", "an auxiliary verb usage"), _entry("ഇരിക്കുക", "to sit")])
+        ]
+
+    def test_caps_senses_per_word_at_max(self):
+        """fuzzy_lookup's own top_k is capped at _MAX_SENSES_PER_WORD, not
+        left unbounded."""
+        tools = MagicMock()
+        tools.fuzzy_lookup.return_value = []
+        _decompose_and_lookup("irikkoo", tools, None)
+        _, kwargs = tools.fuzzy_lookup.call_args
+        assert kwargs["top_k"] == 3
+
+    def test_skips_words_with_no_match_anywhere(self):
+        """A word that resolves nowhere (not a real headword, not valid
+        Manglish) is simply omitted, not included as an error/placeholder."""
+        tools = MagicMock()
+        tools.fuzzy_lookup.return_value = []
+        tools.exact_lookup.return_value = []
+        tools.lemma_lookup.return_value = []
+        with patch("linguaalayam.transliteration.varnam.manglish_to_malayalam", return_value=[]):
+            found, trace = _decompose_and_lookup("xyzzy run", tools, None)
+        assert found == []
+        # The trace still records both words were tried and found nothing —
+        # the debug view shows this, rather than silently omitting them.
+        assert [t["word"] for t in trace] == ["xyzzy", "run"]
+        assert all(t["final_senses"] == [] for t in trace)
+
+    def test_caps_at_max_decomposition_words(self):
+        """A pathologically long input only looks up the first 8 words."""
+        tools = MagicMock()
+        tools.fuzzy_lookup.return_value = []
+        words = " ".join(f"word{i}" for i in range(20))
+        _decompose_and_lookup(words, tools, None)
+        assert tools.fuzzy_lookup.call_count == 8
+
+
+class TestFormatWordEntries:
+    def test_tags_each_entry_with_its_source_word(self):
+        text = _format_word_entries(
+            [
+                ("dayavayi", [_entry("ദയ", "mercy, kindness")]),
+                ("sahodara", [_entry("സഹോദരൻ", "brother")]),
+            ]
+        )
+        assert '"dayavayi":' in text
+        assert "-> ദയ" in text
+        assert "mercy, kindness" in text
+        assert '"sahodara":' in text
+        assert "-> സഹോദരൻ" in text
+        assert "brother" in text
+
+    def test_lists_every_sense_for_a_polysemous_word(self):
+        text = _format_word_entries(
+            [("irikkoo", [_entry("ഇരിക്കുക", "an auxiliary verb usage"), _entry("ഇരിക്കുക", "to sit")])]
+        )
+        assert "an auxiliary verb usage" in text
+        assert "to sit" in text
+
+
+def test_search_decomposes_manglish_phrase_for_ai_answer(client, mock_tools):
+    """The motivating case: a Manglish phrase with no whole-phrase match at
+    all should still get a stitched AI Answer from per-word lookups, while
+    the raw results list stays genuinely empty."""
+    mock_tools.fuzzy_lookup.return_value = []  # no match for the whole phrase or any word
+    mock_tools.exact_lookup.side_effect = lambda candidate, **_: {
+        "ദയ": [_entry("ദയ", "mercy, kindness")],
+        "ഇരിക്കുക": [
+            _entry("ഇരിക്കുക", "an auxiliary verb usage"),
+            _entry("ഇരിക്കുക", "to sit"),
+        ],
+        "സഹോദരൻ": [_entry("സഹോദരൻ", "brother")],
+    }.get(candidate, [])
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "please sit, brother"
+    mock_llm.extract_structured.return_value = QueryUnderstanding(
+        headword="Dayavayi Irikkoo sahodara", intent="unknown"
+    )
+
+    def varnam_side_effect(word: str) -> list[str]:
+        return {"dayavayi": ["ദയ"], "irikkoo": ["ഇരിക്കുക"], "sahodara": ["സഹോദരൻ"]}.get(word, [])
+
+    with (
+        patch("linguaalayam.api.web._get_server_llm", return_value=mock_llm),
+        patch(
+            "linguaalayam.transliteration.varnam.manglish_to_malayalam",
+            side_effect=varnam_side_effect,
+        ),
+    ):
+        r = client.get("/search?query=Dayavayi+Irikkoo+sahodara", headers={"X-LLM-Enabled": "1"})
+    assert r.status_code == 200
+    assert "please sit, brother" in r.text
+    assert "No results" in r.text  # raw results list untouched, still empty
+
+    # The LLM should have been given the looser, know-your-own-knowledge system
+    # prompt (not the strict dictionary-only one used for a real phrase match),
+    # and both senses of the polysemous word, not just the first.
+    system_prompt, content = mock_llm.complete.call_args[0]
+    assert "trust that recognition over the dictionary text" in system_prompt
+    assert "an auxiliary verb usage" in content
+    assert "to sit" in content
+
+    content = mock_llm.complete.call_args[0][1]
+    assert "ദയ" in content
+    assert "ഇരിക്കുക" in content
+    assert "സഹോദരൻ" in content
+
+
+def test_search_skips_decomposition_when_ai_disabled(client, mock_tools):
+    """No per-word lookups should fire at all when AI Answer is off — would
+    be wasted work with nothing to show it to."""
+    mock_tools.fuzzy_lookup.return_value = []
+    r = client.get("/search?query=Dayavayi+Irikkoo+sahodara")
+    assert r.status_code == 200
+    assert "No results" in r.text
+    # Only the one whole-phrase fuzzy_lookup call — no per-word follow-up calls.
+    assert mock_tools.fuzzy_lookup.call_count == 1
+
+
+# ── debug panel (?debug=1) ──────────────────────────────────────────────────
+
+
+def _setup_decomposition_mocks(mock_tools, mock_translator, with_missing_word=False):
+    """Shared setup for the "Dayavayi Irikkoo sahodara" decomposition case,
+    optionally dropping the dictionary entry for "sahodara" to exercise the
+    no-match trace path."""
+    senses = {
+        "ദയ": [_entry("ദയ", "mercy, kindness")],
+        "ഇരിക്കുക": [_entry("ഇരിക്കുക", "to sit")],
+    }
+    if not with_missing_word:
+        senses["സഹോദരൻ"] = [_entry("സഹോദരൻ", "brother")]
+    mock_tools.fuzzy_lookup.return_value = []
+    mock_tools.exact_lookup.side_effect = lambda candidate, **_: senses.get(candidate, [])
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "please sit, brother"
+    mock_llm.extract_structured.return_value = QueryUnderstanding(
+        headword="Dayavayi Irikkoo sahodara", intent="unknown"
+    )
+    return mock_llm
+
+
+def test_search_debug_panel_shows_trace_and_prompt(client, mock_tools):
+    """?debug=1 should render the per-word Varnam/dictionary trace and the
+    exact prompt sent to the LLM."""
+    mock_llm = _setup_decomposition_mocks(mock_tools, None)
+
+    def varnam_side_effect(word: str) -> list[str]:
+        return {"dayavayi": ["ദയ"], "irikkoo": ["ഇരിക്കുക"], "sahodara": ["സഹോദരൻ"]}.get(word, [])
+
+    with (
+        patch("linguaalayam.api.web._get_server_llm", return_value=mock_llm),
+        patch(
+            "linguaalayam.transliteration.varnam.manglish_to_malayalam",
+            side_effect=varnam_side_effect,
+        ),
+    ):
+        r = client.get(
+            "/search?query=Dayavayi+Irikkoo+sahodara&debug=1",
+            headers={"X-LLM-Enabled": "1"},
+        )
+    assert r.status_code == 200
+    assert "Debug: phrase decomposition trace" in r.text
+    # Varnam candidate + chosen candidate shown per word.
+    assert "ദയ" in r.text and "ഇരിക്കുക" in r.text
+    # The exact prompt is rendered, not just a summary.
+    assert "please sit, brother" not in r.text or "Dictionary entries:" in r.text
+    assert "Question: Dayavayi Irikkoo sahodara" in r.text
+
+
+def test_search_debug_panel_shows_unmatched_word(client, mock_tools):
+    """A word with no match anywhere should show in the trace as such, not be
+    silently dropped from the debug view the way it's dropped from synthesis."""
+    mock_llm = _setup_decomposition_mocks(mock_tools, None, with_missing_word=True)
+
+    def varnam_side_effect(word: str) -> list[str]:
+        return {"dayavayi": ["ദയ"], "irikkoo": ["ഇരിക്കുക"]}.get(word, [])
+
+    with (
+        patch("linguaalayam.api.web._get_server_llm", return_value=mock_llm),
+        patch(
+            "linguaalayam.transliteration.varnam.manglish_to_malayalam",
+            side_effect=varnam_side_effect,
+        ),
+    ):
+        r = client.get(
+            "/search?query=Dayavayi+Irikkoo+sahodara&debug=1",
+            headers={"X-LLM-Enabled": "1"},
+        )
+    assert r.status_code == 200
+    assert "no match anywhere" in r.text
+
+
+def test_search_no_debug_panel_without_debug_param(client, mock_tools):
+    """The trace panel should not render at all unless ?debug=1 is explicitly
+    passed — not a default-on feature."""
+    mock_llm = _setup_decomposition_mocks(mock_tools, None)
+
+    def varnam_side_effect(word: str) -> list[str]:
+        return {"dayavayi": ["ദയ"], "irikkoo": ["ഇരിക്കുക"], "sahodara": ["സഹോദരൻ"]}.get(word, [])
+
+    with (
+        patch("linguaalayam.api.web._get_server_llm", return_value=mock_llm),
+        patch(
+            "linguaalayam.transliteration.varnam.manglish_to_malayalam",
+            side_effect=varnam_side_effect,
+        ),
+    ):
+        r = client.get("/search?query=Dayavayi+Irikkoo+sahodara", headers={"X-LLM-Enabled": "1"})
+    assert r.status_code == 200
+    assert "Debug: phrase decomposition trace" not in r.text
+
+
+def test_search_no_debug_panel_when_decomposition_not_used(client, mock_tools):
+    """?debug=1 on an ordinary confident single-word query should have no
+    effect — there's no decomposition trace to show."""
+    mock_tools.fuzzy_lookup.return_value = [_result(match_type="exact")]
+    r = client.get("/search?query=run&debug=1")
+    assert r.status_code == 200
+    assert "Debug: phrase decomposition trace" not in r.text
 
 
 # ── feature tip ──────────────────────────────────────────────────────────────

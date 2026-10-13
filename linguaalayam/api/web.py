@@ -20,6 +20,7 @@ from linguaalayam.llm.adapters.togetherai import TogetherAIAdapter
 from linguaalayam.observability import log_feature_event
 from linguaalayam.rag.pipeline import _SYNTHESIS_SYSTEM, _SYNTHESIS_TEMPLATE, _format_entries
 from linguaalayam.rag.query_understanding import understand_query
+from linguaalayam.rag.tools import DictionaryTools
 from linguaalayam.translation.marian import LANG_NAMES
 from linguaalayam.transliteration import (
     analyse_word,
@@ -150,6 +151,108 @@ def _has_confident_result(results: list[dict]) -> bool:
     )
 
 
+# Guards against a pathological long input (e.g. a pasted paragraph) turning into
+# dozens of per-word lookups — a real phrase worth decomposing is a handful of words.
+_MAX_DECOMPOSITION_WORDS = 8
+
+# A word can be genuinely polysemous (e.g. ഇരിക്കുക has both a "to sit" sense and
+# a grammatical-auxiliary sense) — taking only the first sense risks handing the
+# LLM a technically-correct-but-wrong-in-context definition. A few senses gives
+# it enough to actually disambiguate from, rather than parroting whichever one a
+# DB query happened to return first.
+_MAX_SENSES_PER_WORD = 3
+
+_DECOMPOSITION_SYNTHESIS_SYSTEM = (
+    "The user's query is a phrase with no single matching dictionary entry. Below are"
+    " word-by-word dictionary lookups for the words in it — treat them as supporting"
+    " context, not the authority to parse literally. These entries come from a"
+    " 200-year-old classical lexicon: a single word's entry is often one long,"
+    " semicolon-separated list cramming many senses together (literal, figurative,"
+    " archaic), in no particular order of how common or relevant each sense actually"
+    " is in modern usage. A listed word may also just be the nearest dictionary root"
+    " of a common colloquial/idiomatic word that isn't in the dictionary at all (e.g."
+    ' a word meaning "mercy" is the root of an everyday word meaning "please").'
+    " If you recognise the phrase itself — or the individual words — as ordinary"
+    " modern Malayalam or Manglish from your own training, trust that recognition"
+    " over the dictionary text; the entries are there to help with unfamiliar or"
+    " ambiguous words, not to override what you already know a common phrase means."
+    " Respond in one to three plain sentences as if speaking aloud — no markdown, no"
+    " bullet points, no preamble, no meta-commentary."
+)
+
+
+def _decompose_and_lookup(
+    headword: str, tools: DictionaryTools, src: str | list[str] | None
+) -> tuple[list[tuple[str, list[dict]]], list[dict]]:
+    """Look up each word of a multi-word query individually, for AI Answer only.
+
+    Only called when the whole-phrase lookup found nothing confident (see
+    ``search()``) — feeds per-word senses into AI synthesis so the LLM can
+    stitch a compositional answer instead of only ever answering from one
+    failed whole-phrase match (e.g. Manglish "Dayavayi Irikkoo sahodara" has
+    no whole-phrase match, but word-by-word resolves to ദയ + ഇരിക്കുക +
+    സഹോദരൻ — "please sit, brother"). Never feeds the raw/no-AI results list —
+    a wall of unrelated single-word entries would be worse than today's
+    empty/AI-hint state.
+
+    Each Latin-script word tries a real headword first (fuzzy_lookup), then
+    falls back to Varnam's Manglish reading — same precedence ``search()``
+    already uses for the whole phrase, just applied per word. Up to
+    ``_MAX_SENSES_PER_WORD`` entries per word, not just the first, so the LLM
+    has enough to disambiguate a polysemous word rather than being stuck with
+    whichever sense happened to come back first.
+
+    Returns
+    -------
+    tuple[list[tuple[str, list[dict]]], list[dict]]
+        The ``(word, senses)`` pairs used for synthesis, and a parallel
+        per-word trace (every Varnam candidate tried, which one validated if
+        any, and the senses that came back) for the ``?debug=1`` view — built
+        unconditionally, since it's just recording what already happened, not
+        a second lookup path that could drift from the real one.
+    """
+    from linguaalayam.transliteration.varnam import manglish_to_malayalam  # lazy import
+
+    found: list[tuple[str, list[dict]]] = []
+    trace: list[dict] = []
+    for word in headword.split()[:_MAX_DECOMPOSITION_WORDS]:
+        word_trace = {
+            "word": word,
+            "fuzzy_senses": [],
+            "varnam_candidates": [],
+            "chosen_candidate": None,
+            "final_senses": [],
+        }
+        word_results = tools.fuzzy_lookup(word, source=src, top_k=_MAX_SENSES_PER_WORD)
+        word_trace["fuzzy_senses"] = word_results
+        if not word_results and is_latin_script(word):
+            candidates = manglish_to_malayalam(word.lower())
+            word_trace["varnam_candidates"] = candidates
+            for candidate in candidates:
+                candidate_results = tools.exact_lookup(candidate, source=src) or tools.lemma_lookup(
+                    candidate, source=src
+                )
+                if candidate_results:
+                    word_results = candidate_results[:_MAX_SENSES_PER_WORD]
+                    word_trace["chosen_candidate"] = candidate
+                    break
+        word_trace["final_senses"] = word_results
+        trace.append(word_trace)
+        if word_results:
+            found.append((word, word_results))
+    return found, trace
+
+
+def _format_word_entries(word_entries: list[tuple[str, list[dict]]]) -> str:
+    """Format per-word senses as a numbered block, each tagged by its source word."""
+    lines = []
+    for i, (word, entries) in enumerate(word_entries, 1):
+        lines.append(f'[{i}] "{word}":')
+        for entry in entries:
+            lines.append(f"    -> {entry['headword']} ({entry['source']}): {entry['embed_text']}")
+    return "\n".join(lines)
+
+
 def _make_llm(provider: str, key: str):
     """Instantiate an LLM adapter from a user-supplied key."""
     if provider == "openai":
@@ -274,6 +377,7 @@ def search(
     source: Annotated[str, Query()] = "",
     top_k: Annotated[int, Query()] = 10,
     lang: Annotated[str, Query()] = "en-US",
+    debug: Annotated[bool, Query()] = False,
 ):
     """Handle a dictionary search request and return an HTMX partial or full results page.
 
@@ -291,6 +395,11 @@ def search(
     lang : str, optional
         BCP-47 language code for the query (used for translation pre-processing);
         default ``"en-US"``.
+    debug : bool, optional
+        When true and phrase decomposition actually ran, render a trace panel
+        (per-word Varnam candidates, what the dictionary returned, and the
+        exact prompt sent to the LLM) — a developer/debugging aid, not shown
+        by default. No effect when decomposition didn't run.
 
     Returns
     -------
@@ -303,6 +412,8 @@ def search(
     varnam_used = False
     varnam_alternatives: list[str] = []
     manglish_suggestions: list[str] = []
+    decomposition_trace: list[dict] = []
+    debug_prompt: dict[str, str] | None = None
     q = query.strip()
     _src = source.strip() or None
     # Expand logical source values to actual corpus names.
@@ -418,7 +529,16 @@ def search(
         worth_synthesizing = len(q.split()) >= _AI_HINT_MIN_WORDS or not _has_confident_result(
             results
         )
-        if results and llm and worth_synthesizing:
+
+        # Whole-phrase match failed — decompose into words and look each up
+        # individually, so the LLM has per-word meanings to stitch into a
+        # compositional answer instead of nothing at all. Only attempted when
+        # an LLM is actually available, to avoid the extra lookups for nothing.
+        word_entries: list[tuple[str, list[dict]]] = []
+        if llm and " " in headword and not _has_confident_result(results):
+            word_entries, decomposition_trace = _decompose_and_lookup(headword, tools, src)
+
+        if (results or word_entries) and llm and worth_synthesizing:
             try:
                 # Deliberately the full, unfiltered `results` — not results.html's
                 # MIN_SCORE-filtered view. A candidate scoring between
@@ -426,11 +546,28 @@ def search(
                 # (0.80) is hidden from the plain results list but still visible
                 # to the LLM here, since it's weak evidence worth reasoning over,
                 # not weak enough to withhold from AI Answer entirely.
-                entries_text = _format_entries(results[:top_k])
+                #
+                # Decomposed per-word entries use a looser system prompt than a
+                # real whole-phrase match: _SYNTHESIS_SYSTEM deliberately
+                # restricts the LLM to only the dictionary text (avoids
+                # hallucinating beyond a confirmed real entry), but a
+                # decomposed phrase is already a best-effort reconstruction —
+                # the LLM needs to lean on its own Malayalam/English knowledge
+                # to pick the right sense and bridge a root word (e.g. ദയ,
+                # "mercy") to the idiomatic phrase it's actually part of
+                # (ദയവായി, "please") that the dictionary has no entry for at all.
+                if word_entries:
+                    entries_text = _format_word_entries(word_entries)
+                    system_prompt = _DECOMPOSITION_SYNTHESIS_SYSTEM
+                else:
+                    entries_text = _format_entries(results[:top_k])
+                    system_prompt = _SYNTHESIS_SYSTEM
                 content = _SYNTHESIS_TEMPLATE.format(query=q, entries=entries_text)
                 answer_lang = _ANSWER_LANGUAGE_NAMES.get(translation.source_lang, "English")
                 content += f"\n\nRespond in {answer_lang}."
-                answer = html.escape(llm.complete(_SYNTHESIS_SYSTEM, content))
+                if debug and word_entries:
+                    debug_prompt = {"system": system_prompt, "content": content}
+                answer = html.escape(llm.complete(system_prompt, content))
             except Exception:
                 log.warning("LLM synthesis failed for %r", q, exc_info=True)
 
@@ -485,5 +622,8 @@ def search(
             "varnam_used": varnam_used,
             "varnam_alternatives": varnam_alternatives,
             "manglish_suggestions": manglish_suggestions,
+            "debug": debug,
+            "decomposition_trace": decomposition_trace,
+            "debug_prompt": debug_prompt,
         },
     )
