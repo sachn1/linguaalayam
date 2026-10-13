@@ -2,13 +2,18 @@
 
 import os
 
-from langchain_anthropic import ChatAnthropic
-
 from .base import LangChainAdapter
 
 
 class AnthropicAdapter(LangChainAdapter):
     """LLM adapter backed by the Anthropic API via LangChain's ChatAnthropic.
+
+    ``langchain-anthropic`` is imported lazily in ``__init__`` rather than at
+    module level — this module is imported unconditionally at app startup
+    (``api/web.py``), so a module-level import here would pay its load cost
+    on every cold start regardless of whether Anthropic is ever actually
+    used (the web app is bring-your-own-key for Anthropic; most requests
+    never touch this adapter at all).
 
     Parameters
     ----------
@@ -23,6 +28,8 @@ class AnthropicAdapter(LangChainAdapter):
     ------
     RuntimeError
         If ``ANTHROPIC_API_KEY`` is not set in the environment.
+    ImportError
+        If ``langchain-anthropic`` is not installed.
     """
 
     def __init__(
@@ -38,6 +45,13 @@ class AnthropicAdapter(LangChainAdapter):
                 "ANTHROPIC_API_KEY is not set. "
                 "Add it to your .env file: ANTHROPIC_API_KEY=sk-ant-..."
             )
+        try:
+            from langchain_anthropic import ChatAnthropic
+        except ImportError as exc:
+            raise ImportError(
+                "langchain-anthropic is required for the Anthropic provider. "
+                "Run: poetry add langchain-anthropic"
+            ) from exc
         self._llm = ChatAnthropic(
             model=model, temperature=temperature, max_tokens=max_tokens, api_key=key
         )
