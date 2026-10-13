@@ -1,6 +1,8 @@
 """FastAPI REST layer over LinguAalayam's DictionaryTools."""
 
+import asyncio
 import json
+import logging
 import os
 import subprocess
 import time
@@ -13,7 +15,7 @@ import uvicorn
 from fastapi import FastAPI, Query, Response
 from fastapi.staticfiles import StaticFiles
 from httpx import ASGITransport, AsyncClient
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 from pydantic import BaseModel
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.requests import Request
@@ -22,7 +24,7 @@ from linguaalayam.api.admin import router as _admin_router
 from linguaalayam.api.dependencies import get_tools, set_session_factory, set_tools, set_translator
 from linguaalayam.api.web import router as _web_router
 from linguaalayam.database import build_engine, build_session_factory
-from linguaalayam.embeddings import EmbeddingService
+from linguaalayam.embeddings import EmbeddingService, LazyEmbeddingService
 from linguaalayam.env import load_env
 from linguaalayam.mcp.remote import get_mcp_app, mcp
 from linguaalayam.observability import RequestLoggingMiddleware
@@ -31,6 +33,8 @@ from linguaalayam.rag.tools import DictionaryTools
 from linguaalayam.translation import build_translation_service
 
 load_env()
+
+log = logging.getLogger(__name__)
 
 # _CACHE_1D is a one-day HTTP cache directive
 # reused by multiple routes.
@@ -66,8 +70,25 @@ def _ensure_docker_db() -> None:
         pass
 
 
-def _init_tools() -> DictionaryTools:
-    """Build DictionaryTools from environment variables."""
+def _build_embed_cfg() -> DictConfig:
+    """Build the embedding config from environment variables."""
+    return OmegaConf.create(
+        {
+            "model": os.getenv("EMBED_MODEL", _EMBED_MODEL),
+            "batch_size": 256,
+            "normalize": True,
+            "quantise": False,
+        }
+    )
+
+
+def _init_tools() -> tuple[DictionaryTools, LazyEmbeddingService]:
+    """Build DictionaryTools from environment variables.
+
+    The embedding model is handed to ``DictionaryTools`` as a
+    ``LazyEmbeddingService`` placeholder, not constructed here — see
+    ``_load_embedding_service`` and ``_lifespan``'s background task for why.
+    """
     db_cfg = OmegaConf.create(
         {
             "user": os.getenv("DB_USER", "postgres"),
@@ -79,26 +100,58 @@ def _init_tools() -> DictionaryTools:
             "max_overflow": int(os.getenv("DB_MAX_OVERFLOW", "10")),
         }
     )
-    embed_cfg = OmegaConf.create(
-        {
-            "model": os.getenv("EMBED_MODEL", _EMBED_MODEL),
-            "batch_size": 256,
-            "normalize": True,
-            "quantise": False,
-        }
-    )
     engine = build_engine(db_cfg)
     session_factory = build_session_factory(engine)
     set_session_factory(session_factory)
-    service = EmbeddingService(embed_cfg)
-    return DictionaryTools(session_factory, service)
+    lazy_service = LazyEmbeddingService()
+    return DictionaryTools(session_factory, lazy_service), lazy_service
+
+
+async def _load_embedding_service(lazy_service: LazyEmbeddingService) -> None:
+    """Build the real EmbeddingService in a worker thread, then publish it.
+
+    Importing ``sentence_transformers``/``torch`` and loading the model
+    weights takes several real seconds — but only MCP's ``semantic_lookup``
+    tool, the CLI RAG pipeline, and the eval harness ever need it; the web
+    search path (``api/web.py``) doesn't call it at all. Running this in the
+    background means a purely-web cold start is ready to serve as soon as the
+    (fast) DB connection is up, instead of waiting on a model most requests
+    never touch. Whichever request *does* reach ``LazyEmbeddingService``
+    first blocks until this finishes — a bounded per-request wait, not a
+    whole-instance delay.
+    """
+    try:
+        loop = asyncio.get_running_loop()
+        embed_cfg = _build_embed_cfg()
+        service = await loop.run_in_executor(None, EmbeddingService, embed_cfg)
+        lazy_service.set_ready(service)
+    except Exception:
+        # Never awaited anywhere, so an uncaught exception here would only
+        # surface as asyncio's generic "Task exception was never retrieved"
+        # warning, with no indication every semantic_lookup call is about to
+        # hang forever (LazyEmbeddingService's wait() never completes). Log
+        # it loudly instead.
+        log.error("Background embedding model load failed", exc_info=True)
+
+
+#: Holds a strong reference to the background embedding-load task so it can't
+#: be garbage-collected mid-flight (asyncio only holds a weak reference to a
+#: task once nothing else refers to it) — removes itself once done.
+_background_tasks: set[asyncio.Task] = set()
 
 
 @asynccontextmanager
 async def _lifespan(_: FastAPI):
     """Initialise tools, translator, and MCP session manager at application startup."""
     _ensure_docker_db()
-    set_tools(_init_tools())
+    tools, lazy_service = _init_tools()
+    set_tools(tools)
+    # Fire-and-forget: the embedding model loads in the background while
+    # Uvicorn starts accepting requests immediately. Not awaited here — see
+    # _load_embedding_service's docstring for why.
+    task = asyncio.create_task(_load_embedding_service(lazy_service))
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
     # "noop" is the default — see translation/__init__.py's build_translation_service
     # docstring for why Marian is disabled by default (unreliable across several
     # languages, not just one family). Set TRANSLATION_BACKEND=marian to re-enable it.

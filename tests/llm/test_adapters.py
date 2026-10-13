@@ -35,7 +35,9 @@ class TestAnthropicAdapter:
         """Build an AnthropicAdapter with a mocked ChatAnthropic."""
         with (
             patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-ant-test"}),
-            patch("linguaalayam.llm.adapters.anthropic.ChatAnthropic"),
+            patch.dict(
+                "sys.modules", {"langchain_anthropic": MagicMock(ChatAnthropic=MagicMock())}
+            ),
         ):
             return AnthropicAdapter(model=model)
 
@@ -48,9 +50,12 @@ class TestAnthropicAdapter:
         """complete should return the model response as a plain string."""
         mock_llm = MagicMock()
         mock_llm.invoke.return_value = AIMessage(content="ഓടുക")
+        mock_chat_anthropic = MagicMock(return_value=mock_llm)
         with (
             patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-ant-test"}),
-            patch("linguaalayam.llm.adapters.anthropic.ChatAnthropic", return_value=mock_llm),
+            patch.dict(
+                "sys.modules", {"langchain_anthropic": MagicMock(ChatAnthropic=mock_chat_anthropic)}
+            ),
         ):
             adapter = AnthropicAdapter(model="claude-3-5-sonnet-20241022")
         result = adapter.complete("system prompt", "user prompt")
@@ -67,10 +72,13 @@ class TestAnthropicAdapter:
         structured = MagicMock()
         structured.invoke.return_value = Schema(word="run")
         mock_llm.with_structured_output.return_value = structured
+        mock_chat_anthropic = MagicMock(return_value=mock_llm)
 
         with (
             patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-ant-test"}),
-            patch("linguaalayam.llm.adapters.anthropic.ChatAnthropic", return_value=mock_llm),
+            patch.dict(
+                "sys.modules", {"langchain_anthropic": MagicMock(ChatAnthropic=mock_chat_anthropic)}
+            ),
         ):
             adapter = AnthropicAdapter(model="claude-3-5-sonnet-20241022")
 

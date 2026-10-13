@@ -1,6 +1,12 @@
 """Helsinki-NLP/opus-mt-mul-en translation service.
 
-Lazy-loads the model on first non-EN/ML request so API startup stays fast.
+Lazy-loads both the ``transformers`` import and the model weights on first
+non-EN/ML request, so API startup stays fast — this class isn't even
+instantiated by default now (``TRANSLATION_BACKEND=noop``, see
+translation/__init__.py), but LANG_NAMES/SPEECH_LANGS below are imported
+directly by api/web.py regardless, so a module-level ``transformers`` import
+here would cost every cold start (torch, pulled in transitively, is several
+seconds alone) for a feature most deployments never use at all.
 The caller supplies the source language (from the UI selector); a lightweight
 langdetect check (see ``_detect_mismatch``) only ever corrects the two
 "skip translation" declarations (en/ml) when the text is confidently a
@@ -10,11 +16,14 @@ TRANSLATION_BACKEND to the new key in build_translation_service().
 """
 
 import logging
+from typing import TYPE_CHECKING
 
 from langdetect import DetectorFactory, LangDetectException, detect_langs
-from transformers import MarianMTModel, MarianTokenizer
 
 from linguaalayam.translation.base import TranslationResult, TranslationService
+
+if TYPE_CHECKING:
+    from transformers import MarianMTModel, MarianTokenizer
 
 log = logging.getLogger(__name__)
 
@@ -119,8 +128,11 @@ class MarianTranslationService(TranslationService):
         self._model: MarianMTModel | None = None
 
     def _load(self) -> None:
-        """Lazily load the tokenizer and model on first non-EN/ML request."""
+        """Lazily import transformers and load the tokenizer/model, on first
+        non-EN/ML request."""
         if self._model is None:
+            from transformers import MarianMTModel, MarianTokenizer
+
             log.info("Loading translation model %s (first non-EN/ML query)", self.MODEL_NAME)
             self._tokenizer = MarianTokenizer.from_pretrained(self.MODEL_NAME)
             self._model = MarianMTModel.from_pretrained(self.MODEL_NAME)

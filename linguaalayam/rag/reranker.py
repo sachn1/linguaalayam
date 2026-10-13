@@ -1,7 +1,5 @@
 """Cross-encoder reranker for merging and re-scoring candidates from multiple tools."""
 
-from sentence_transformers import CrossEncoder
-
 _DEFAULT_MODEL = "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
 
 
@@ -12,6 +10,13 @@ class CrossEncoderReranker:
     scores are incommensurable, so the cross-encoder provides a unified
     relevance signal over the combined list.
 
+    ``sentence_transformers`` is imported lazily in ``__init__`` rather than
+    at module level — this class is only ever instantiated by the CLI RAG
+    pipeline/eval harness when reranking is explicitly enabled, but this
+    module is imported unconditionally via ``rag/pipeline.py`` -> ``api/web.py``,
+    so a module-level import here would cost every web cold start, including
+    the vast majority of requests that never touch reranking at all.
+
     Parameters
     ----------
     model_name : str, optional
@@ -20,6 +25,8 @@ class CrossEncoderReranker:
     """
 
     def __init__(self, model_name: str = _DEFAULT_MODEL) -> None:
+        from sentence_transformers import CrossEncoder
+
         self._model = CrossEncoder(model_name)
 
     def rerank(
