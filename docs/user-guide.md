@@ -8,7 +8,7 @@ LinguAalayam is a Malayalam dictionary that searches across four open corpora �
 
 ## How search works
 
-Type a word in the search bar and results appear automatically. There is no mode to switch — the search engine finds the best matches using trigram similarity, which naturally ranks exact matches at the top followed by close variants.
+Type a word in the search bar and results appear automatically. There is no mode to switch — the search engine finds the best matches using edit-distance similarity, which naturally ranks exact matches at the top followed by close variants.
 
 - Type **English** to find Malayalam definitions: *run*, *happiness*, *ephemeral*
 - Type **Malayalam** to find definitions in any direction: *ഓടുക*, *സന്തോഷം*

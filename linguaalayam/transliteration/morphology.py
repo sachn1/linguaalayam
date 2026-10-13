@@ -102,7 +102,7 @@ def get_lemma(word: str) -> str | None:
     """Return mlmorph's dictionary root/lemma for `word`, or None if unanalysable.
 
     Used to relate an inflected surface form (e.g. നിന്ദിക്കുന്നു) back to the
-    dictionary headword it inflects (നിന്ദിക്കുക), for search ranking — trigram
+    dictionary headword it inflects (നിന്ദിക്കുക), for search ranking — string
     similarity alone can't distinguish that from an unrelated but similarly
     spelled word. Picks the lowest-weight (most likely) FST analysis when a
     word has several. Returns None for loanwords, English, or other words

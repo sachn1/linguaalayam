@@ -1,4 +1,4 @@
-"""Query tests: exact_search, fuzzy_search (sqlite path), similarity_search, pg batch_insert."""
+"""Query tests: exact_search, levenshtein_search, similarity_search, pg batch_insert."""
 
 from unittest.mock import MagicMock, patch
 
@@ -8,7 +8,6 @@ from pgvector.sqlalchemy import Vector
 from linguaalayam.database.queries import (
     batch_insert,
     exact_search,
-    fuzzy_search,
     levenshtein_search,
     similarity_search,
 )
@@ -99,90 +98,13 @@ class TestExactSearch:
 
 
 # ---------------------------------------------------------------------------
-# fuzzy_search — SQLite ILIKE fallback
-# ---------------------------------------------------------------------------
-
-
-class TestFuzzySearchSQLite:
-    """fuzzy_search SQLite ILIKE fallback behaviour."""
-
-    def test_ilike_matches_substring(self, session_factory):
-        """ILIKE search should match entries containing the query substring."""
-        with get_session(session_factory) as session:
-            batch_insert(session, [_entry("run"), _entry("runner")], [_vec(), _vec()])
-        with get_session(session_factory) as session:
-            results = fuzzy_search(session, "run")
-        headwords = [r.headword for r, _ in results]
-        assert "run" in headwords
-
-    def test_ilike_source_filter(self, session_factory):
-        """Source filter should narrow SQLite ILIKE results."""
-        with get_session(session_factory) as session:
-            batch_insert(session, [_entry("run")], [_vec()])
-        with get_session(session_factory) as session:
-            results = fuzzy_search(session, "run", source="olam_enml")
-        assert len(results) == 1
-
-    def test_ilike_source_filter_excludes(self, session_factory):
-        """Non-matching source filter should exclude all results."""
-        with get_session(session_factory) as session:
-            batch_insert(session, [_entry("run")], [_vec()])
-        with get_session(session_factory) as session:
-            results = fuzzy_search(session, "run", source="other")
-        assert results == []
-
-    def test_ilike_no_match(self, session_factory):
-        """Should return empty list when no entry matches the query."""
-        with get_session(session_factory) as session:
-            results = fuzzy_search(session, "xyzzy")
-        assert results == []
-
-    def test_score_is_1_for_sqlite(self, session_factory):
-        """SQLite ILIKE fallback should assign score=1.0 to all results."""
-        with get_session(session_factory) as session:
-            batch_insert(session, [_entry("run")], [_vec()])
-        with get_session(session_factory) as session:
-            results = fuzzy_search(session, "run")
-        assert all(score == 1.0 for _, score in results)
-
-
-# ---------------------------------------------------------------------------
-# fuzzy_search — PostgreSQL pg_trgm path (mock session)
-# ---------------------------------------------------------------------------
-
-
-class TestFuzzySearchPostgres:
-    """fuzzy_search Postgres pg_trgm path (mock session)."""
-
-    def test_pg_trgm_returns_results(self):
-        """Should return (entry, score) tuples from the pg_trgm query."""
-        mock_session = MagicMock()
-        mock_session.get_bind.return_value.dialect.name = "postgresql"
-        mock_entry = MagicMock(spec=DictionaryEntry)
-        mock_session.execute.return_value = [(mock_entry, 0.75)]
-
-        results = fuzzy_search(mock_session, "run")
-        assert len(results) == 1
-        assert results[0][1] == pytest.approx(0.75)
-
-    def test_pg_trgm_with_source(self):
-        """Source filter should be included in the Postgres query."""
-        mock_session = MagicMock()
-        mock_session.get_bind.return_value.dialect.name = "postgresql"
-        mock_session.execute.return_value = []
-
-        fuzzy_search(mock_session, "run", source="olam_enml")
-        mock_session.execute.assert_called_once()
-
-
-# ---------------------------------------------------------------------------
 # levenshtein_search — SQLite ILIKE fallback
 # ---------------------------------------------------------------------------
 
 
 class TestLevenshteinSearchSQLite:
-    """levenshtein_search SQLite ILIKE fallback behaviour — same fallback as fuzzy_search,
-    since fuzzystrmatch has no SQLite equivalent either."""
+    """levenshtein_search SQLite ILIKE fallback behaviour — fuzzystrmatch has no
+    SQLite equivalent, so non-Postgres dialects fall back to a plain ILIKE scan."""
 
     def test_ilike_matches_substring(self, session_factory):
         """ILIKE search should match entries containing the query substring."""
@@ -326,18 +248,18 @@ class TestListSourceFiltering:
             results = exact_search(session, "run", source=["datuk", "sayahna"])
         assert results == []
 
-    def test_fuzzy_search_list_includes(self, session_factory):
-        """fuzzy_search with a list source should include matching entries."""
+    def test_levenshtein_search_list_includes(self, session_factory):
+        """levenshtein_search with a list source should include matching entries."""
         with get_session(session_factory) as session:
             batch_insert(session, [_entry("run")], [_vec()])
         with get_session(session_factory) as session:
-            results = fuzzy_search(session, "run", source=["olam_enml", "datuk"])
+            results = levenshtein_search(session, "run", source=["olam_enml", "datuk"])
         assert len(results) >= 1
 
-    def test_fuzzy_search_list_excludes(self, session_factory):
-        """fuzzy_search with a non-matching list source returns nothing."""
+    def test_levenshtein_search_list_excludes(self, session_factory):
+        """levenshtein_search with a non-matching list source returns nothing."""
         with get_session(session_factory) as session:
             batch_insert(session, [_entry("run")], [_vec()])
         with get_session(session_factory) as session:
-            results = fuzzy_search(session, "run", source=["datuk", "sayahna"])
+            results = levenshtein_search(session, "run", source=["datuk", "sayahna"])
         assert results == []
