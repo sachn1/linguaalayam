@@ -8,8 +8,8 @@ on:
         default: "5"
         required: false
       fuzzy_threshold:
-        description: "pg_trgm similarity threshold, 0–1 (default: 0.3)"
-        default: "0.3"
+        description: "Edit-distance similarity threshold, 0–1 (default: 0.75)"
+        default: "0.75"
         required: false
       output:
         description: "Path to write JSONL results (leave blank to skip)"

@@ -63,7 +63,7 @@ To add a new provider: subclass `LLMAdapter` in `linguaalayam/llm/adapters/` and
 | `rag.source` | `null` | Corpus filter (e.g. `olam_enml`) |
 | `rag.top_k` | `5` | Candidates passed to the synthesizer |
 | `rag.rerank` | `false` | Enable cross-encoder reranking |
-| `rag.fuzzy_threshold` | `0.3` | pg_trgm similarity threshold (0–1) |
+| `rag.fuzzy_threshold` | `0.75` | Normalized edit-distance similarity threshold (0–1) |
 | `rag.fuzzy_limit` | `10` | Max fuzzy candidates before merge |
 
 ## Debug tool (all three retrieval methods)

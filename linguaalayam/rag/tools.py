@@ -137,10 +137,10 @@ class DictionaryTools:
            threshold involved.
         2. **Edit distance** (:func:`levenshtein_search`, `fuzzystrmatch`) — catches
            genuine typos. Normalized similarity, ``1 - levenshtein(headword, query) /
-           max(len(headword), len(query))``, chosen over pg_trgm because trigram
-           similarity is length-biased (a fixed-size edit costs a much bigger fraction
-           of a short word's trigram set), silently hiding typos on short words. See
-           `docs/architecture.md`'s Observability section.
+           max(len(headword), len(query))`` — a fixed-size edit costs the same
+           regardless of word length, so short words aren't penalized the way a
+           ratio-based string metric would. See `docs/architecture.md`'s RAG
+           pipeline section.
 
         Once mlmorph has told us definitively what the word is, a plain edit-distance
         guess alongside it is confirmed *unrelated*, not just lower-confidence — so if
@@ -197,8 +197,8 @@ class DictionaryTools:
 
         Analyses `query` with mlmorph to find its dictionary root (e.g. നിന്ദിക്കുന്നു
         → നിന്ദിക്കുക) and looks that root up directly. This catches inflections
-        whose surface form is too different from the lemma for pg_trgm's trigram
-        overlap to surface them among :meth:`fuzzy_lookup`'s top candidates at all.
+        whose surface form is too different from the lemma for edit distance
+        to surface them among :meth:`fuzzy_lookup`'s top candidates at all.
 
         Parameters
         ----------

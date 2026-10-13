@@ -6,9 +6,13 @@
   <p class="answer-tip">💡 {{ tip }}</p>
   {% endif %}
 </div>
-{% elif show_ai_hint %}
+{% elif ai_hint == 'empty' %}
 <div class="ai-hint">
-  <p>This looks like a full question — <a href="#" onclick="enableAiHint(event)">turn on AI Answer</a> for a synthesised response instead of just raw entries.</p>
+  <p>Nothing confident found — <a href="#" onclick="enableAiHint(event)">AI Answer</a> might do better with a phrase like this.</p>
+</div>
+{% elif ai_hint == 'weak' %}
+<div class="ai-hint">
+  <p>Not quite what you meant? <a href="#" onclick="enableAiHint(event)">AI Answer</a> might do better with a phrase like this.</p>
 </div>
 {% endif %}
 
@@ -20,8 +24,8 @@
    non-empty but nothing clears the bar — e.g. weak spelling coincidences)
    shows the same "no results" state as truly empty results, instead of a
    confusing "0 results" heading with nothing under it. #}
-{# must match web.py's _MIN_CONFIDENT_SCORE — 0.80 is the F1-optimal threshold for
-   normalized edit-distance similarity, not the 0.55 inherited from pg_trgm #}
+{# must match web.py's _MIN_CONFIDENT_SCORE — 0.80 is the F1-optimal threshold
+   for normalized edit-distance similarity #}
 {% set MIN_SCORE = 0.80 %}
 {% set filtered = [] %}
 {% for r in results %}

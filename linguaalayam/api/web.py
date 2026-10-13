@@ -70,10 +70,9 @@ router = APIRouter(include_in_schema=False)
 
 # Must match results.html's MIN_SCORE — a result below this (and not exact/lemma)
 # is filtered out of display, so it shouldn't count as "we already found something"
-# when deciding whether to fall back to Varnam/semantic search. 0.80 is the
-# F1-optimal threshold for normalized edit-distance similarity (stable across
-# EN/ML), not the 0.55 inherited from the earlier pg_trgm-based metric — at 0.55,
-# edit distance's own precision is only ~0.51, barely better than chance.
+# when deciding whether to fall back to Varnam. 0.80 is the F1-optimal threshold
+# for normalized edit-distance similarity, stable across EN/ML (real labeled-typo
+# precision/recall/AUC analysis, not assumed).
 _MIN_CONFIDENT_SCORE = 0.80
 
 # A query this long is more likely a full question ("split the word X") than a
@@ -144,7 +143,7 @@ def _has_confident_result(results: list[dict]) -> bool:
     Weak fuzzy matches (e.g. "kundi" edit-distance-matching unrelated entries like
     "Kunti"/"Hundi" at a low score) make ``results`` non-empty without giving the
     user anything worth seeing — checking raw emptiness alone would wrongly skip
-    the Varnam/semantic fallbacks in that case.
+    the Varnam fallback in that case.
     """
     return any(
         r["match_type"] in ("exact", "lemma") or r["score"] >= _MIN_CONFIDENT_SCORE for r in results
@@ -186,9 +185,14 @@ def index(request: Request) -> HTMLResponse:
     Returns
     -------
     HTMLResponse
-        The rendered main search page.
+        The rendered main search page. ``translation_enabled`` in its context
+        drives whether the input-language picker offers non-EN/ML options.
     """
-    return _TEMPLATES.TemplateResponse(request, "index.html")
+    return _TEMPLATES.TemplateResponse(
+        request,
+        "index.html",
+        {"translation_enabled": get_translator().supports_translation},
+    )
 
 
 @router.get("/settings")
@@ -295,7 +299,7 @@ def search(
     """
     results = []
     answer: str | None = None
-    show_ai_hint = False
+    ai_hint: str | None = None
     varnam_used = False
     varnam_alternatives: list[str] = []
     manglish_suggestions: list[str] = []
@@ -337,15 +341,13 @@ def search(
         # X", etc.) first, so this adds no extra LLM cost for most queries.
         headword = understand_query(q_en, llm=llm or _NO_LLM).headword or q_en
 
-        # Always fuzzy — pg_trgm scores exact matches at 1.0 so they surface first.
-        # Multi-word queries fall through to semantic for phrase/description retrieval.
-        if " " in headword:
-            results = tools.semantic_lookup(q_en, top_k=top_k, source=src)
-        else:
-            # fuzzy_lookup tries the mlmorph lemma first (catches inflected forms
-            # a string metric alone would rank low or miss entirely), then falls
-            # back to edit-distance similarity for genuine typos.
-            results = tools.fuzzy_lookup(headword, source=src, top_k=top_k)
+        # Edit distance first, regardless of word count — a multi-word headword
+        # (e.g. "Sit down", or a Marian-translated phrase) can still be a literal,
+        # confident string match; routing it straight to semantic on word count
+        # alone threw that away. fuzzy_lookup tries the mlmorph lemma first
+        # (catches inflected forms a string metric alone would rank low or miss
+        # entirely), then falls back to edit-distance similarity for genuine typos.
+        results = tools.fuzzy_lookup(headword, source=src, top_k=top_k)
 
         # Manglish handling for single-word Latin queries. Runs even when the
         # English/direct lookup already found a confident result — some words
@@ -378,10 +380,8 @@ def search(
             # spelling exists in our dictionaries. Validate with exact/lemma
             # lookup only, not fuzzy_lookup — fuzzy-matching a *fabricated*
             # candidate spelling just tells you something resembles it, not
-            # that the candidate itself is real (the same reasoning that drove
-            # the trigram-to-edit-distance switch: a short fabricated spelling
-            # can clear the confidence bar against an unrelated real headword
-            # under either metric).
+            # that the candidate itself is real: a short fabricated spelling
+            # can clear the confidence bar against an unrelated real headword.
             candidates_with_entries: list[tuple[str, list[dict]]] = []
             for ml_candidate in ml_candidates:
                 candidate_results = tools.exact_lookup(
@@ -411,10 +411,6 @@ def search(
                         :_MAX_SUGGESTIONS
                     ]
 
-        # Semantic fallback for single-word queries that got no confident fuzzy results.
-        if not _has_confident_result(results) and " " not in headword:
-            results = tools.semantic_lookup(q_en, top_k=top_k, source=src)
-
         # Skip the LLM call entirely for a short query that already has a confident,
         # precise match (e.g. a single headword's exact dictionary entry) — raw
         # entries already answer it as well as a paraphrase would, and the app's
@@ -440,17 +436,20 @@ def search(
 
         # Nudge users who typed a full question but never turned AI Answer on —
         # raw entries alone are a poor answer to a question shape like this,
-        # whether or not fuzzy/semantic search happened to find something
-        # confident. If anything, a *weak* raw match is the stronger case for
-        # the nudge — that's exactly when AI Answer would help most. Skipped
-        # once an LLM already ran (or was meant to) so the hint never
+        # whether or not fuzzy search happened to find something confident.
+        # Skipped once an LLM already ran (or was meant to) so the hint never
         # contradicts an answer that's already showing (or failed) above it.
-        show_ai_hint = (
+        # Two variants: "empty" when nothing confident is even displayed (the
+        # stronger nudge — AI Answer is the only path to anything useful here),
+        # "weak" when something is shown but may not be what they meant (a
+        # softer nudge, since a real answer is already on the page).
+        if (
             answer is None
             and not llm_key
             and not llm_enabled
             and len(q.split()) >= _AI_HINT_MIN_WORDS
-        )
+        ):
+            ai_hint = "empty" if not _has_confident_result(results) else "weak"
 
     # Analyse the search query itself (shown above results as query context).
     # Only meaningful for Malayalam — skip for other non-Latin scripts.
@@ -477,7 +476,7 @@ def search(
             "headword": headword,
             "answer": answer,
             "tip": tip,
-            "show_ai_hint": show_ai_hint,
+            "ai_hint": ai_hint,
             "source_filter": src,
             "romanise": romanise,
             "query_morphology": query_morphology,

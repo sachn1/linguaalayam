@@ -80,7 +80,7 @@ poetry run eval-retrieval eval.datasets=null eval.dataset=data/eval/queries_ml.j
 | Attribution | Meaning |
 |---|---|
 | `exact` | Hit came from exact headword string match |
-| `fuzzy` | Hit came from trigram (pg_trgm) similarity |
+| `fuzzy` | Hit came from mlmorph lemma match or edit-distance similarity |
 | `semantic` | Hit came from HNSW vector cosine similarity |
 | `miss` | Correct headword not found in top-k by any tool |
 
