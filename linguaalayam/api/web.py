@@ -185,7 +185,8 @@ def index(request: Request) -> HTMLResponse:
     Returns
     -------
     HTMLResponse
-        The rendered main search page.
+        The rendered main search page. ``translation_enabled`` in its context
+        drives whether the input-language picker offers non-EN/ML options.
     """
     return _TEMPLATES.TemplateResponse(
         request,

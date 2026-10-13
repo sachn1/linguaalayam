@@ -48,6 +48,7 @@ def mock_tools():
 def mock_translator():
     t = MagicMock()
     t.translate.side_effect = _passthrough_translation
+    t.supports_translation = False  # matches the real default backend ("noop")
     return t
 
 

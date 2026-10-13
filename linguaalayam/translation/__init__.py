@@ -13,12 +13,9 @@ def build_translation_service(backend: str = "noop") -> TranslationService:
     backend : str, optional
         Backend identifier — ``"noop"`` (default) disables translation
         entirely, passing non-EN/ML queries through unchanged; ``"marian"``
-        uses Helsinki-NLP/opus-mt-mul-en. ``"noop"`` is the default as of
-        2026-10-13: real-data testing found Marian unreliable on both single
-        words and full sentences across several languages (Hindi, Tamil,
-        Russian, Mandarin, Arabic) — not one language family, see
-        docs/roadmap.md's backlog. Set ``TRANSLATION_BACKEND=marian`` to
-        re-enable it.
+        uses Helsinki-NLP/opus-mt-mul-en. See docs/roadmap.md's backlog for
+        why Marian is disabled by default. Set ``TRANSLATION_BACKEND=marian``
+        to re-enable it.
 
     Returns
     -------

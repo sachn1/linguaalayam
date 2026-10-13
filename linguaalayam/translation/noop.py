@@ -1,14 +1,5 @@
-"""No-op translation backend — used while no reliable non-EN/ML model is in place.
-
-Real-data testing (2026-10-13) found Helsinki-NLP/opus-mt-mul-en unreliable on both
-single words and full sentences for several supported languages — not just one
-language family, confirmed across Hindi, Tamil, Russian, Mandarin, and Arabic
-single-word inputs, and a full Hindi sentence translated into unrelated nonsense.
-Rather than rip out the TranslationService abstraction or the Marian
-implementation, this backend disables translation at the factory level
-(``TRANSLATION_BACKEND=noop``, the default) until a better model is evaluated — see
-docs/roadmap.md's backlog. ``MarianTranslationService`` stays in place, unused but
-ready, so re-enabling is a one-line env var change, not a revert.
+"""No-op translation backend — default while no reliable non-EN/ML model is in
+place. See docs/roadmap.md's backlog for why Marian was disabled.
 """
 
 from linguaalayam.translation.base import TranslationResult, TranslationService
