@@ -137,7 +137,13 @@ class LazyEmbeddingService:
     def _wait(self) -> EmbeddingService:
         """Block until the real service is ready, then return it."""
         self._ready.wait()
-        assert self._service is not None  # set_ready() always sets both together
+        if self._service is None:
+            # set_ready() is the only writer and always sets both together —
+            # reaching here means set_ready() was never actually called, not
+            # that the invariant is merely "probably" true. `assert` would be
+            # stripped under `python -O`, silently turning this into a
+            # confusing AttributeError downstream instead of failing clearly.
+            raise RuntimeError("LazyEmbeddingService._ready was set without a service")
         return self._service
 
     @property

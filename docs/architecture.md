@@ -79,7 +79,12 @@ flowchart LR
     DT --> DB[(PostgreSQL: pgvector)]
 ```
 
-No LLM involvement — pure retrieval. The embedding model loads once at startup.
+No LLM involvement — pure retrieval. The production `/mcp` server is mounted inside the FastAPI
+app (`mcp/remote.py`) and shares `DictionaryTools` with the REST API — same `LazyEmbeddingService`
+background-load as the web app (see `api/app.py`'s `_lifespan`), so a `semantic_lookup` call arriving
+before that finishes blocks per-request rather than waiting on a model "loaded once at startup."
+The standalone `poetry run mcp-server` process (`mcp/server.py`, local/bare-metal use) is unaffected —
+it still builds a real `EmbeddingService` synchronously at its own startup.
 
 ---
 
