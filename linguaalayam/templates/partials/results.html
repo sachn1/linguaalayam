@@ -6,9 +6,13 @@
   <p class="answer-tip">💡 {{ tip }}</p>
   {% endif %}
 </div>
-{% elif show_ai_hint %}
+{% elif ai_hint == 'empty' %}
 <div class="ai-hint">
-  <p>This looks like a full question — <a href="#" onclick="enableAiHint(event)">turn on AI Answer</a> for a synthesised response instead of just raw entries.</p>
+  <p>Nothing confident found — <a href="#" onclick="enableAiHint(event)">AI Answer</a> might do better with a phrase like this.</p>
+</div>
+{% elif ai_hint == 'weak' %}
+<div class="ai-hint">
+  <p>Not quite what you meant? <a href="#" onclick="enableAiHint(event)">AI Answer</a> might do better with a phrase like this.</p>
 </div>
 {% endif %}
 
