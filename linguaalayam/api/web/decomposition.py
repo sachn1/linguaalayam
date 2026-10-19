@@ -149,24 +149,31 @@ def verify_citations(
     citations: list[dict] = []
     for word, entries in word_entries:
         gloss = by_word.get(word.strip().lower())
-        raw_text = "\n".join(e["embed_text"] for e in entries)
-        valid_headwords = {e["headword"]: e for e in entries}
+        entries_by_headword: dict[str, list[dict]] = {}
+        for entry in entries:
+            entries_by_headword.setdefault(entry["headword"], []).append(entry)
+
         grounded = False
         headword = source = quote = None
-        if (
-            gloss
-            and gloss.grounded
-            and gloss.quote
-            and gloss.quote.strip()
-            and gloss.quote.strip() in raw_text
-            and gloss.headword in valid_headwords
-        ):
-            grounded = True
-            headword = gloss.headword
-            source = SOURCE_LABELS.get(
-                valid_headwords[headword]["source"], valid_headwords[headword]["source"]
+        if gloss and gloss.grounded and gloss.quote and gloss.quote.strip():
+            candidate_quote = gloss.quote.strip()
+            # Check the quote against entries for the *claimed* headword only —
+            # a word can resolve to several distinct headwords (fuzzy_lookup's
+            # top_k), so a real quote from a different headword's entry must
+            # never ground a citation for this one.
+            matched_entry = next(
+                (
+                    e
+                    for e in entries_by_headword.get(gloss.headword, [])
+                    if candidate_quote in e["embed_text"]
+                ),
+                None,
             )
-            quote = gloss.quote.strip()
+            if matched_entry:
+                grounded = True
+                headword = gloss.headword
+                source = SOURCE_LABELS.get(matched_entry["source"], matched_entry["source"])
+                quote = candidate_quote
         citations.append(
             {
                 "word": word,

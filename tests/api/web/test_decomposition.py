@@ -186,6 +186,59 @@ class TestVerifyCitations:
         result = verify_citations(glosses, word_entries)
         assert result[0]["grounded"] is False
 
+    def test_quote_real_under_a_different_entry_for_the_same_word_is_downgraded(self):
+        """A word can resolve to several distinct headwords (fuzzy_lookup's top_k) —
+        a real quote from one entry must not ground a citation claiming a different one."""
+        word_entries = [
+            (
+                "word",
+                [
+                    _entry("A", "foo bar", source="datuk"),
+                    _entry("B", "baz qux", source="datuk"),
+                ],
+            )
+        ]
+        glosses = [
+            WordGloss(
+                word="word",
+                meaning="x",
+                grounded=True,
+                headword="A",
+                source="datuk",
+                quote="baz qux",  # real text, but it's B's entry, not A's
+            )
+        ]
+        result = verify_citations(glosses, word_entries)
+        assert result[0]["grounded"] is False
+        assert result[0]["quote"] is None
+
+    def test_quote_verified_against_the_matching_same_headword_entry(self):
+        """Multiple entries can share one headword (different corpora) — a quote
+        real under any of them for the claimed headword should still ground."""
+        word_entries = [
+            (
+                "word",
+                [
+                    _entry("A", "foo bar", source="datuk"),
+                    _entry("A", "baz qux", source="sayahna"),
+                ],
+            )
+        ]
+        glosses = [
+            WordGloss(
+                word="word",
+                meaning="x",
+                grounded=True,
+                headword="A",
+                source="sayahna",
+                quote="baz qux",
+            )
+        ]
+        result = verify_citations(glosses, word_entries)
+        assert result[0]["grounded"] is True
+        assert result[0]["source"] == "Shabdataaravali 1917"
+        assert result[0]["quote"] == "baz qux"
+
     def test_model_said_ungrounded_stays_ungrounded(self):
         word_entries = [("asura", [_entry("അസുര", "devoid of breath/life")])]
         glosses = [WordGloss(word="asura", meaning="demon", grounded=False)]
