@@ -99,7 +99,7 @@ TSV corpus files
   → batch_insert() (linguaalayam/database/)        # Postgres ON CONFLICT DO NOTHING
 ```
 
-**RAG query flow:**
+**RAG query flow** (the CLI pipeline, `rag/pipeline.py` — used by `poetry run rag`, MCP, REST, and eval):
 
 ```
 user query
@@ -109,25 +109,43 @@ user query
   → LLMAdapter.complete() or formatted candidates (nollm)
 ```
 
+The web UI's `/search` route (`api/web.py`) does *not* follow this same graph — it calls `DictionaryTools`
+directly with its own, more elaborate flow (no `semantic_lookup`, always fuzzy-first, plus Manglish/Varnam
+fallback and phrase decomposition for AI Answer). See `docs/architecture.md`'s "REST API and web UI" section
+for the real web-path flow.
+
 **MCP server:** tools (exact/fuzzy/semantic) + resource `dictionary://{headword}` → DictionaryTools → Postgres
 
 ### Key modules
 
 | Module | Purpose |
 |---|---|
-| `linguaalayam/models/entries.py` | Entry types (`EnMlEntry`, `MlMlEntry`, `EkkurupEntry`), each with `to_embed_text()` |
+| `linguaalayam/models/entries.py` | Entry types (`OlamEntry`, `DatukEntry`, `SayahnaEntry`, `EkkurupEntry`), each with `to_embed_text()` |
 | `linguaalayam/models/orm.py` | SQLAlchemy `DictionaryEntry` ORM — headword, embed_text, JSONB data, Vector(768) |
 | `linguaalayam/corpus/base.py` | `parse_definition_tsv()` — shared 3-column TSV helper used by `enml.py` and `datuk.py` |
-| `linguaalayam/corpus/` | One parser per corpus (`enml.py`, `datuk.py`, `ekkurup.py`), each exposes `parse()` |
+| `linguaalayam/corpus/` | One parser per corpus (`enml.py`, `datuk.py`, `sayahna.py`, `ekkurup.py`), each exposes `parse()` |
 | `linguaalayam/embeddings/service.py` | `EmbeddingService` wraps `paraphrase-multilingual-mpnet-base-v2`; exposes `batch_size` and `vector_size` |
 | `linguaalayam/database/queries.py` | `batch_insert()`, `similarity_search()` (HNSW cosine), `get_ingested_headwords()` |
+| `linguaalayam/database/session.py` | `get_session()` — context-managed DB session helper used across routes and scripts |
 | `linguaalayam/llm/adapters/` | `LLMAdapter` ABC + `AnthropicAdapter`, `OpenAIAdapter`, `TogetherAIAdapter` (Qwen 3.5 9B via TogetherAI, server-side default for the web app), `NoLLMAdapter` |
 | `linguaalayam/rag/pipeline.py` | LangGraph graph: understand → retrieve → rerank? → synthesize |
+| `linguaalayam/rag/query_understanding.py` | `understand_query()` — regex patterns first, LLM fallback for unrecognised phrasings |
+| `linguaalayam/rag/reranker.py` | `CrossEncoderReranker` — optional cross-encoder reranking step in the RAG pipeline |
 | `linguaalayam/rag/tools.py` | `DictionaryTools` — exact, fuzzy, semantic lookup over a live DB session |
-| `linguaalayam/mcp/server.py` | FastMCP server — three tools + `dictionary://{headword}` resource |
+| `linguaalayam/mcp/server.py` | Standalone FastMCP server (stdio) — three tools + `dictionary://{headword}` resource; used by local/CLI clients |
+| `linguaalayam/mcp/remote.py` | Production MCP server mounted inside the FastAPI app at `/mcp` — shares `DictionaryTools`/the lazy embedding service with the REST API and web UI; OAuth passthrough, dynamic client registration |
+| `linguaalayam/mcp/shared.py` | `format_results()` — shared plain-text formatting used by both MCP server variants |
 | `linguaalayam/scripts/ingest.py` | Ingestion entry point with checkpoint-based resumability |
-| `linguaalayam/observability/` | Traffic/usage analytics — `RequestLog` ORM model, `RequestLoggingMiddleware` (ASGI, logs every request except `/admin`, `/health`, `/track/click`), `log_feature_event()` for non-request analytics events (e.g. Varnam manglish fallback), query helpers (`traffic_by_route_type`, `top_queries`, `top_clients`, `top_outbound_clicks`) |
+| `linguaalayam/eval/` | Evaluation harness — `eval-retrieval` (CI-wired, retrieval-only metrics: hit@1, hit@k, MRR, tool attribution) plus standalone tooling for preparing eval datasets and comparing embedding models; LLM answer/grounding quality is not covered here |
+| `linguaalayam/translation/` | `TranslationService` ABC + `NoOpTranslationService` (default) and `MarianTranslationService` (disabled by default — see roadmap backlog) |
+| `linguaalayam/transliteration/` | `core.py` (formal romanisation schemes), `morphology.py` (mlmorph-based analysis), `varnam.py` (informal Manglish via the Varnam API) |
+| `linguaalayam/observability/` | Traffic/usage analytics — `RequestLog` ORM model, `RequestLoggingMiddleware` (ASGI, logs only non-bot `/search` requests with a non-empty query — not every request), `log_feature_event()` for non-request analytics events (e.g. Varnam manglish fallback), query helpers (`traffic_by_route_type`, `top_queries`, `top_clients`, `top_outbound_clicks`) |
+| `linguaalayam/api/web.py` | HTMX web UI routes (`/`, `/search`, `/settings`, `/privacy`, `/mcp/setup`) — the largest, most-changed module; owns query understanding, Manglish/Varnam fallback, AI Answer synthesis (including phrase decomposition), and template rendering |
+| `linguaalayam/api/app.py` | FastAPI app factory — lifespan setup (DB engine, lazy embedding service, translator), mounts the web router, REST `/lookup/*` endpoints, and the MCP server |
+| `linguaalayam/api/dependencies.py` | `get_tools()` / `get_translator()` / `get_session_factory()` — shared singletons injected into routes |
+| `linguaalayam/api/oauth.py` | `PassthroughOAuthProvider` — OAuth 2.0 authorization server for the Claude.ai browser connector |
 | `linguaalayam/api/admin.py` | `/admin/analytics` dashboard (HTMX-polling) + JSON partial, gated by HTTP Basic Auth (`ADMIN_USER`/`ADMIN_PASSWORD`) |
+| `linguaalayam/templates/`, `linguaalayam/static/` | Jinja2 templates and static assets served by `api/web.py` — see `docs/architecture.md`'s module table for the per-file breakdown |
 
 ### Configuration (Hydra)
 
@@ -157,6 +175,30 @@ Table `dictionary_entries`: `source` + `headword` have a UNIQUE constraint (ON C
 ## Testing notes
 
 Unit tests use an SQLite in-memory database via the `db_cfg` fixture — no running Postgres needed. The `dummy_service` fixture provides a mock `EmbeddingService` with 4-dimensional vectors for fast tests.
+
+**Docstrings**: numpy format throughout. Module, class, private function (leading underscore),
+and test function docstrings are always a single line. Only public functions/methods get the
+full multi-line numpy format (`Parameters`, `Returns`, `Raises` sections as applicable).
+
+**Prompts**: LLM system prompts live in their own `prompts.py` module next to the code that
+uses them (e.g. `linguaalayam/api/web/prompts.py`), not inline among the functions that call
+the LLM — keeps a long prompt string from pushing the actual logic down the file.
+
+**Comments vs. tests**: default to no comment. Code should read as self-explanatory from names and structure.
+Write a comment only when something genuinely can't be expressed in code — a non-obvious invariant, a workaround
+for a specific external bug, a constraint from outside this codebase. Never write a comment to explain *why a
+particular input is handled a certain way* ("word X needs special handling because case Y happens") — that's a
+test case, not a comment: write a test with that input as the example, and let the test name and assertion carry
+the explanation. A comment describing a specific scenario is a sign the scenario should be a test instead.
+
+## Project history
+
+For how a feature or module reached its current shape — prior approaches tried and abandoned, research behind a
+threshold or design choice, why something was deliberately *not* built a more obvious way — check `git log` and
+the PR it shipped in before asking the owner to repeat context already on record. Several notebooks under
+`notebooks/` document real experiments (not disposable scratch) backing specific decisions — e.g. the
+fuzzy-matching threshold rewrite and the phrase-decomposition/grounding design — read them before re-deriving
+the same investigation from scratch.
 
 ## Environment
 
