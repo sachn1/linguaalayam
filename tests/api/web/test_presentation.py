@@ -77,3 +77,31 @@ class TestComputeAiHint:
             results=[{"match_type": "exact", "score": 1.0}],
         )
         assert hint == "weak"
+
+    def test_weak_variant_shows_for_a_two_word_confident_query(self):
+        """A confident literal match still invites AI help at just 2 words."""
+        hint = compute_ai_hint(
+            answer=None,
+            llm_key="",
+            llm_enabled=False,
+            query="two words",
+            results=[{"match_type": "exact", "score": 1.0}],
+        )
+        assert hint == "weak"
+
+    def test_none_for_a_single_word_confident_query(self):
+        hint = compute_ai_hint(
+            answer=None,
+            llm_key="",
+            llm_enabled=False,
+            query="run",
+            results=[{"match_type": "exact", "score": 1.0}],
+        )
+        assert hint is None
+
+    def test_empty_variant_still_requires_three_words(self):
+        """A 2-word *unconfident* query gets no hint — "empty" keeps its own, higher bar."""
+        hint = compute_ai_hint(
+            answer=None, llm_key="", llm_enabled=False, query="two words", results=[]
+        )
+        assert hint is None

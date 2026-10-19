@@ -14,6 +14,11 @@ ANSWER_LANGUAGE_NAMES: dict[str, str] = {"en": "English", "ml": "Malayalam", **L
 # shape raw dictionary entries answer poorly, where nudging towards AI Answer helps.
 AI_HINT_MIN_WORDS = 3
 
+# Lower bar for the "weak" hint specifically: even when a confident literal
+# match already displays, a 2+ word query may still benefit from AI breaking
+# it down compositionally rather than showing one matched entry as-is.
+DECOMPOSE_HINT_MIN_WORDS = 2
+
 
 def feature_tip(headword: str, *, skip_mlmorph: bool = False) -> str | None:
     """Return a random mlmorph- or jayasree-flavoured tip for a Malayalam headword.
@@ -105,6 +110,9 @@ def compute_ai_hint(
         something is shown but may not be what was meant, or None when no
         hint applies.
     """
-    if answer is not None or llm_key or llm_enabled or len(query.split()) < AI_HINT_MIN_WORDS:
+    if answer is not None or llm_key or llm_enabled:
         return None
-    return "empty" if not has_confident_result(results) else "weak"
+    word_count = len(query.split())
+    if not has_confident_result(results):
+        return "empty" if word_count >= AI_HINT_MIN_WORDS else None
+    return "weak" if word_count >= DECOMPOSE_HINT_MIN_WORDS else None

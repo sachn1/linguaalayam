@@ -12,8 +12,8 @@ from linguaalayam.api.web.confidence import has_confident_result
 from linguaalayam.api.web.decomposition import decompose_and_lookup
 from linguaalayam.api.web.manglish import resolve_manglish
 from linguaalayam.api.web.presentation import (
-    AI_HINT_MIN_WORDS,
     ANSWER_LANGUAGE_NAMES,
+    DECOMPOSE_HINT_MIN_WORDS,
     compute_ai_hint,
     compute_query_morphology,
     feature_tip,
@@ -208,7 +208,7 @@ def search(
         varnam_alternatives = resolution.varnam_alternatives
         manglish_suggestions = resolution.manglish_suggestions
 
-        worth_synthesizing = len(q.split()) >= AI_HINT_MIN_WORDS or not has_confident_result(
+        worth_synthesizing = len(q.split()) >= DECOMPOSE_HINT_MIN_WORDS or not has_confident_result(
             results
         )
 

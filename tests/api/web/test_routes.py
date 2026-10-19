@@ -210,6 +210,62 @@ def test_search_no_ai_hint_for_short_query(client, mock_tools, dict_result_facto
     assert 'onclick="enableAiHint(event)"' not in r.text
 
 
+def test_search_shows_ai_hint_for_a_two_word_confident_query(
+    client, mock_tools, dict_result_factory
+):
+    """A confident 2-word match still invites AI to break it down, not just a 3+ word sentence."""
+    mock_tools.fuzzy_lookup.return_value = [dict_result_factory(match_type="exact")]
+    r = client.get("/search?query=two+words")
+    assert r.status_code == 200
+    assert 'onclick="enableAiHint(event)"' in r.text
+
+
+def test_search_decomposes_a_two_word_confident_query_once_ai_is_enabled(client, mock_tools):
+    """Clicking that hint (turning AI on) must actually trigger decomposition at 2 words."""
+    mock_tools.fuzzy_lookup.side_effect = lambda word, **_: (
+        [_entry("run", "to move quickly")] if word == "run" else []
+    )
+    mock_tools.exact_lookup.side_effect = lambda candidate, **_: {
+        "fast": [_entry("fast", "quickly")],
+    }.get(candidate, [])
+    mock_llm = MagicMock()
+    grounded_answer = GroundedAnswer(
+        answer="run fast",
+        words=[
+            WordGloss(
+                word="run",
+                meaning="run",
+                grounded=True,
+                headword="run",
+                source="olam_enml",
+                quote="to move quickly",
+            ),
+        ],
+    )
+
+    def extract_side_effect(schema, _prompt):
+        if schema is QueryUnderstanding:
+            return QueryUnderstanding(headword="run fast", intent="unknown")
+        return grounded_answer
+
+    mock_llm.extract_structured.side_effect = extract_side_effect
+
+    with (
+        patch("linguaalayam.api.web.llm.get_server_llm", return_value=mock_llm),
+        patch(
+            "linguaalayam.transliteration.varnam.manglish_to_malayalam",
+            side_effect=lambda word: [word],
+        ),
+    ):
+        r = client.get("/search?query=run+fast", headers={"X-LLM-Enabled": "1"})
+
+    assert r.status_code == 200
+    assert "run fast" in r.text
+    assert any(
+        call.args[0] is GroundedAnswer for call in mock_llm.extract_structured.call_args_list
+    )
+
+
 def test_search_no_ai_hint_when_ai_already_enabled(client, mock_tools, dict_result_factory):
     """No hint should show once AI Answer is already on — the answer card takes its place."""
     mock_tools.fuzzy_lookup.return_value = [dict_result_factory(match_type="exact")]
