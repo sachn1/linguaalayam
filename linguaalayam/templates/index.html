@@ -58,6 +58,12 @@
     </div>
     <span id="spinner" class="htmx-indicator"><span class="spinner"></span></span>
   </div>
+  {# Shown briefly when the browser's own speech recognizer reports low
+     confidence in its transcript — the search still runs (we can't be sure
+     it's wrong, just suspicious), but a wrong-language mic result would
+     otherwise fail silently with no explanation at all. See the mic-btn
+     onresult handler below. #}
+  <div id="voice-hint" class="voice-hint" style="display:none" role="status"></div>
 
   <details class="advanced">
     <summary data-i18n="search_options">Search options</summary>
@@ -105,8 +111,8 @@
   <div class="mic-lang-modal" role="dialog" aria-modal="true" aria-labelledby="mic-lang-modal-title">
     <button class="mic-lang-modal-close" id="mic-lang-modal-close" aria-label="Skip">✕</button>
     <p class="mic-lang-modal-emoji">🏳️</p>
-    <h3 id="mic-lang-modal-title">What language are you searching in?</h3>
-    <p class="mic-lang-modal-hint">You can change this anytime from the flag next to the search box.</p>
+    <h3 id="mic-lang-modal-title">What language will you type or speak?</h3>
+    <p class="mic-lang-modal-hint">This sets both what the microphone listens for and how we translate what you type. Change it anytime from the flag next to the search box.</p>
     <div class="mic-lang-modal-grid" id="mic-lang-modal-grid"></div>
   </div>
 </div>
@@ -182,6 +188,15 @@
   }
   .mic-btn:hover { color: var(--accent); }
   .mic-btn.mic-active { color: #ef4444; animation: mic-pulse 1s ease-in-out infinite; }
+  .voice-hint {
+    margin-top: 0.4rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.4rem 0.6rem;
+  }
   .mode-help { margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; }
   .mode-help-row { display: flex; gap: 0.6rem; align-items: baseline; font-size: 0.75rem; color: var(--text-muted); }
   .mode-badge {
@@ -233,7 +248,7 @@
   .mic-lang-modal-hint { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1.1rem; }
   .mic-lang-modal-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 0.5rem;
   }
   .mic-lang-modal-btn {
@@ -262,38 +277,47 @@
   const hiddenSel = document.getElementById('lang');
   if (!langBtn || !langOpts || !hiddenSel) return;
 
+  // `code` is a short Latin-script abbreviation for the always-visible
+  // button — four of these languages (Malayalam, Hindi, Tamil, Bengali)
+  // share the identical 🇮🇳 flag glyph, which was the single biggest source
+  // of "no one understands what to do with it": nothing distinguished them
+  // at a glance unless you already knew to read the native-script label
+  // that used to sit there instead. `name` is the full English name, used
+  // wherever there's room (the dropdown, the onboarding modal) so this
+  // doesn't require already knowing the target script to pick correctly.
+  //
   // Non-EN/ML entries only make sense while translation is actually enabled
   // (TRANSLATION_BACKEND != "noop") — otherwise picking "German" just lets a
   // German query through to search untranslated, with no honest path to a
   // result. See linguaalayam/translation/__init__.py's build_translation_service
   // docstring for why translation is disabled by default.
   const LANGS = [
-    { value: 'en-US', flag: '🇺🇸', label: 'EN' },
-    { value: 'ml-IN', flag: '🇮🇳', label: 'മ' },
+    { value: 'en-US', flag: '🇺🇸', code: 'EN', name: 'English' },
+    { value: 'ml-IN', flag: '🇮🇳', code: 'ML', name: 'Malayalam' },
 {% if translation_enabled %}
-    { value: 'de-DE', flag: '🇩🇪', label: 'DE' },
-    { value: 'fr-FR', flag: '🇫🇷', label: 'FR' },
-    { value: 'ru-RU', flag: '🇷🇺', label: 'RU' },
-    { value: 'es-ES', flag: '🇪🇸', label: 'ES' },
-    { value: 'pt-PT', flag: '🇵🇹', label: 'PT' },
-    { value: 'zh-CN', flag: '🇨🇳', label: '中文' },
-    { value: 'ar-SA', flag: '🇸🇦', label: 'عر' },
-    { value: 'ur-PK', flag: '🇵🇰', label: 'اردو' },
-    { value: 'hi-IN', flag: '🇮🇳', label: 'हि' },
-    { value: 'ta-IN', flag: '🇮🇳', label: 'தமி' },
-    { value: 'bn-IN', flag: '🇮🇳', label: 'বাং' },
+    { value: 'de-DE', flag: '🇩🇪', code: 'DE', name: 'German' },
+    { value: 'fr-FR', flag: '🇫🇷', code: 'FR', name: 'French' },
+    { value: 'ru-RU', flag: '🇷🇺', code: 'RU', name: 'Russian' },
+    { value: 'es-ES', flag: '🇪🇸', code: 'ES', name: 'Spanish' },
+    { value: 'pt-PT', flag: '🇵🇹', code: 'PT', name: 'Portuguese' },
+    { value: 'zh-CN', flag: '🇨🇳', code: 'ZH', name: 'Chinese' },
+    { value: 'ar-SA', flag: '🇸🇦', code: 'AR', name: 'Arabic' },
+    { value: 'ur-PK', flag: '🇵🇰', code: 'UR', name: 'Urdu' },
+    { value: 'hi-IN', flag: '🇮🇳', code: 'HI', name: 'Hindi' },
+    { value: 'ta-IN', flag: '🇮🇳', code: 'TA', name: 'Tamil' },
+    { value: 'bn-IN', flag: '🇮🇳', code: 'BN', name: 'Bengali' },
 {% endif %}
   ];
 
   langOpts.innerHTML = LANGS.map(l =>
-    `<li role="option" data-value="${l.value}">${l.flag} ${l.label}</li>`
+    `<li role="option" data-value="${l.value}">${l.flag} ${l.name}</li>`
   ).join('');
 
   function setInputLang(value) {
     const entry = LANGS.find(l => l.value === value) || LANGS[0];
     hiddenSel.value = entry.value;
-    langBtn.textContent = entry.flag;
-    langBtn.title = 'Input language: ' + entry.label + ' — tap to change';
+    langBtn.textContent = entry.flag + ' ' + entry.code;
+    langBtn.title = 'Input language: ' + entry.name + ' — tap to change';
     langOpts.querySelectorAll('li').forEach(li =>
       li.classList.toggle('selected', li.dataset.value === entry.value)
     );
@@ -312,9 +336,33 @@
   });
   document.addEventListener('click', function () { langOpts.classList.remove('open'); });
 
+  // SpeechRecognition's own confidence score is the most direct signal
+  // available that the transcript might be wrong — e.g. speaking English
+  // into a recognizer set to listen for Malayalam typically produces a
+  // low-confidence phonetic guess, not an error, so nothing else here
+  // would otherwise catch it. Browser support for a meaningful confidence
+  // value is inconsistent (some return 0 even on good results), so this
+  // only acts when it's a real number greater than 0 — never blocks the
+  // search, just adds a hint alongside it.
+  const LOW_CONFIDENCE = 0.5;
+  const voiceHint = document.getElementById('voice-hint');
+  let voiceHintTimer = null;
+
+  function showLowConfidenceHint() {
+    if (!voiceHint) return;
+    const entry = LANGS.find(l => l.value === hiddenSel.value) || LANGS[0];
+    voiceHint.textContent =
+      "Didn't quite catch that — try again, or check the language is set to " +
+      entry.name + ' (' + entry.flag + ').';
+    voiceHint.style.display = 'block';
+    clearTimeout(voiceHintTimer);
+    voiceHintTimer = setTimeout(() => { voiceHint.style.display = 'none'; }, 6000);
+  }
+
   let recognition = null;
   function startRecognition() {
     trackClick('web_speech');
+    if (voiceHint) voiceHint.style.display = 'none';
     recognition = new SR();
     recognition.lang = hiddenSel.value;
     recognition.continuous = false;
@@ -323,8 +371,12 @@
     recognition.onend    = () => { micBtn.classList.remove('mic-active'); recognition = null; };
     recognition.onerror  = () => { micBtn.classList.remove('mic-active'); recognition = null; };
     recognition.onresult = (e) => {
+      const result = e.results[0][0];
       const input = document.getElementById('query');
-      input.value = e.results[0][0].transcript;
+      input.value = result.transcript;
+      if (typeof result.confidence === 'number' && result.confidence > 0 && result.confidence < LOW_CONFIDENCE) {
+        showLowConfidenceHint();
+      }
       htmx.trigger(input, 'input');
     };
     recognition.start();
@@ -350,7 +402,7 @@
   if (modal && modalGrid && modalClose) {
     modalGrid.innerHTML = LANGS.map(l =>
       `<button type="button" class="mic-lang-modal-btn" data-value="${l.value}">` +
-      `<span class="flag">${l.flag}</span><span>${l.label}</span></button>`
+      `<span class="flag">${l.flag}</span><span>${l.name}</span></button>`
     ).join('');
 
     openLangModal = function (fromMic) {
