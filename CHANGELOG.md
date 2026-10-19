@@ -1,8 +1,31 @@
-## Unreleased
+## v2.15.0 (2026-10-19)
+
+### Fix
+
+- scope citation quote verification to the specific cited headword's own entry
+
+## v2.14.0 (2026-10-19)
+
+## v2.13.2 (2026-10-13)
 
 ### Feat
 
+- clarify mic/language picker and flag low-confidence voice transcripts
+- nudge AI decomposition for 2+ word queries even with a confident literal match
+- ground AI Answer citations against real dictionary text, split web.py into a modular package
 - phrase decomposition fallback for AI Answer, with a debug trace panel
+
+### Fix
+
+- address code review — stale MCP doc, fragile assert in LazyEmbeddingService
+- deploy workflow was pinning to a one-release-stale commit
+- decompose sentence-length queries even when one word resolves confidently
+- recalibrate stale pg_trgm-era fuzzy threshold defaults to edit-distance scale
+
+### Perf
+
+- lazy-import heavy ML deps and background-load the embedding model
+- lazy-import langchain_anthropic to cut cold-start cost
 
 ## v2.13.1 (2026-10-13)
 
