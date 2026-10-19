@@ -54,6 +54,34 @@ def enml_entry():
 
 
 @pytest.fixture()
+def dict_result_factory():
+    """Factory for a dict shaped like DictionaryTools' ``_to_result()`` output —
+    the one shape every retrieval-tool test needs, with sensible defaults."""
+
+    def make(
+        headword: str = "run",
+        *,
+        source: str = "olam_enml",
+        entry_type: str = "OlamEntry",
+        embed_text: str = "",
+        data: dict | None = None,
+        match_type: str = "fuzzy",
+        score: float = 1.0,
+    ) -> dict:
+        return {
+            "headword": headword,
+            "source": source,
+            "entry_type": entry_type,
+            "embed_text": embed_text,
+            "data": data if data is not None else {"definitions": [("v", "ഓടുക")]},
+            "match_type": match_type,
+            "score": score,
+        }
+
+    return make
+
+
+@pytest.fixture()
 def db_cfg():
     """SQLite in-memory config — no Supabase needed for unit tests."""
     return OmegaConf.create(

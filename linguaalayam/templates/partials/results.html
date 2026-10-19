@@ -2,6 +2,30 @@
 <div class="answer-card">
   <p class="answer-label">AI Answer</p>
   <p>{{ answer | safe }}</p>
+  {% if decomposition_citations %}
+  {% set ns = namespace(n=0) %}
+  <p class="word-glosses">
+    {% for c in decomposition_citations %}
+    <span class="word-gloss">
+      <span class="ml">{{ c.word }}</span>{% if c.grounded %}{% set ns.n = ns.n + 1 %}<sup>{{ ns.n }}</sup>{% else %}<span class="ungrounded-mark" title="No exact dictionary match for this word — explained from general knowledge">†</span>{% endif %}
+      → "{{ c.meaning }}"
+    </span>{% if not loop.last %} · {% endif %}
+    {% endfor %}
+  </p>
+  {% set grounded_citations = decomposition_citations | selectattr('grounded') | list %}
+  {% if grounded_citations %}
+  <details class="citation-sources">
+    <summary>Dictionary sources ({{ grounded_citations | length }})</summary>
+    <ol class="citation-list">
+      {% for c in grounded_citations %}
+      <li><span class="ml">{{ c.headword }}</span> <span class="source-tag">{{ c.source }}</span> — <span class="ml">“{{ c.quote }}”</span></li>
+      {% endfor %}
+    </ol>
+  </details>
+  {% else %}
+  <p class="citation-sources-empty">No dictionary entries directly supported this answer — explained from general knowledge.</p>
+  {% endif %}
+  {% endif %}
   {% if tip %}
   <p class="answer-tip">💡 {{ tip }}</p>
   {% endif %}
@@ -271,6 +295,14 @@
   .answer-card a { color: var(--accent); }
   .answer-label { font-size: 0.7rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
   .answer-tip { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px dashed var(--border); }
+  .word-glosses { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px dashed var(--border); }
+  .word-gloss sup { color: var(--accent); font-weight: 600; margin-left: 0.1rem; }
+  .ungrounded-mark { color: var(--text-muted); cursor: help; margin-left: 0.1rem; }
+  .citation-sources { margin-top: 0.5rem; font-size: 0.78rem; color: var(--text-muted); }
+  .citation-sources summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+  .citation-list { margin: 0.4rem 0 0 1.1rem; padding: 0; }
+  .citation-list li { margin: 0.2rem 0; }
+  .citation-sources-empty { margin-top: 0.5rem; font-size: 0.78rem; color: var(--text-muted); font-style: italic; }
   .ai-hint { background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius); padding: 0.6rem 1rem; margin-bottom: 1rem; font-size: 0.82rem; color: var(--text-muted); }
   .ai-hint a { color: var(--accent); text-decoration: none; border-bottom: 1px dotted var(--accent); cursor: pointer; }
   .ai-hint a:hover { border-bottom-style: solid; }

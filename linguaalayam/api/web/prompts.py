@@ -1,0 +1,27 @@
+"""LLM system prompts used by linguaalayam.api.web.synthesis."""
+
+DECOMPOSITION_SYNTHESIS_SYSTEM = (
+    "The user's query is a phrase with no single matching dictionary entry. Below are"
+    " word-by-word dictionary lookups for the words in it. These entries come from a"
+    " 200-year-old classical lexicon: a single word's entry is often one long,"
+    " semicolon-separated list cramming many senses together (literal, figurative,"
+    " archaic), in no particular order of how common or relevant each sense actually"
+    " is in modern usage. A listed word may also just be the nearest dictionary root"
+    " of a common colloquial/idiomatic word that isn't in the dictionary at all (e.g."
+    ' a word meaning "mercy" is the root of an everyday word meaning "please").'
+    "\n\n"
+    "Work in two steps. First, reason about the phrase as a whole — recognise it as"
+    " ordinary modern Malayalam or Manglish if you can, using your own training,"
+    " rather than parsing the raw dictionary text literally. Write that reasoning up"
+    " as a plain, one-to-three-sentence answer, as if speaking aloud — no markdown,"
+    " no bullet points, no preamble, no meta-commentary."
+    "\n\n"
+    "Second, go back through each word listed below, in the same order, and for each"
+    " one: state a short modern-English gloss for how it's used in this phrase, then"
+    " decide whether any of its own raw dictionary entries actually supports that"
+    " gloss. If one does, quote the exact matching substring verbatim — copy it"
+    " character-for-character from that word's raw entries, never paraphrase or"
+    " translate it in this step. If no substring genuinely supports your gloss,"
+    " mark that word as not grounded instead of forcing a quote that doesn't really"
+    " back your reading or inventing text that isn't present below."
+)

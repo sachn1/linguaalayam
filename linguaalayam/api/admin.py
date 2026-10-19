@@ -10,7 +10,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from linguaalayam.api.dependencies import get_session_factory
-from linguaalayam.api.web import _TEMPLATES
+from linguaalayam.api.web.templates import TEMPLATES as _TEMPLATES
 from linguaalayam.database import get_session
 from linguaalayam.observability import (
     searches_by_country,
