@@ -216,7 +216,7 @@ def search(
         # multi-word query when understand_query collapsed it to one word.
         decompose_target = headword if " " in headword else (q_en if " " in q_en else None)
         word_entries: list[tuple[str, list[dict]]] = []
-        if llm and decompose_target and not has_confident_result(results):
+        if llm and decompose_target and worth_synthesizing:
             word_entries, decomposition_trace = decompose_and_lookup(decompose_target, tools, src)
 
         if (results or word_entries) and llm and worth_synthesizing:

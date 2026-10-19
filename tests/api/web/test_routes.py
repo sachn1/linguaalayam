@@ -214,9 +214,9 @@ def test_search_no_ai_hint_when_ai_already_enabled(client, mock_tools, dict_resu
     """No hint should show once AI Answer is already on — the answer card takes its place."""
     mock_tools.fuzzy_lookup.return_value = [dict_result_factory(match_type="exact")]
     mock_llm = MagicMock()
-    mock_llm.complete.return_value = "synthesized answer"
-    mock_llm.extract_structured.return_value = QueryUnderstanding(
-        headword="ജലജന്തു എന്ന വാക്ക് വിഗ്രഹിക്കുക", intent="define"
+    grounded_answer = GroundedAnswer(answer="synthesized answer", words=[])
+    mock_llm.extract_structured.side_effect = extract_structured_side_effect(
+        "ജലജന്തു എന്ന വാക്ക് വിഗ്രഹിക്കുക", grounded_answer
     )
     with patch("linguaalayam.api.web.llm.get_server_llm", return_value=mock_llm):
         r = client.get(
@@ -399,6 +399,55 @@ def test_search_decomposes_a_declarative_sentence_understand_query_collapsed_to_
         )
     assert r.status_code == 200
     assert "national parks are protected areas" in r.text
+
+
+def test_search_decomposes_a_sentence_even_when_one_word_resolves_confidently(client, mock_tools):
+    """A sentence-length query decomposes even if one word inside it is a confident match."""
+    mock_tools.fuzzy_lookup.side_effect = lambda word, **_: (
+        [_entry("fox", "a quick fox")] if word == "fox" else []
+    )
+    mock_tools.exact_lookup.side_effect = lambda candidate, **_: {
+        "the": [_entry("the", "definite article")],
+        "quick": [_entry("quick", "fast")],
+    }.get(candidate, [])
+    mock_llm = MagicMock()
+    grounded_answer = GroundedAnswer(
+        answer="a fast fox",
+        words=[
+            WordGloss(
+                word="fox",
+                meaning="fox",
+                grounded=True,
+                headword="fox",
+                source="olam_enml",
+                quote="a quick fox",
+            ),
+        ],
+    )
+
+    def extract_side_effect(schema, _prompt):
+        if schema is QueryUnderstanding:
+            return QueryUnderstanding(headword="fox", intent="define")
+        return grounded_answer
+
+    mock_llm.extract_structured.side_effect = extract_side_effect
+
+    with (
+        patch("linguaalayam.api.web.llm.get_server_llm", return_value=mock_llm),
+        patch(
+            "linguaalayam.transliteration.varnam.manglish_to_malayalam",
+            side_effect=lambda word: [word],
+        ),
+    ):
+        r = client.get("/search?query=the+quick+fox", headers={"X-LLM-Enabled": "1"})
+
+    assert r.status_code == 200
+    assert "a fast fox" in r.text
+    # Decomposition (structured output), not the strict whole-phrase prompt, won out.
+    assert any(
+        call.args[0] is GroundedAnswer for call in mock_llm.extract_structured.call_args_list
+    )
+    mock_llm.complete.assert_not_called()
 
 
 def test_search_decomposition_shows_ungrounded_marker_for_unsupported_word(client, mock_tools):
