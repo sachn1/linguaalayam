@@ -109,7 +109,7 @@ user query
   → LLMAdapter.complete() or formatted candidates (nollm)
 ```
 
-The web UI's `/search` route (`api/web.py`) does *not* follow this same graph — it calls `DictionaryTools`
+The web UI's `/search` route (`api/web/routes.py`) does *not* follow this same graph — it calls `DictionaryTools`
 directly with its own, more elaborate flow (no `semantic_lookup`, always fuzzy-first, plus Manglish/Varnam
 fallback and phrase decomposition for AI Answer). See `docs/architecture.md`'s "REST API and web UI" section
 for the real web-path flow.
@@ -140,12 +140,12 @@ for the real web-path flow.
 | `linguaalayam/translation/` | `TranslationService` ABC + `NoOpTranslationService` (default) and `MarianTranslationService` (disabled by default — see roadmap backlog) |
 | `linguaalayam/transliteration/` | `core.py` (formal romanisation schemes), `morphology.py` (mlmorph-based analysis), `varnam.py` (informal Manglish via the Varnam API) |
 | `linguaalayam/observability/` | Traffic/usage analytics — `RequestLog` ORM model, `RequestLoggingMiddleware` (ASGI, logs only non-bot `/search` requests with a non-empty query — not every request), `log_feature_event()` for non-request analytics events (e.g. Varnam manglish fallback), query helpers (`traffic_by_route_type`, `top_queries`, `top_clients`, `top_outbound_clicks`) |
-| `linguaalayam/api/web.py` | HTMX web UI routes (`/`, `/search`, `/settings`, `/privacy`, `/mcp/setup`) — the largest, most-changed module; owns query understanding, Manglish/Varnam fallback, AI Answer synthesis (including phrase decomposition), and template rendering |
+| `linguaalayam/api/web/` | HTMX web UI package — `routes.py` (the most-changed module, orchestrates `/search`), `llm.py`, `manglish.py`, `decomposition.py` + `synthesis.py` (per-word fallback and citation-grounded AI Answer), `presentation.py`, `confidence.py`, `templates.py`/`prompts.py`; see `docs/architecture.md`'s module table for the per-file breakdown |
 | `linguaalayam/api/app.py` | FastAPI app factory — lifespan setup (DB engine, lazy embedding service, translator), mounts the web router, REST `/lookup/*` endpoints, and the MCP server |
 | `linguaalayam/api/dependencies.py` | `get_tools()` / `get_translator()` / `get_session_factory()` — shared singletons injected into routes |
 | `linguaalayam/api/oauth.py` | `PassthroughOAuthProvider` — OAuth 2.0 authorization server for the Claude.ai browser connector |
 | `linguaalayam/api/admin.py` | `/admin/analytics` dashboard (HTMX-polling) + JSON partial, gated by HTTP Basic Auth (`ADMIN_USER`/`ADMIN_PASSWORD`) |
-| `linguaalayam/templates/`, `linguaalayam/static/` | Jinja2 templates and static assets served by `api/web.py` — see `docs/architecture.md`'s module table for the per-file breakdown |
+| `linguaalayam/templates/`, `linguaalayam/static/` | Jinja2 templates and static assets served by `api/web/routes.py` — see `docs/architecture.md`'s module table for the per-file breakdown |
 
 ### Configuration (Hydra)
 

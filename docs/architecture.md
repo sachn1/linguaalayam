@@ -54,7 +54,7 @@ see `notebooks/malayalam_fuzzy_matching_research.ipynb` and
 ```mermaid
 flowchart LR
     B[browser / API client] --> F[FastAPI: /lookup/exact, /lookup/fuzzy, /lookup/semantic]
-    B --> W[Web UI: HTMX + Jinja2, api/web.py]
+    B --> W[Web UI: HTMX + Jinja2, api/web/]
     W --> DT[DictionaryTools]
     F --> DT
     DT --> DB[(PostgreSQL: pgvector)]
@@ -71,7 +71,7 @@ copy of the app itself is kept as a manual rollback path (see `.github/workflows
 See `terraform/RUNBOOK.md` for the full Terraform-managed infra and its safe-apply policy.
 LLM synthesis has two paths: bring-your-own-key (`X-LLM-Key` header, any of Anthropic/OpenAI/TogetherAI, never
 persisted server-side), or a free server-side default (`X-LLM-Enabled: 1`, TogetherAI Qwen 3.5 9B, no user key
-needed — see `_get_server_llm()` in `api/web.py`).
+needed — see `get_server_llm()` in `api/web/llm.py`).
 
 ---
 
@@ -131,7 +131,14 @@ City/region/country come from a local MaxMind GeoLite2-City lookup (`observabili
 | `linguaalayam/mcp/server.py` | Standalone FastMCP server (stdio) — three tools + `dictionary://{headword}` resource; used by local/CLI clients |
 | `linguaalayam/mcp/remote.py` | Production MCP server mounted inside the FastAPI app at `/mcp` — shares `DictionaryTools`/the lazy embedding service with the REST API and web UI (no second DB connection or model load); OAuth passthrough, dynamic client registration |
 | `linguaalayam/mcp/shared.py` | `format_results()` — shared plain-text formatting used by both MCP server variants |
-| `linguaalayam/api/web.py` | HTMX web UI routes (`/`, `/search`, `/settings`, `/privacy`, `/mcp/setup`) — the largest, most-changed module; owns query understanding, Manglish/Varnam fallback, AI Answer synthesis (including phrase decomposition), and template rendering |
+| `linguaalayam/api/web/routes.py` | HTMX web UI routes (`/`, `/search`, `/settings`, `/privacy`, `/mcp/setup`) — the most-changed module; `search()` orchestrates query understanding, Manglish/Varnam fallback, and AI Answer synthesis via the modules below |
+| `linguaalayam/api/web/llm.py` | `make_llm()` (BYOK), `get_server_llm()` (free server-side TogetherAI default) |
+| `linguaalayam/api/web/manglish.py` | `resolve_manglish()` — Varnam/Manglish candidate resolution and "did you mean" suggestions |
+| `linguaalayam/api/web/decomposition.py` | Per-word decomposition fallback (`decompose_and_lookup()`) and citation grounding (`verify_citations()` — never trusts an LLM-claimed quote without checking it against the real dictionary text) |
+| `linguaalayam/api/web/synthesis.py` | `SynthesisStrategy` ABC + `WholePhraseSynthesis`/`DecompositionSynthesis` — turns retrieved entries into an AI Answer |
+| `linguaalayam/api/web/presentation.py` | Feature tips, query morphology, and the AI-answer nudge (`compute_ai_hint()`) |
+| `linguaalayam/api/web/confidence.py` | The shared "is this result worth showing" gate used across the above |
+| `linguaalayam/api/web/templates.py`, `prompts.py` | Shared Jinja2 environment; LLM system prompts |
 | `linguaalayam/api/app.py` | FastAPI app factory — lifespan setup (DB engine, lazy embedding service, translator), mounts the web router, REST `/lookup/*` endpoints, and the MCP server |
 | `linguaalayam/api/dependencies.py` | `get_tools()` / `get_translator()` / `get_session_factory()` — shared singletons injected into routes |
 | `linguaalayam/api/oauth.py` | `PassthroughOAuthProvider` — OAuth 2.0 authorization server for the Claude.ai browser connector (dynamic client registration, PKCE) |
@@ -139,7 +146,7 @@ City/region/country come from a local MaxMind GeoLite2-City lookup (`observabili
 | `linguaalayam/eval/` | Evaluation harness — `eval-retrieval` (CI-wired, retrieval-only metrics: hit@1, hit@k, MRR, tool attribution) plus standalone tooling for preparing eval datasets and comparing embedding models (`eval-prepare-corpus`, `eval-prepare-queries`, `eval-embedding`); LLM answer/grounding quality is not covered here |
 | `linguaalayam/scripts/ingest.py` | Ingestion entry point; corpus parsers injected via Hydra `_target_` — no hardcoded parser map |
 | `linguaalayam/translation/` | `TranslationService` ABC + `NoOpTranslationService` (default) and `MarianTranslationService` (Helsinki-NLP/opus-mt-mul-en, disabled by default — unreliable across several languages, not just one family, see docs/roadmap.md's backlog). Backend selected via `TRANSLATION_BACKEND` env var in `build_translation_service()`. Built in `app.py` lifespan, exposed through `get_translator()` in `api/dependencies.py`. |
-| `linguaalayam/templates/` | Jinja2 templates served by the web router (`api/web.py`). `base.html` provides the shared layout with i18n helpers. `index.html` is the main search page (HTMX-driven). `partials/results.html` renders search results and AI answers. User API keys and AI-synthesis/language preferences live in the settings sidebar in `base.html` (`/settings` just redirects to `/?settings=1` to open it — no standalone template). All CSS is inline per-template — no external stylesheets. HTMX partials are returned from `/search` and re-render `#results`. |
+| `linguaalayam/templates/` | Jinja2 templates served by the web router (`api/web/routes.py`). `base.html` provides the shared layout with i18n helpers. `index.html` is the main search page (HTMX-driven). `partials/results.html` renders search results and AI answers. User API keys and AI-synthesis/language preferences live in the settings sidebar in `base.html` (`/settings` just redirects to `/?settings=1` to open it — no standalone template). All CSS is inline per-template — no external stylesheets. HTMX partials are returned from `/search` and re-render `#results`. |
 | `linguaalayam/transliteration/core.py` | `is_latin_script()`, `malayalam_to_roman()`, `normalize_roman()`, `roman_to_malayalam_candidates()` — formal romanisation schemes |
 | `linguaalayam/transliteration/morphology.py` | `analyse_word()` — mlmorph-based Malayalam morphological analyser; LRU-cached, handles archaic chillu normalisation; computed once at ingest time and stored on `DatukEntry`/`SayahnaEntry` |
 | `linguaalayam/transliteration/varnam.py` | `manglish_to_malayalam()` — Varnam API client for informal Manglish transliteration; falls back to `core.roman_to_malayalam_candidates()` when unavailable |
