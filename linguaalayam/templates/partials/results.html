@@ -2,6 +2,30 @@
 <div class="answer-card">
   <p class="answer-label">AI Answer</p>
   <p>{{ answer | safe }}</p>
+  {% if decomposition_citations %}
+  {% set ns = namespace(n=0) %}
+  <p class="word-glosses">
+    {% for c in decomposition_citations %}
+    <span class="word-gloss">
+      <span class="ml">{{ c.word }}</span>{% if c.grounded %}{% set ns.n = ns.n + 1 %}<sup>{{ ns.n }}</sup>{% else %}<span class="ungrounded-mark" title="No exact dictionary match for this word — explained from general knowledge">†</span>{% endif %}
+      → "{{ c.meaning }}"
+    </span>{% if not loop.last %} · {% endif %}
+    {% endfor %}
+  </p>
+  {% set grounded_citations = decomposition_citations | selectattr('grounded') | list %}
+  {% if grounded_citations %}
+  <details class="citation-sources">
+    <summary>Dictionary sources ({{ grounded_citations | length }})</summary>
+    <ol class="citation-list">
+      {% for c in grounded_citations %}
+      <li><span class="ml">{{ c.headword }}</span> <span class="source-tag">{{ c.source }}</span> — <span class="ml">“{{ c.quote }}”</span></li>
+      {% endfor %}
+    </ol>
+  </details>
+  {% else %}
+  <p class="citation-sources-empty">No dictionary entries directly supported this answer — explained from general knowledge.</p>
+  {% endif %}
+  {% endif %}
   {% if tip %}
   <p class="answer-tip">💡 {{ tip }}</p>
   {% endif %}
@@ -228,11 +252,57 @@
 <div class="empty">No results for <strong>{{ query }}</strong></div>
 {% endif %}
 
+{% if debug and decomposition_trace %}
+<details class="debug-panel">
+  <summary>Debug: phrase decomposition trace</summary>
+  {% for w in decomposition_trace %}
+  <div class="debug-word">
+    <p class="debug-word-label">"{{ w.word }}"</p>
+    {% if w.fuzzy_senses %}
+    <p class="debug-row"><span class="debug-key">fuzzy_lookup:</span> matched directly, no Varnam needed</p>
+    {% else %}
+    <p class="debug-row"><span class="debug-key">Varnam candidates:</span>
+      {% if w.varnam_candidates %}{{ w.varnam_candidates | join(', ') }}{% else %}(none — not Latin script, or Varnam returned nothing){% endif %}
+    </p>
+    <p class="debug-row"><span class="debug-key">chosen candidate:</span>
+      {% if w.chosen_candidate %}<strong>{{ w.chosen_candidate }}</strong>{% else %}none validated against the dictionary{% endif %}
+    </p>
+    {% endif %}
+    <p class="debug-row"><span class="debug-key">senses returned ({{ w.final_senses | length }}):</span></p>
+    {% if w.final_senses %}
+    <ul class="debug-senses">
+      {% for sense in w.final_senses %}
+      <li><strong>{{ sense.headword }}</strong> ({{ sense.source }}): {{ sense.embed_text }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="debug-row debug-none">no match anywhere — not fed to the LLM at all</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% if debug_prompt %}
+  <p class="debug-word-label">Exact prompt sent to the LLM</p>
+  <p class="debug-row"><span class="debug-key">system:</span></p>
+  <pre class="debug-pre">{{ debug_prompt.system }}</pre>
+  <p class="debug-row"><span class="debug-key">content:</span></p>
+  <pre class="debug-pre">{{ debug_prompt.content }}</pre>
+  {% endif %}
+</details>
+{% endif %}
+
 <style>
   .answer-card { background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1rem; font-size: 0.95rem; line-height: 1.6; }
   .answer-card a { color: var(--accent); }
   .answer-label { font-size: 0.7rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
   .answer-tip { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px dashed var(--border); }
+  .word-glosses { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px dashed var(--border); }
+  .word-gloss sup { color: var(--accent); font-weight: 600; margin-left: 0.1rem; }
+  .ungrounded-mark { color: var(--text-muted); cursor: help; margin-left: 0.1rem; }
+  .citation-sources { margin-top: 0.5rem; font-size: 0.78rem; color: var(--text-muted); }
+  .citation-sources summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+  .citation-list { margin: 0.4rem 0 0 1.1rem; padding: 0; }
+  .citation-list li { margin: 0.2rem 0; }
+  .citation-sources-empty { margin-top: 0.5rem; font-size: 0.78rem; color: var(--text-muted); font-style: italic; }
   .ai-hint { background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius); padding: 0.6rem 1rem; margin-bottom: 1rem; font-size: 0.82rem; color: var(--text-muted); }
   .ai-hint a { color: var(--accent); text-decoration: none; border-bottom: 1px dotted var(--accent); cursor: pointer; }
   .ai-hint a:hover { border-bottom-style: solid; }
@@ -265,6 +335,15 @@
   .romanise-btn:hover { border-color: var(--accent); color: var(--accent); }
   .romanise-btn.active { border-color: var(--accent); color: var(--accent); background: #fff8f0; }
   .empty { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
+  .debug-panel { margin-top: 1.5rem; padding: 0.75rem 1rem; border: 1px dashed var(--border); border-radius: var(--radius); font-size: 0.8rem; color: var(--text-muted); }
+  .debug-panel summary { cursor: pointer; font-weight: 600; color: var(--accent); }
+  .debug-word { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); }
+  .debug-word-label { font-weight: 600; color: var(--text); margin: 0.75rem 0 0.3rem; }
+  .debug-row { margin: 0.2rem 0; }
+  .debug-key { font-weight: 600; }
+  .debug-senses { margin: 0.2rem 0 0.2rem 1.2rem; }
+  .debug-none { font-style: italic; }
+  .debug-pre { white-space: pre-wrap; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.6rem; font-size: 0.75rem; overflow-x: auto; }
   .morph-tag { font-size: 0.68rem; color: var(--accent); font-style: italic; margin-bottom: 0.35rem; }
   .archaic-note { font-size: 0.68rem; color: var(--text-muted); font-style: italic; margin-bottom: 0.35rem; cursor: help; border-bottom: 1px dashed var(--border); display: inline-block; }
   .query-morph-tag { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.6rem; font-style: italic; }

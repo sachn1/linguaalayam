@@ -13,7 +13,6 @@ Type a word in the search bar and results appear automatically. There is no mode
 - Type **English** to find Malayalam definitions: *run*, *happiness*, *ephemeral*
 - Type **Malayalam** to find definitions in any direction: *ഓടുക*, *സന്തോഷം*
 - Type **Manglish** (romanised Malayalam) to find Malayalam results: *oduka*, *santhosham*, *veedu*
-- Type a **description or phrase** to find the word: *feeling of nostalgia*, *complete absence of sound*
 
 ---
 

@@ -90,7 +90,7 @@ version_provider = "poetry"
 version_scheme = "semver2"
 tag_format = "v$version"
 major_version_zero = false
-update_changelog_on_bump = false
+update_changelog_on_bump = true
 
 [tool.pytest.ini_options]
 addopts = "--markdown-docs"

@@ -71,12 +71,14 @@ poetry run alembic upgrade head
 Download the corpora from [olam.in/p/open](https://olam.in/p/open) and place them at:
 
 ```
-data/
+data/db_corpus/
 ├── enml/
 │   ├── olam          # Olam EN→ML (TSV)
 │   └── ekkurup.yml   # Ekkurup EN→ML thesaurus (YAML)
-└── mlml/
-    └── datuk         # Datuk ML→ML (TSV)
+├── mlml/
+│   └── datuk         # Datuk ML→ML (TSV)
+└── sayahna/
+    └── *.xml         # Shabdataaravali 1917 (ML→ML, classical) — several XML volumes
 ```
 
 ---
@@ -84,7 +86,7 @@ data/
 ## Ingest
 
 ```bash
-poetry run ingest                               # full corpus ingest (all three corpora)
+poetry run ingest                               # full corpus ingest (all four corpora)
 poetry run ingest corpus=debug                  # 50-entry test ingest
 poetry run ingest embedding=multilingual_e5_large
 ```

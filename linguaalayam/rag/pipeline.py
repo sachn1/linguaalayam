@@ -65,7 +65,7 @@ def build_pipeline(
     cfg : DictConfig
         Pipeline configuration; recognised keys: ``top_k`` (int, default 5),
         ``source`` (str, default None), ``rerank`` (bool, default False),
-        ``fuzzy_threshold`` (float, default 0.3), ``fuzzy_limit`` (int, default 10).
+        ``fuzzy_threshold`` (float, default 0.75), ``fuzzy_limit`` (int, default 10).
     reranker : CrossEncoderReranker or None, optional
         Cross-encoder reranker; only used when ``cfg.rerank`` is ``True``.
 
@@ -77,7 +77,7 @@ def build_pipeline(
     top_k: int = cfg.get("top_k", 5)
     source: str | None = cfg.get("source", None)
     use_rerank: bool = cfg.get("rerank", False)
-    fuzzy_threshold: float = cfg.get("fuzzy_threshold", 0.3)
+    fuzzy_threshold: float = cfg.get("fuzzy_threshold", 0.75)
     fuzzy_limit: int = cfg.get("fuzzy_limit", 10)
 
     def understand_node(state: RAGState) -> dict:

@@ -115,7 +115,7 @@ def run_eval(
     """
     dataset = queries if queries is not None else load_dataset(cfg.dataset)
     top_k: int = cfg.get("top_k", 5)
-    fuzzy_threshold: float = cfg.get("fuzzy_threshold", 0.3)
+    fuzzy_threshold: float = cfg.get("fuzzy_threshold", 0.75)
     fuzzy_limit: int = cfg.get("fuzzy_limit", 10)
 
     return [
