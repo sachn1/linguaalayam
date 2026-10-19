@@ -1,10 +1,12 @@
 """Shared fixtures and test doubles for the LinguAalayam test suite."""
 
+import sys
+from unittest.mock import MagicMock
+
 import numpy as np
 import pytest
 from omegaconf import OmegaConf
 
-from linguaalayam.embeddings import service as embedding_service
 from linguaalayam.embeddings.service import EmbeddingService
 from linguaalayam.models.entries import OlamEntry
 
@@ -39,8 +41,14 @@ def embedding_cfg():
 
 @pytest.fixture()
 def dummy_service(monkeypatch, embedding_cfg):
-    """EmbeddingService backed by DummyModel — no real model loaded."""
-    monkeypatch.setattr(embedding_service, "SentenceTransformer", lambda *a, **kw: DummyModel())
+    """EmbeddingService backed by DummyModel — no real model loaded.
+
+    ``sentence_transformers`` is imported lazily inside EmbeddingService.__init__
+    (see its docstring), so there's no module-level attribute to monkeypatch —
+    inject a fake module into sys.modules instead, for the lazy import to pick up.
+    """
+    fake_module = MagicMock(SentenceTransformer=lambda *a, **kw: DummyModel())
+    monkeypatch.setitem(sys.modules, "sentence_transformers", fake_module)
     return EmbeddingService(embedding_cfg)
 
 

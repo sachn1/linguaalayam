@@ -10,7 +10,7 @@ that the full auth-code + PKCE flow completes end to end.
 import base64
 import hashlib
 import secrets
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -245,7 +245,11 @@ def test_authenticated_mcp_initialize_and_list_tools():
     """
     with (
         patch("linguaalayam.api.app._ensure_docker_db"),
-        patch("linguaalayam.api.app._init_tools", return_value=MagicMock()),
+        patch("linguaalayam.api.app._init_tools", return_value=(MagicMock(), MagicMock())),
+        # Real embedding-model loading is irrelevant here (MCP OAuth flow, not
+        # semantic_lookup) and would otherwise actually load the real model in
+        # the background task _lifespan() kicks off.
+        patch("linguaalayam.api.app._load_embedding_service", new=AsyncMock()),
     ):
         with TestClient(app) as client:  # `with` runs lifespan → starts session mgr
             # origin-based flow (what the real client does): endpoints at root

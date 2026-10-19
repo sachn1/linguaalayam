@@ -18,10 +18,10 @@ def _candidate(headword: str, score: float = 1.0) -> dict:
 
 def _make_reranker(scores: list[float]) -> CrossEncoderReranker:
     """Build a CrossEncoderReranker with a mocked CrossEncoder returning scores."""
-    with patch("linguaalayam.rag.reranker.CrossEncoder") as mock_ce:
-        mock_model = MagicMock()
-        mock_ce.return_value = mock_model
-        mock_model.predict.return_value = scores
+    mock_model = MagicMock()
+    mock_model.predict.return_value = scores
+    mock_ce = MagicMock(return_value=mock_model)
+    with patch.dict("sys.modules", {"sentence_transformers": MagicMock(CrossEncoder=mock_ce)}):
         reranker = CrossEncoderReranker()
         reranker._model = mock_model
     return reranker
