@@ -31,7 +31,7 @@ understand → retrieve → [rerank?] → synthesize
 |---|---|
 | **understand** | Extracts the target headword and intent from the query using regex patterns with LLM fallback |
 | **retrieve** | Runs exact, fuzzy, and semantic search in parallel; merges and deduplicates results |
-| **rerank** | Optional cross-encoder reranking (`mmarco-mMiniLMv2-L12-H384-v1`); enabled with `rag.rerank=true` |
+| **rerank** | Optional cross-encoder reranking (`mmarco-mMiniLMv2-L12-H384-v1`); enabled with `rag.rerank=true`. **Off by default on real evidence, not just unevaluated**: tested twice against the real eval harness (including after widening the pre-rerank candidate pool so the cross-encoder had room to actually promote a candidate, not just reshuffle a pool already truncated to `top_k`) — it made EN-input Hit@1 slightly worse and demoted a correct ML-input candidate out of the top 5. Keep the code (a better cross-encoder model might do better later), but don't flip this on without re-testing against current data first |
 | **synthesize** | LLM answer constrained by `SKILLS.md` — 1–3 plain sentences, no markdown, TTS-ready. Falls back to formatted top-k candidates when `llm=nollm` |
 
 Each candidate in the output shows its source tool and similarity score:
