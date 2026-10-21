@@ -391,4 +391,6 @@ def main() -> None:  # pragma: no cover
         host="0.0.0.0",
         port=int(os.getenv("API_PORT", "8000")),
         reload=False,
+        proxy_headers=True,
+        forwarded_allow_ips="*",
     )
