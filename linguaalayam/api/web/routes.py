@@ -228,7 +228,8 @@ def search(
                 else DecompositionSynthesis(word_entries)
             )
             try:
-                answer_lang = ANSWER_LANGUAGE_NAMES.get(translation.source_lang, "English")
+                ui_locale = request.headers.get("X-UI-Locale", "en").strip() or "en"
+                answer_lang = ANSWER_LANGUAGE_NAMES.get(ui_locale, "English")
                 synthesis = strategy.synthesize(llm, q, answer_lang, debug)
                 answer = synthesis.answer
                 decomposition_citations = synthesis.citations
@@ -242,7 +243,7 @@ def search(
             answer=answer, llm_key=llm_key, llm_enabled=llm_enabled, query=q, results=results
         )
 
-    query_morphology = compute_query_morphology(q, translation)
+    query_morphology = compute_query_morphology(headword)
     tip = (
         feature_tip(
             headword,

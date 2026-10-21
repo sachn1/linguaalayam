@@ -38,6 +38,7 @@
       if (localStorage.getItem("romanise") === "1") {
         evt.detail.headers["X-Romanise"] = "1";
       }
+      evt.detail.headers["X-UI-Locale"] = localStorage.getItem("ui_locale") || "en";
     });
   </script>
   <style>
