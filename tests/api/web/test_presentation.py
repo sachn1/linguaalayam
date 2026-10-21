@@ -26,6 +26,15 @@ class TestFeatureTip:
         assert tip is not None
         assert "trace icon" in tip
 
+    def test_skip_jayasree_suppresses_trace_tip_when_no_entry_rendered(self):
+        """No confident result means no trace button exists on the page at all."""
+        tip = feature_tip("നീന്തുക", skip_jayasree=True)
+        assert tip is not None
+        assert "trace icon" not in tip
+
+    def test_none_when_both_tips_skipped(self):
+        assert feature_tip("നീന്തുക", skip_mlmorph=True, skip_jayasree=True) is None
+
 
 class TestComputeAiHint:
     """compute_ai_hint's gating: AI off, question-shaped query, no answer rendered yet."""

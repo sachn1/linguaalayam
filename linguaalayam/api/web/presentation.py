@@ -20,7 +20,9 @@ AI_HINT_MIN_WORDS = 3
 DECOMPOSE_HINT_MIN_WORDS = 2
 
 
-def feature_tip(headword: str, *, skip_mlmorph: bool = False) -> str | None:
+def feature_tip(
+    headword: str, *, skip_mlmorph: bool = False, skip_jayasree: bool = False
+) -> str | None:
     """Return a random mlmorph- or jayasree-flavoured tip for a Malayalam headword.
 
     Parameters
@@ -32,6 +34,10 @@ def feature_tip(headword: str, *, skip_mlmorph: bool = False) -> str | None:
     skip_mlmorph : bool, optional
         Pass True when the same word's mlmorph analysis is already shown
         elsewhere on the page, by default False.
+    skip_jayasree : bool, optional
+        Pass True when no trace button actually rendered on the page (e.g. no
+        confident dictionary entry was displayed) — the tip would otherwise
+        point at a button that isn't there, by default False.
 
     Returns
     -------
@@ -52,7 +58,11 @@ def feature_tip(headword: str, *, skip_mlmorph: bool = False) -> str | None:
         """Build the handwriting-trace tip."""
         return f"Curious how {headword} is written? Click the trace icon next to it above."
 
-    choices = [_jayasree_tip] if skip_mlmorph else [_mlmorph_tip, _jayasree_tip]
+    choices = []
+    if not skip_mlmorph:
+        choices.append(_mlmorph_tip)
+    if not skip_jayasree:
+        choices.append(_jayasree_tip)
     random.shuffle(choices)
     for tip_fn in choices:
         tip = tip_fn()
