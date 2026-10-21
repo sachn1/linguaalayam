@@ -71,25 +71,27 @@ def feature_tip(
     return None
 
 
-def compute_query_morphology(query: str, translation) -> str | None:
-    """Return mlmorph analysis of the raw query itself, for Malayalam queries only.
+def compute_query_morphology(headword: str) -> str | None:
+    """Return mlmorph analysis of the resolved headword, whenever it's Malayalam.
+
+    Takes the already-resolved headword (post-Varnam, if the original query
+    was Manglish) rather than the raw query, so the tag shows regardless of
+    the input-language flag — script alone is a sufficient, unambiguous
+    signal that mlmorph analysis applies.
 
     Parameters
     ----------
-    query : str
-        The raw, untranslated user query.
-    translation : TranslationResult or None
-        The translation pre-processing result, if any.
+    headword : str
+        The resolved headword the search answered.
 
     Returns
     -------
     str or None
-        A ``/``-joined label string, or None if the query isn't Malayalam or
-        mlmorph can't analyse it.
+        A ``/``-joined label string, or None if the headword isn't Malayalam
+        or mlmorph can't analyse it.
     """
-    source_is_ml = translation is None or translation.source_lang == "ml"
-    if query and source_is_ml and not is_latin_script(query):
-        labels = analyse_word(query)
+    if headword and not is_latin_script(headword):
+        labels = analyse_word(headword)
         if labels:
             return " / ".join(labels)
     return None
