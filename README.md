@@ -62,6 +62,12 @@ The MCP server is hosted at `linguaalayam.org/mcp`. Three tools: `exact_lookup`,
 
 See [linguaalayam/mcp/README.md](linguaalayam/mcp/README.md) for the JSON snippet, client-specific config file paths (Claude Desktop, Cursor, Windsurf, Cline, Continue), and self-hosted setup.
 
+<p align="center">
+  <img src="docs/images/mcp-demo-claude.png" alt="Claude using linguaalayam's MCP tools to look up a Malayalam compound word, breaking it into its component parts" width="600" />
+</p>
+
+<p align="center"><sub>Claude using <code>exact_lookup</code> and <code>fuzzy_lookup</code> to decompose a compound word not in the dictionary (<em>വ്യാവസായികോപയോഗത്തിന്</em>) into its real headwords and explain the sandhi.</sub></p>
+
 ---
 
 ## RAG pipeline
