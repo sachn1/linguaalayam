@@ -123,6 +123,22 @@ def test_search_varnam_success_sets_headword(client, mock_tools, dict_result_fac
     assert "ഓടുക" in r.text
 
 
+def test_search_manglish_resolved_headword_shows_mlmorph_tag_with_english_flag(
+    client, mock_tools, dict_result_factory
+):
+    """mlmorph tag follows the resolved headword's own script, not the input-language flag."""
+    mock_tools.exact_lookup.return_value = [
+        dict_result_factory(headword="ഓടുക", source="datuk", match_type="exact")
+    ]
+    with patch(
+        "linguaalayam.transliteration.varnam.manglish_to_malayalam",
+        return_value=["ഓടുക"],
+    ):
+        r = client.get("/search?query=oduka&lang=en-US")
+    assert r.status_code == 200
+    assert "query-morph-tag" in r.text
+
+
 def test_search_varnam_unavailable_falls_back_to_local_schemes(client, mock_tools):
     with (
         patch("linguaalayam.transliteration.varnam.manglish_to_malayalam", return_value=[]),
@@ -326,6 +342,38 @@ def test_search_still_synthesizes_short_query_without_confident_result(
         r = client.get("/search?query=run", headers={"X-LLM-Enabled": "1"})
     assert r.status_code == 200
     assert "synthesized answer" in r.text
+
+
+def test_search_answer_language_follows_ui_locale_not_input_lang(
+    client, mock_tools, dict_result_factory
+):
+    """The AI Answer's language follows the interface-language header, not the input/speech flag."""
+    mock_tools.fuzzy_lookup.return_value = [
+        {**dict_result_factory(match_type="fuzzy"), "score": 0.3}
+    ]
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "synthesized answer"
+    with patch("linguaalayam.api.web.llm.get_server_llm", return_value=mock_llm):
+        client.get(
+            "/search?query=run&lang=en-US",
+            headers={"X-LLM-Enabled": "1", "X-UI-Locale": "ml"},
+        )
+    content = mock_llm.complete.call_args[0][1]
+    assert "Respond in Malayalam." in content
+
+
+def test_search_answer_language_defaults_to_english_without_ui_locale_header(
+    client, mock_tools, dict_result_factory
+):
+    mock_tools.fuzzy_lookup.return_value = [
+        {**dict_result_factory(match_type="fuzzy"), "score": 0.3}
+    ]
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "synthesized answer"
+    with patch("linguaalayam.api.web.llm.get_server_llm", return_value=mock_llm):
+        client.get("/search?query=run", headers={"X-LLM-Enabled": "1"})
+    content = mock_llm.complete.call_args[0][1]
+    assert "Respond in English." in content
 
 
 # ── phrase decomposition for AI Answer (integration) ────────────────────────────

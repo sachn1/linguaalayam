@@ -2,7 +2,11 @@
 
 from unittest.mock import patch
 
-from linguaalayam.api.web.presentation import compute_ai_hint, feature_tip
+from linguaalayam.api.web.presentation import (
+    compute_ai_hint,
+    compute_query_morphology,
+    feature_tip,
+)
 
 
 class TestFeatureTip:
@@ -34,6 +38,25 @@ class TestFeatureTip:
 
     def test_none_when_both_tips_skipped(self):
         assert feature_tip("നീന്തുക", skip_mlmorph=True, skip_jayasree=True) is None
+
+
+class TestComputeQueryMorphology:
+    """compute_query_morphology's pure script-based detection, no input-language flag involved."""
+
+    def test_none_for_latin_headword(self):
+        assert compute_query_morphology("configure") is None
+
+    def test_shows_for_malayalam_headword(self):
+        result = compute_query_morphology("നീന്തുക")
+        assert result is not None
+
+    def test_shows_for_a_varnam_resolved_manglish_headword(self):
+        """The resolved (Malayalam) headword is analysed, not the original Latin-script query."""
+        result = compute_query_morphology("ഇരിക്കുക")
+        assert result is not None
+
+    def test_none_for_empty_headword(self):
+        assert compute_query_morphology("") is None
 
 
 class TestComputeAiHint:
