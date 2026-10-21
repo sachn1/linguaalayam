@@ -585,6 +585,31 @@ def test_search_skips_decomposition_when_ai_disabled(client, mock_tools):
     assert mock_tools.fuzzy_lookup.call_count == 1
 
 
+def test_search_still_answers_an_unmatched_single_word(client, mock_tools):
+    """A single word with zero dictionary coverage still gets an answer, not silence."""
+    mock_tools.fuzzy_lookup.return_value = []  # no whole-phrase match
+    mock_tools.exact_lookup.return_value = []
+    mock_llm = MagicMock()
+    grounded_answer = GroundedAnswer(
+        answer="a word meaning industrial use, not in this dictionary",
+        words=[],
+    )
+
+    def extract_side_effect(schema, _prompt):
+        if schema is QueryUnderstanding:
+            return QueryUnderstanding(headword="വ്യാവസായികോപയോഗത്തിന്", intent="define")
+        return grounded_answer
+
+    mock_llm.extract_structured.side_effect = extract_side_effect
+
+    with patch("linguaalayam.api.web.llm.get_server_llm", return_value=mock_llm):
+        r = client.get("/search?query=വ്യാവസായികോപയോഗത്തിന്", headers={"X-LLM-Enabled": "1"})
+
+    assert r.status_code == 200
+    assert "a word meaning industrial use, not in this dictionary" in r.text
+    assert "No dictionary entries directly supported this answer" in r.text
+
+
 # ── debug panel (?debug=1) ──────────────────────────────────────────────────
 
 

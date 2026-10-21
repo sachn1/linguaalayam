@@ -180,6 +180,7 @@ def search(
     manglish_suggestions: list[str] = []
     decomposition_trace: list[dict] = []
     decomposition_citations: list[dict] = []
+    used_decomposition = False
     debug_prompt: dict[str, str] | None = None
 
     q = query.strip()
@@ -219,11 +220,12 @@ def search(
         if llm and decompose_target and worth_synthesizing:
             word_entries, decomposition_trace = decompose_and_lookup(decompose_target, tools, src)
 
-        if (results or word_entries) and llm and worth_synthesizing:
+        if llm and worth_synthesizing:
+            used_decomposition = not (results and not word_entries)
             strategy = (
-                DecompositionSynthesis(word_entries)
-                if word_entries
-                else WholePhraseSynthesis(results, top_k)
+                WholePhraseSynthesis(results, top_k)
+                if not used_decomposition
+                else DecompositionSynthesis(word_entries)
             )
             try:
                 answer_lang = ANSWER_LANGUAGE_NAMES.get(translation.source_lang, "English")
@@ -241,7 +243,15 @@ def search(
         )
 
     query_morphology = compute_query_morphology(q, translation)
-    tip = feature_tip(headword, skip_mlmorph=bool(query_morphology)) if answer else None
+    tip = (
+        feature_tip(
+            headword,
+            skip_mlmorph=bool(query_morphology),
+            skip_jayasree=not has_confident_result(results),
+        )
+        if answer
+        else None
+    )
 
     return TEMPLATES.TemplateResponse(
         request,
@@ -264,6 +274,7 @@ def search(
             "debug": debug,
             "decomposition_trace": decomposition_trace,
             "decomposition_citations": decomposition_citations,
+            "used_decomposition": used_decomposition,
             "debug_prompt": debug_prompt,
         },
     )

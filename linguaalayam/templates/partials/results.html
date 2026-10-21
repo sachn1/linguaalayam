@@ -2,6 +2,9 @@
 <div class="answer-card">
   <p class="answer-label">AI Answer</p>
   <p>{{ answer | safe }}</p>
+  {% if used_decomposition %}
+  <p class="reasoning-note">This explanation is the AI's own reasoning — not checked against the dictionary.</p>
+  {% set grounded_citations = decomposition_citations | selectattr('grounded') | list %}
   {% if decomposition_citations %}
   {% set ns = namespace(n=0) %}
   <p class="word-glosses">
@@ -12,7 +15,8 @@
     </span>{% if not loop.last %} · {% endif %}
     {% endfor %}
   </p>
-  {% set grounded_citations = decomposition_citations | selectattr('grounded') | list %}
+  <p class="citation-legend">¹ verified against a dictionary entry · † not found, explained from general knowledge</p>
+  {% endif %}
   {% if grounded_citations %}
   <details class="citation-sources">
     <summary>Dictionary sources ({{ grounded_citations | length }})</summary>
@@ -295,7 +299,9 @@
   .answer-card a { color: var(--accent); }
   .answer-label { font-size: 0.7rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
   .answer-tip { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px dashed var(--border); }
+  .reasoning-note { font-size: 0.75rem; color: var(--text-muted); font-style: italic; margin-top: 0.5rem; }
   .word-glosses { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px dashed var(--border); }
+  .citation-legend { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem; }
   .word-gloss sup { color: var(--accent); font-weight: 600; margin-left: 0.1rem; }
   .ungrounded-mark { color: var(--text-muted); cursor: help; margin-left: 0.1rem; }
   .citation-sources { margin-top: 0.5rem; font-size: 0.78rem; color: var(--text-muted); }
