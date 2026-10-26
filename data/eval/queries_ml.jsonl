@@ -1,46 +1,56 @@
-{"query": "രാജപദം", "expected_headword": "രാജപദം", "intent": "ml_from_ml_exact", "source": null}
-{"query": "ശാബരി", "expected_headword": "ശാബരി", "intent": "ml_from_ml_exact", "source": null}
-{"query": "ജാനി", "expected_headword": "ജാനി", "intent": "ml_from_ml_exact", "source": null}
-{"query": "പൈശുനം", "expected_headword": "പൈശുനം", "intent": "ml_from_ml_exact", "source": null}
-{"query": "തഥാത്വം", "expected_headword": "തഥാത്വം", "intent": "ml_from_ml_exact", "source": null}
-{"query": "വരിപ്പണം", "expected_headword": "വരിപ്പണം", "intent": "ml_from_ml_exact", "source": null}
-{"query": "അകമുടയാൻ", "expected_headword": "അകമുടയാൻ", "intent": "ml_from_ml_exact", "source": null}
-{"query": "ധർമദേശകൻ", "expected_headword": "ധർമദേശകൻ", "intent": "ml_from_ml_exact", "source": null}
-{"query": "ആതിശയ്യം", "expected_headword": "ആതിശയ്യം", "intent": "ml_from_ml_exact", "source": null}
-{"query": "ഘ്രാണതർപ്പണം", "expected_headword": "ഘ്രാണതർപ്പണം", "intent": "ml_from_ml_exact", "source": null}
-{"query": "രാജാവിൻറെ സ്ഥിതി", "expected_headword": "രാജപദം", "intent": "ml_from_ml_semantic", "source": null}
-{"query": "ശബരന്മാർ സംസാരിച്ചിരുന്ന പ്രാകൃത ഭാഷ", "expected_headword": "ശാബരി", "intent": "ml_from_ml_semantic", "source": null}
-{"query": "\"ഭാര്യ. \"\"ജായ്\"\" എന്ന ശബ്ദം ബഹുവ്രീഹിസമാസത്തിൽ സ്വീകരിക്കുന്ന രൂപം\"", "expected_headword": "ജാനി", "intent": "ml_from_ml_semantic", "source": null}
-{"query": "ഏഷണി", "expected_headword": "പൈശുനം", "intent": "ml_from_ml_semantic", "source": null}
-{"query": "തഥാത", "expected_headword": "തഥാത്വം", "intent": "ml_from_ml_semantic", "source": null}
-{"query": "കരം", "expected_headword": "വരിപ്പണം", "intent": "ml_from_ml_semantic", "source": null}
-{"query": "ഹൃദയനാഥൻ, ഭർത്താവ്", "expected_headword": "അകമുടയാൻ", "intent": "ml_from_ml_semantic", "source": null}
-{"query": "ധർമം ഉപദേശിക്കുന്നയാൾ, ഗുരു", "expected_headword": "ധർമദേശകൻ", "intent": "ml_from_ml_semantic", "source": null}
-{"query": "അതിശയിക്കുന്ന അവസ്ഥ, അതിശയഭാവം, ആധിക്യം", "expected_headword": "ആതിശയ്യം", "intent": "ml_from_ml_semantic", "source": null}
-{"query": "സുഗന്ധം", "expected_headword": "ഘ്രാണതർപ്പണം", "intent": "ml_from_ml_semantic", "source": null}
-{"query": "നിഷ്പൗരുഷ", "expected_headword": "pusillanimous", "intent": "en_from_ml_exact", "source": null}
-{"query": "അലമാര", "expected_headword": "locker", "intent": "en_from_ml_exact", "source": null}
-{"query": "അനാഹൂത", "expected_headword": "uninvited", "intent": "en_from_ml_exact", "source": null}
-{"query": "ഘനീകരിക്കുക", "expected_headword": "boil something down", "intent": "en_from_ml_exact", "source": null}
-{"query": "അറിവ്", "expected_headword": "cognition", "intent": "en_from_ml_exact", "source": null}
-{"query": "സിംഹാസനം", "expected_headword": "throne", "intent": "en_from_ml_exact", "source": null}
-{"query": "ഉപദ്രവം", "expected_headword": "nuisance", "intent": "en_from_ml_exact", "source": null}
-{"query": "വിഡ്ഢിത്തം", "expected_headword": "tomfoolery", "intent": "en_from_ml_exact", "source": null}
-{"query": "ധിക്കരിക്കുക", "expected_headword": "stand up to someone", "intent": "en_from_ml_exact", "source": null}
-{"query": "സാമന്ത", "expected_headword": "neighbouring", "intent": "en_from_ml_exact", "source": null}
-{"query": "പ്രതാപമുള്ളവൻ. (സ്ത്രീ.) പ്രതാപവതി", "expected_headword": "eminence", "intent": "en_from_ml_semantic", "source": null}
-{"query": "ഇരുളടഞ്ഞ, കറുത്ത, മങ്ങിയ", "expected_headword": "indiscernible", "intent": "en_from_ml_semantic", "source": null}
-{"query": "വെടിപ്പുകേട്", "expected_headword": "shambles", "intent": "en_from_ml_semantic", "source": null}
-{"query": "ആചാരം അനുസരിച്ച്, പതിവനുസരിച്ച്, കീഴ്വഴക്കം അനുസരിച്ച്", "expected_headword": "normally", "intent": "en_from_ml_semantic", "source": null}
-{"query": "ഇരുളടഞ്ഞ, കറുത്ത, മങ്ങിയ", "expected_headword": "lugubrious", "intent": "en_from_ml_semantic", "source": null}
-{"query": "അഹന്ത, തണ്ട്, ഡംഭ്, പൊങ്ങച്ചം", "expected_headword": "nerve", "intent": "en_from_ml_semantic", "source": null}
-{"query": "niṣpaൗruṣa", "expected_headword": "നിഷ്പൗരുഷ", "intent": "ml_from_manglish", "source": null}
-{"query": "alamāra", "expected_headword": "അലമാര", "intent": "ml_from_manglish", "source": null}
-{"query": "anāhūta", "expected_headword": "അനാഹൂത", "intent": "ml_from_manglish", "source": null}
-{"query": "ghanīkarikkuka", "expected_headword": "ഘനീകരിക്കുക", "intent": "ml_from_manglish", "source": null}
-{"query": "aṟiv", "expected_headword": "അറിവ്", "intent": "ml_from_manglish", "source": null}
-{"query": "siṁhāsanaṁ", "expected_headword": "സിംഹാസനം", "intent": "ml_from_manglish", "source": null}
-{"query": "upadravaṁ", "expected_headword": "ഉപദ്രവം", "intent": "ml_from_manglish", "source": null}
-{"query": "viḍḍhittaṁ", "expected_headword": "വിഡ്ഢിത്തം", "intent": "ml_from_manglish", "source": null}
-{"query": "dhikkarikkuka", "expected_headword": "ധിക്കരിക്കുക", "intent": "ml_from_manglish", "source": null}
-{"query": "sāmanta", "expected_headword": "സാമന്ത", "intent": "ml_from_manglish", "source": null}
+{"query": "ധാരണ2", "expected_headword": "ധാരണ2", "intent": "ml_from_ml_exact", "source": null}
+{"query": "കത്തിവേഷം", "expected_headword": "കത്തിവേഷം", "intent": "ml_from_ml_exact", "source": null}
+{"query": "മരാമരം", "expected_headword": "മരാമരം", "intent": "ml_from_ml_exact", "source": null}
+{"query": "അനുപുരുഷൻ", "expected_headword": "അനുപുരുഷൻ", "intent": "ml_from_ml_exact", "source": null}
+{"query": "അർക്കപുത്രൻ", "expected_headword": "അർക്കപുത്രൻ", "intent": "ml_from_ml_exact", "source": null}
+{"query": "ഉപലംഭം", "expected_headword": "ഉപലംഭം", "intent": "ml_from_ml_exact", "source": null}
+{"query": "കൂരുക2", "expected_headword": "കൂരുക2", "intent": "ml_from_ml_exact", "source": null}
+{"query": "അയ്യൻ", "expected_headword": "അയ്യൻ", "intent": "ml_from_ml_exact", "source": null}
+{"query": "വാരിത", "expected_headword": "വാരിത", "intent": "ml_from_ml_exact", "source": null}
+{"query": "അവകീർണി", "expected_headword": "അവകീർണി", "intent": "ml_from_ml_exact", "source": null}
+{"query": "ഓർമ", "expected_headword": "ധാരണ2", "intent": "ml_from_ml_semantic", "source": null}
+{"query": "കഥകളിയിൽ ദുഷ്ടകഥാപാത്രങ്ങളുടെ ഒരുവക വേഷം", "expected_headword": "കത്തിവേഷം", "intent": "ml_from_ml_semantic", "source": null}
+{"query": "വലിയ വൃക്ഷം", "expected_headword": "മരാമരം", "intent": "ml_from_ml_semantic", "source": null}
+{"query": "പിന്നാലെ ചെല്ലുന്നവൻ, അനുഗൻ", "expected_headword": "അനുപുരുഷൻ", "intent": "ml_from_ml_semantic", "source": null}
+{"query": "സുഗ്രീവൻ", "expected_headword": "അർക്കപുത്രൻ", "intent": "ml_from_ml_semantic", "source": null}
+{"query": "ബോധം, അനുഭവം, പ്രത്യക്ഷം", "expected_headword": "ഉപലംഭം", "intent": "ml_from_ml_semantic", "source": null}
+{"query": "തിങ്ങുക, വർധിക്കുക", "expected_headword": "കൂരുക2", "intent": "ml_from_ml_semantic", "source": null}
+{"query": "നായാട്ടുദേവത", "expected_headword": "അയ്യൻ", "intent": "ml_from_ml_semantic", "source": null}
+{"query": "വിലക്കപ്പെട്ട", "expected_headword": "വാരിത", "intent": "ml_from_ml_semantic", "source": null}
+{"query": "വ്രതഭംഗം വന്നവൻ, ബ്രഹ്മചര്യത്തിനു ഭംഗം നേരിട്ടവൻ", "expected_headword": "അവകീർണി", "intent": "ml_from_ml_semantic", "source": null}
+{"query": "എക്കച്ചൽ", "expected_headword": "confusion", "intent": "en_from_ml_exact", "source": null}
+{"query": "സിദ്ധാന്തം", "expected_headword": "hypothesis", "intent": "en_from_ml_exact", "source": null}
+{"query": "മരപ്പാത്തി", "expected_headword": "vat", "intent": "en_from_ml_exact", "source": null}
+{"query": "വിസ്മാപക", "expected_headword": "astonishing", "intent": "en_from_ml_exact", "source": null}
+{"query": "തെല്ല്", "expected_headword": "slightly", "intent": "en_from_ml_exact", "source": null}
+{"query": "നിവർത്തുക", "expected_headword": "neaten", "intent": "en_from_ml_exact", "source": null}
+{"query": "ഭിന്നിക്കുക", "expected_headword": "differ", "intent": "en_from_ml_exact", "source": null}
+{"query": "ന്യായ്യ", "expected_headword": "plausible", "intent": "en_from_ml_exact", "source": null}
+{"query": "വിഭാഗം", "expected_headword": "partition", "intent": "en_from_ml_exact", "source": null}
+{"query": "അസമാധേയ", "expected_headword": "insoluble", "intent": "en_from_ml_exact", "source": null}
+{"query": "മറ ഉണ്ടാക്കുക", "expected_headword": "partition", "intent": "en_from_ml_semantic", "source": null}
+{"query": "വലിച്ചുകൊണ്ടുപോവുക", "expected_headword": "slide", "intent": "en_from_ml_semantic", "source": null}
+{"query": "വിലക്കപ്പെട്ട", "expected_headword": "punishable", "intent": "en_from_ml_semantic", "source": null}
+{"query": "ekkacchal", "expected_headword": "എക്കച്ചൽ", "intent": "ml_from_manglish", "source": null}
+{"query": "siddhaantham", "expected_headword": "സിദ്ധാന്തം", "intent": "ml_from_manglish", "source": null}
+{"query": "marappaatthi", "expected_headword": "മരപ്പാത്തി", "intent": "ml_from_manglish", "source": null}
+{"query": "vismaapaka", "expected_headword": "വിസ്മാപക", "intent": "ml_from_manglish", "source": null}
+{"query": "thellu", "expected_headword": "തെല്ല്", "intent": "ml_from_manglish", "source": null}
+{"query": "nivartthuka", "expected_headword": "നിവർത്തുക", "intent": "ml_from_manglish", "source": null}
+{"query": "bhinnikkuka", "expected_headword": "ഭിന്നിക്കുക", "intent": "ml_from_manglish", "source": null}
+{"query": "nyaayya", "expected_headword": "ന്യായ്യ", "intent": "ml_from_manglish", "source": null}
+{"query": "vibhaagam", "expected_headword": "വിഭാഗം", "intent": "ml_from_manglish", "source": null}
+{"query": "asamaadheya", "expected_headword": "അസമാധേയ", "intent": "ml_from_manglish", "source": null}
+{"query": "ഉലാത്തി", "expected_headword": "ഉലാത്തുക", "intent": "ml_from_inflected", "source": null}
+{"query": "നേരിട്ടു", "expected_headword": "നേരിടുക", "intent": "ml_from_inflected", "source": null}
+{"query": "ഉപഹനിച്ചു", "expected_headword": "ഉപഹനിക്കുക", "intent": "ml_from_inflected", "source": null}
+{"query": "സങ്കൽപ്പിച്ചു", "expected_headword": "സങ്കൽപ്പിക്കുക", "intent": "ml_from_inflected", "source": null}
+{"query": "ചുറവി", "expected_headword": "ചുറവുക", "intent": "ml_from_inflected", "source": null}
+{"query": "ഇണുത്തു", "expected_headword": "ഇണുക്കുക", "intent": "ml_from_inflected", "source": null}
+{"query": "തോരയിട്ടു", "expected_headword": "തോരയിടുക", "intent": "ml_from_inflected", "source": null}
+{"query": "പൊതുത്തു", "expected_headword": "പൊതുക്കുക", "intent": "ml_from_inflected", "source": null}
+{"query": "അനുമിച്ചു", "expected_headword": "അനുമിക്കുക", "intent": "ml_from_inflected", "source": null}
+{"query": "തൊകുത്തു", "expected_headword": "തൊകുക്കുക", "intent": "ml_from_inflected", "source": null}
+{"query": "ഫ്ലൂബിഡോഡ", "expected_headword": null, "intent": "ml_true_negative", "source": null}
+{"query": "ആഹ്ലാദം", "expected_headword": "സന്തോഷം", "intent": "ml_semantic_no_overlap", "source": "datuk"}
+{"query": "കസേരയിൽ ഇരിക്കുക", "expected_headword": "ഇരിക്കുക", "intent": "ml_polysemous_disambiguation", "source": "datuk"}

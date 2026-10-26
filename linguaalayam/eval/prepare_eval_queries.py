@@ -1,28 +1,60 @@
 """Generate eval query files from the actual corpus data in the DB.
 
-All queries are derived from real entries — nothing is hand-crafted.
 Writes two JSONL files:
 
   data/eval/queries_en.jsonl   — queries whose input is English or Manglish
   data/eval/queries_ml.jsonl   — queries whose input is Malayalam
 
+Each record is ``{"query": ..., "expected_headword": ..., "intent": ...,
+"source": ...}`` — the one schema every intent below uses, generated or
+hand-curated alike.
+
 Intent taxonomy:
 
-  Same-corpus (single source):
+  Same-corpus (single source) — generated:
     en_from_en_exact     Olam/Ekkurup EN headword → same EN headword
     en_from_en_semantic  Ekkurup EN synonyms → EN headword
     ml_from_ml_exact     Datuk ML headword → same ML headword
     ml_from_ml_semantic  Datuk ML definition → ML headword
 
-  Cross-corpus (Ekkurup EN↔ML bridge + Datuk verification):
+  Cross-corpus (Ekkurup EN↔ML bridge + Datuk verification) — generated:
     en_from_ml_exact     ML word (from Ekkurup translation) → EN headword
     ml_from_en_exact     EN headword → ML headword (Datuk)
     ml_from_en_semantic  EN synonyms (Ekkurup) → ML headword (Datuk)
     en_from_ml_semantic  ML definition (Datuk) → EN headword (Ekkurup)
 
-  Manglish (Latin-script romanised Malayalam):
+  Manglish (Latin-script romanised Malayalam) — generated:
     ml_from_manglish     ISO-romanised ML headword → ML headword
     en_from_manglish     ISO-romanised ML headword → EN headword
+
+  Morphology (mlmorph-generated inflected forms) — generated:
+    ml_from_inflected    Inflected surface form (mlmorph Generator, <past>
+                          tag only — the one tag confirmed to generate
+                          reliably; see docs/roadmap.md's "Morphology tree
+                          for search hits" backlog item) → ML lemma headword
+
+  Hand-curated (cannot be mechanically sampled — see
+  data/eval/hand_curated_en.jsonl / hand_curated_ml.jsonl, merged in below):
+    *_true_negative            Query with no correct answer in any corpus;
+                                expected_headword is null — tests that the
+                                system doesn't confidently hallucinate a match
+    *_semantic_no_overlap      Query/answer pair verified to share no
+                                substring overlap — tests real semantic
+                                matching, not corpus-text reuse dressed up
+                                as "semantic"
+    ml_polysemous_disambiguation  A genuinely ambiguous headword with
+                                   multiple real senses; tests whether the
+                                   right sense is surfaced, not just "a"
+                                   sense
+    *_multiword_decomposition  A full sentence/phrase requiring compositional
+                                understanding, not a single headword or
+                                definition clause
+
+All generated intents are derived from real entries — nothing hand-crafted
+in that path. Hand-curated intents are maintained separately, by design:
+they test things that can't be sampled from the DB at all (there's no row
+for "this query has no answer"), and get merged into the same output files
+and schema rather than living in a parallel format.
 
 Usage:
     poetry run eval-prepare-queries
@@ -259,6 +291,51 @@ def gen_cross_intents(
     )
 
 
+def gen_ml_from_inflected(entries: list[dict], n: int) -> list[dict]:
+    """Inflected verb surface form (mlmorph Generator, <past>) → ML lemma headword.
+
+    Only the ``<past>`` tag is used — the one tag confirmed by direct testing
+    to generate reliably; ``<pres>``/``<imp>`` return empty for real roots
+    (same limitation already noted in docs/roadmap.md's "Morphology tree for
+    search hits" backlog item). A headword only qualifies if mlmorph analyses
+    it as a plain verb (``headword<v>``, not a compound decomposition).
+    """
+    from mlmorph import Analyser, Generator  # lazy import, matches project convention
+
+    analyser = Analyser()
+    generator = Generator()
+    records: list[dict] = []
+
+    for e in entries:
+        if len(records) >= n:
+            break
+        headword = e["headword"]
+        analyses = analyser.analyse(headword)
+        is_plain_verb = any(tag == f"{headword}<v>" for tag, _ in analyses)
+        if not is_plain_verb:
+            continue
+        generated = generator.generate(f"{headword}<v><past>")
+        if not generated:
+            continue
+        inflected_form = generated[0][0]
+        records.append(_make_record(inflected_form, headword, "ml_from_inflected"))
+
+    return records
+
+
+def _load_hand_curated(path: Path) -> list[dict]:
+    """Load hand-curated records from a JSONL file, or return [] if it doesn't exist yet."""
+    if not path.exists():
+        return []
+    records = []
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                records.append(json.loads(line))
+    return records
+
+
 def gen_en_from_ml_semantic(
     ekkurup_entries: list[dict],
     datuk_entries_by_hw: dict[str, dict],
@@ -312,6 +389,9 @@ def prepare_queries(
         olam_entries = _sample_entries(conn, "olam_enml", per_intent * 3, seed)
         ekkurup_entries = _sample_entries(conn, "ekkurup", per_intent * 5, seed)
         datuk_entries = _sample_entries(conn, "datuk", per_intent * 5, seed)
+        # Verb-shaped headwords are a minority of all headwords, so a much
+        # larger pool is sampled just for the inflected-form intent.
+        datuk_entries_for_morphology = _sample_entries(conn, "datuk", per_intent * 40, seed)
 
         # Full Datuk headword set for cross-corpus verification
         rows = conn.execute(
@@ -341,6 +421,7 @@ def prepare_queries(
     # ML-input intents
     ml_from_ml_exact = gen_ml_from_ml_exact(datuk_entries, per_intent)
     ml_from_ml_semantic = gen_ml_from_ml_semantic(datuk_entries, per_intent)
+    ml_from_inflected = gen_ml_from_inflected(datuk_entries_for_morphology, per_intent)
 
     # EN queries file: queries where input is Latin/English/Manglish
     en_records = (
@@ -349,6 +430,7 @@ def prepare_queries(
         + ml_from_en_exact  # input is EN, expected is ML
         + ml_from_en_semantic  # input is EN, expected is ML
         + en_from_manglish  # input is Manglish, expected is EN
+        + _load_hand_curated(out_en.parent / "hand_curated_en.jsonl")
     )
 
     # ML queries file: queries where input is Malayalam or Manglish (expected ML)
@@ -358,6 +440,8 @@ def prepare_queries(
         + en_from_ml_exact  # input is ML, expected is EN
         + en_from_ml_semantic  # input is ML, expected is EN
         + ml_from_manglish  # input is Manglish, expected is ML
+        + ml_from_inflected
+        + _load_hand_curated(out_ml.parent / "hand_curated_ml.jsonl")
     )
 
     for path, records, label in [(out_en, en_records, "EN"), (out_ml, ml_records, "ML")]:

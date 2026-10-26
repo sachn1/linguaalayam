@@ -1,50 +1,52 @@
-{"query": "Days are numbered", "expected_headword": "Days are numbered", "intent": "en_from_en_exact", "source": null}
-{"query": "Wheedle out", "expected_headword": "Wheedle out", "intent": "en_from_en_exact", "source": null}
-{"query": "Painting brush", "expected_headword": "Painting brush", "intent": "en_from_en_exact", "source": null}
-{"query": "Yowl", "expected_headword": "Yowl", "intent": "en_from_en_exact", "source": null}
-{"query": "Painless", "expected_headword": "Painless", "intent": "en_from_en_exact", "source": null}
-{"query": "Parrot fashion", "expected_headword": "Parrot fashion", "intent": "en_from_en_exact", "source": null}
-{"query": "Let slide", "expected_headword": "Let slide", "intent": "en_from_en_exact", "source": null}
-{"query": "Causationist", "expected_headword": "Causationist", "intent": "en_from_en_exact", "source": null}
-{"query": "Morbid", "expected_headword": "Morbid", "intent": "en_from_en_exact", "source": null}
-{"query": "Clutch", "expected_headword": "Clutch", "intent": "en_from_en_exact", "source": null}
-{"query": "cowardly", "expected_headword": "pusillanimous", "intent": "en_from_en_semantic", "source": null}
-{"query": "safe", "expected_headword": "locker", "intent": "en_from_en_semantic", "source": null}
-{"query": "unexpected", "expected_headword": "uninvited", "intent": "en_from_en_semantic", "source": null}
-{"query": "reduce", "expected_headword": "boil something down", "intent": "en_from_en_semantic", "source": null}
-{"query": "discernment", "expected_headword": "cognition", "intent": "en_from_en_semantic", "source": null}
-{"query": "seat of state", "expected_headword": "throne", "intent": "en_from_en_semantic", "source": null}
-{"query": "inconvenience", "expected_headword": "nuisance", "intent": "en_from_en_semantic", "source": null}
-{"query": "fooling around", "expected_headword": "tomfoolery", "intent": "en_from_en_semantic", "source": null}
-{"query": "confront", "expected_headword": "stand up to someone", "intent": "en_from_en_semantic", "source": null}
-{"query": "adjoining", "expected_headword": "neighbouring", "intent": "en_from_en_semantic", "source": null}
-{"query": "pusillanimous", "expected_headword": "നിഷ്പൗരുഷ", "intent": "ml_from_en_exact", "source": null}
-{"query": "locker", "expected_headword": "അലമാര", "intent": "ml_from_en_exact", "source": null}
-{"query": "uninvited", "expected_headword": "അനാഹൂത", "intent": "ml_from_en_exact", "source": null}
-{"query": "boil something down", "expected_headword": "ഘനീകരിക്കുക", "intent": "ml_from_en_exact", "source": null}
-{"query": "cognition", "expected_headword": "അറിവ്", "intent": "ml_from_en_exact", "source": null}
-{"query": "throne", "expected_headword": "സിംഹാസനം", "intent": "ml_from_en_exact", "source": null}
-{"query": "nuisance", "expected_headword": "ഉപദ്രവം", "intent": "ml_from_en_exact", "source": null}
-{"query": "tomfoolery", "expected_headword": "വിഡ്ഢിത്തം", "intent": "ml_from_en_exact", "source": null}
-{"query": "stand up to someone", "expected_headword": "ധിക്കരിക്കുക", "intent": "ml_from_en_exact", "source": null}
-{"query": "neighbouring", "expected_headword": "സാമന്ത", "intent": "ml_from_en_exact", "source": null}
-{"query": "cowardly", "expected_headword": "നിഷ്പൗരുഷ", "intent": "ml_from_en_semantic", "source": null}
-{"query": "safe", "expected_headword": "അലമാര", "intent": "ml_from_en_semantic", "source": null}
-{"query": "unexpected", "expected_headword": "അനാഹൂത", "intent": "ml_from_en_semantic", "source": null}
-{"query": "reduce", "expected_headword": "ഘനീകരിക്കുക", "intent": "ml_from_en_semantic", "source": null}
-{"query": "discernment", "expected_headword": "അറിവ്", "intent": "ml_from_en_semantic", "source": null}
-{"query": "seat of state", "expected_headword": "സിംഹാസനം", "intent": "ml_from_en_semantic", "source": null}
-{"query": "inconvenience", "expected_headword": "ഉപദ്രവം", "intent": "ml_from_en_semantic", "source": null}
-{"query": "fooling around", "expected_headword": "വിഡ്ഢിത്തം", "intent": "ml_from_en_semantic", "source": null}
-{"query": "confront", "expected_headword": "ധിക്കരിക്കുക", "intent": "ml_from_en_semantic", "source": null}
-{"query": "adjoining", "expected_headword": "സാമന്ത", "intent": "ml_from_en_semantic", "source": null}
-{"query": "niṣpaൗruṣa", "expected_headword": "pusillanimous", "intent": "en_from_manglish", "source": null}
-{"query": "alamāra", "expected_headword": "locker", "intent": "en_from_manglish", "source": null}
-{"query": "anāhūta", "expected_headword": "uninvited", "intent": "en_from_manglish", "source": null}
-{"query": "ghanīkarikkuka", "expected_headword": "boil something down", "intent": "en_from_manglish", "source": null}
-{"query": "aṟiv", "expected_headword": "cognition", "intent": "en_from_manglish", "source": null}
-{"query": "siṁhāsanaṁ", "expected_headword": "throne", "intent": "en_from_manglish", "source": null}
-{"query": "upadravaṁ", "expected_headword": "nuisance", "intent": "en_from_manglish", "source": null}
-{"query": "viḍḍhittaṁ", "expected_headword": "tomfoolery", "intent": "en_from_manglish", "source": null}
-{"query": "dhikkarikkuka", "expected_headword": "stand up to someone", "intent": "en_from_manglish", "source": null}
-{"query": "sāmanta", "expected_headword": "neighbouring", "intent": "en_from_manglish", "source": null}
+{"query": "Idea", "expected_headword": "Idea", "intent": "en_from_en_exact", "source": null}
+{"query": "Plumaged", "expected_headword": "Plumaged", "intent": "en_from_en_exact", "source": null}
+{"query": "Valid", "expected_headword": "Valid", "intent": "en_from_en_exact", "source": null}
+{"query": "Empress", "expected_headword": "Empress", "intent": "en_from_en_exact", "source": null}
+{"query": "Orbit", "expected_headword": "Orbit", "intent": "en_from_en_exact", "source": null}
+{"query": "Confidence", "expected_headword": "Confidence", "intent": "en_from_en_exact", "source": null}
+{"query": "Staff room", "expected_headword": "Staff room", "intent": "en_from_en_exact", "source": null}
+{"query": "Chevalier", "expected_headword": "Chevalier", "intent": "en_from_en_exact", "source": null}
+{"query": "Tea ceremony", "expected_headword": "Tea ceremony", "intent": "en_from_en_exact", "source": null}
+{"query": "Flout", "expected_headword": "Flout", "intent": "en_from_en_exact", "source": null}
+{"query": "doubt", "expected_headword": "confusion", "intent": "en_from_en_semantic", "source": null}
+{"query": "conjecture", "expected_headword": "hypothesis", "intent": "en_from_en_semantic", "source": null}
+{"query": "tank", "expected_headword": "vat", "intent": "en_from_en_semantic", "source": null}
+{"query": "burst into", "expected_headword": "dissolve into", "intent": "en_from_en_semantic", "source": null}
+{"query": "surprising", "expected_headword": "astonishing", "intent": "en_from_en_semantic", "source": null}
+{"query": "somewhat", "expected_headword": "slightly", "intent": "en_from_en_semantic", "source": null}
+{"query": "tidy (up)", "expected_headword": "neaten", "intent": "en_from_en_semantic", "source": null}
+{"query": "be different to", "expected_headword": "differ", "intent": "en_from_en_semantic", "source": null}
+{"query": "credible", "expected_headword": "plausible", "intent": "en_from_en_semantic", "source": null}
+{"query": "partitioning", "expected_headword": "partition", "intent": "en_from_en_semantic", "source": null}
+{"query": "confusion", "expected_headword": "എക്കച്ചൽ", "intent": "ml_from_en_exact", "source": null}
+{"query": "hypothesis", "expected_headword": "സിദ്ധാന്തം", "intent": "ml_from_en_exact", "source": null}
+{"query": "vat", "expected_headword": "മരപ്പാത്തി", "intent": "ml_from_en_exact", "source": null}
+{"query": "astonishing", "expected_headword": "വിസ്മാപക", "intent": "ml_from_en_exact", "source": null}
+{"query": "slightly", "expected_headword": "തെല്ല്", "intent": "ml_from_en_exact", "source": null}
+{"query": "neaten", "expected_headword": "നിവർത്തുക", "intent": "ml_from_en_exact", "source": null}
+{"query": "differ", "expected_headword": "ഭിന്നിക്കുക", "intent": "ml_from_en_exact", "source": null}
+{"query": "plausible", "expected_headword": "ന്യായ്യ", "intent": "ml_from_en_exact", "source": null}
+{"query": "partition", "expected_headword": "വിഭാഗം", "intent": "ml_from_en_exact", "source": null}
+{"query": "insoluble", "expected_headword": "അസമാധേയ", "intent": "ml_from_en_exact", "source": null}
+{"query": "doubt", "expected_headword": "എക്കച്ചൽ", "intent": "ml_from_en_semantic", "source": null}
+{"query": "conjecture", "expected_headword": "സിദ്ധാന്തം", "intent": "ml_from_en_semantic", "source": null}
+{"query": "tank", "expected_headword": "മരപ്പാത്തി", "intent": "ml_from_en_semantic", "source": null}
+{"query": "surprising", "expected_headword": "വിസ്മാപക", "intent": "ml_from_en_semantic", "source": null}
+{"query": "somewhat", "expected_headword": "തെല്ല്", "intent": "ml_from_en_semantic", "source": null}
+{"query": "tidy (up)", "expected_headword": "നിവർത്തുക", "intent": "ml_from_en_semantic", "source": null}
+{"query": "be different to", "expected_headword": "ഭിന്നിക്കുക", "intent": "ml_from_en_semantic", "source": null}
+{"query": "credible", "expected_headword": "ന്യായ്യ", "intent": "ml_from_en_semantic", "source": null}
+{"query": "partitioning", "expected_headword": "വിഭാഗം", "intent": "ml_from_en_semantic", "source": null}
+{"query": "unanswerable", "expected_headword": "അസമാധേയ", "intent": "ml_from_en_semantic", "source": null}
+{"query": "ekkacchal", "expected_headword": "confusion", "intent": "en_from_manglish", "source": null}
+{"query": "siddhaantham", "expected_headword": "hypothesis", "intent": "en_from_manglish", "source": null}
+{"query": "marappaatthi", "expected_headword": "vat", "intent": "en_from_manglish", "source": null}
+{"query": "vismaapaka", "expected_headword": "astonishing", "intent": "en_from_manglish", "source": null}
+{"query": "thellu", "expected_headword": "slightly", "intent": "en_from_manglish", "source": null}
+{"query": "nivartthuka", "expected_headword": "neaten", "intent": "en_from_manglish", "source": null}
+{"query": "bhinnikkuka", "expected_headword": "differ", "intent": "en_from_manglish", "source": null}
+{"query": "nyaayya", "expected_headword": "plausible", "intent": "en_from_manglish", "source": null}
+{"query": "vibhaagam", "expected_headword": "partition", "intent": "en_from_manglish", "source": null}
+{"query": "asamaadheya", "expected_headword": "insoluble", "intent": "en_from_manglish", "source": null}
+{"query": "zibbernaut", "expected_headword": null, "intent": "en_true_negative", "source": null}
+{"query": "ecstatic", "expected_headword": "happy", "intent": "en_semantic_no_overlap", "source": "ekkurup"}

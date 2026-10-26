@@ -1,0 +1,2 @@
+{"query": "zibbernaut", "expected_headword": null, "intent": "en_true_negative", "source": null}
+{"query": "ecstatic", "expected_headword": "happy", "intent": "en_semantic_no_overlap", "source": "ekkurup"}

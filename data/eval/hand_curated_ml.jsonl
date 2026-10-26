@@ -1,0 +1,3 @@
+{"query": "ഫ്ലൂബിഡോഡ", "expected_headword": null, "intent": "ml_true_negative", "source": null}
+{"query": "ആഹ്ലാദം", "expected_headword": "സന്തോഷം", "intent": "ml_semantic_no_overlap", "source": "datuk"}
+{"query": "കസേരയിൽ ഇരിക്കുക", "expected_headword": "ഇരിക്കുക", "intent": "ml_polysemous_disambiguation", "source": "datuk"}
